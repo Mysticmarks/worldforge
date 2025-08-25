@@ -110,6 +110,39 @@ std::optional<ResolveSquallResult> resolveSquallUrl(const std::string& squallUrl
 
 namespace Ember {
 
+struct RayTracingState : public ConfigListenerContainer {
+        bool shadows{false};
+        bool reflections{false};
+        bool globalIllumination{false};
+
+        RayTracingState() {
+                registerConfigListenerWithDefaults("rendering", "rt_shadows",
+                                                sigc::mem_fun(*this, &RayTracingState::Config_Shadows), varconf::Variable(false));
+                registerConfigListenerWithDefaults("rendering", "rt_reflections",
+                                                sigc::mem_fun(*this, &RayTracingState::Config_Reflections), varconf::Variable(false));
+                registerConfigListenerWithDefaults("rendering", "rt_globalillumination",
+                                                sigc::mem_fun(*this, &RayTracingState::Config_GI), varconf::Variable(false));
+        }
+
+        void Config_Shadows(const std::string&, const std::string&, varconf::Variable& variable) {
+                if (variable.is_bool()) {
+                        shadows = static_cast<bool>(variable);
+                }
+        }
+
+        void Config_Reflections(const std::string&, const std::string&, varconf::Variable& variable) {
+                if (variable.is_bool()) {
+                        reflections = static_cast<bool>(variable);
+                }
+        }
+
+        void Config_GI(const std::string&, const std::string&, varconf::Variable& variable) {
+                if (variable.is_bool()) {
+                        globalIllumination = static_cast<bool>(variable);
+                }
+        }
+};
+
 /**
  * @author Erik Ogenvik <erik@ogenvik.org>
  * @brief A simple listener class for the general:desiredfps config setting, which configures the capped fps.
@@ -204,11 +237,12 @@ Application::Application(Input& input,
 		mMainLoopController(mShouldQuit, mPollEris, *mSession),
 		mWorldView(nullptr),
 		mConfigSettings(std::move(configSettings)),
-		mConsoleBackend(std::make_unique<ConsoleBackend>()),
-		mConfigConsoleCommands(std::make_unique<ConfigConsoleCommands>(mConfigService)),
-		mConsoleInputBinder(std::make_unique<ConsoleInputBinder>(mInput, *mConsoleBackend)),
-		Quit("quit", this, "Quit Ember."),
-		ToggleErisPolling("toggle_erispolling", this, "Switch server polling on and off.") {
+                mConsoleBackend(std::make_unique<ConsoleBackend>()),
+                mConfigConsoleCommands(std::make_unique<ConfigConsoleCommands>(mConfigService)),
+                mConsoleInputBinder(std::make_unique<ConsoleInputBinder>(mInput, *mConsoleBackend)),
+                mRayTracingState(std::make_unique<RayTracingState>()),
+                Quit("quit", this, "Quit Ember."),
+                ToggleErisPolling("toggle_erispolling", this, "Switch server polling on and off.") {
 
 	// Change working directory
 	auto dirName = mConfigService.getHomeDirectory(BaseDirType_CONFIG);
@@ -554,11 +588,15 @@ void Application::start() {
 }
 
 void Application::runCommand(const std::string& command, const std::string& args) {
-	if (command == Quit.getCommand()) {
-		mShouldQuit = true;
-	} else if (ToggleErisPolling == command) {
-		mPollEris = !mPollEris;
-	}
+        if (command == Quit.getCommand()) {
+                mShouldQuit = true;
+        } else if (ToggleErisPolling == command) {
+                mPollEris = !mPollEris;
+        }
+}
+
+const RayTracingState& Application::getRayTracingState() const {
+        return *mRayTracingState;
 }
 
 void Application::scheduleAssetsPoll() {
