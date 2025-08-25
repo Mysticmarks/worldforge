@@ -38,6 +38,7 @@
 #include "components/navigation/Steering.h"
 
 #include "services/server/ServerService.h"
+#include "services/config/ConfigListenerContainer.h"
 
 #include "framework/MainLoopController.h"
 
@@ -110,15 +111,17 @@ MovementController::MovementController(Avatar& avatar, Camera::MainCamera& camer
 		mFreeFlyingNode(nullptr),
 		mIsFreeFlying(false),
 		mAwareness(nullptr),
-		mAwarenessVisualizer(nullptr),
-		mSteering(nullptr),
-		mConfigListenerContainer(std::make_unique<ConfigListenerContainer>()),
-		mVisualizePath(false) {
+                mAwarenessVisualizer(nullptr),
+                mSteering(nullptr),
+                mConfigListenerContainer(std::make_unique<ConfigListenerContainer>()),
+                mVisualizePath(false),
+                mWalkableClimb(100),
+                mWalkableSlopeAngle(70) {
 
 	auto evaluateLocationFn = [this, &heightProvider, &camera](EmberEntity& location) {
 		if (location.hasBBox()) {
 			try {
-				mAwareness = std::make_unique<Navigation::Awareness>(mAvatar.getEmberEntity(), heightProvider);
+                                mAwareness = std::make_unique<Navigation::Awareness>(mAvatar.getEmberEntity(), heightProvider, 64, mWalkableClimb, mWalkableSlopeAngle);
 				mAwarenessVisualizer = std::make_unique<Authoring::AwarenessVisualizer>(*mAwareness, *camera.getCamera().getSceneManager());
 				mSteering = std::make_unique<Navigation::Steering>(*mAwareness, mAvatar.getErisAvatar());
 				mSteering->EventPathUpdated.connect(sigc::mem_fun(*this, &MovementController::Steering_PathUpdated));
@@ -166,7 +169,9 @@ MovementController::MovementController(Avatar& avatar, Camera::MainCamera& camer
 	}
 
 	mConfigListenerContainer->registerConfigListenerWithDefaults("authoring", "visualizerecasttiles", sigc::mem_fun(*this, &MovementController::Config_VisualizeRecastTiles), false);
-	mConfigListenerContainer->registerConfigListenerWithDefaults("authoring", "visualizerecastpath", sigc::mem_fun(*this, &MovementController::Config_VisualizeRecastPath), false);
+        mConfigListenerContainer->registerConfigListenerWithDefaults("authoring", "visualizerecastpath", sigc::mem_fun(*this, &MovementController::Config_VisualizeRecastPath), false);
+        mConfigListenerContainer->registerConfigListenerWithDefaults("navigation", "walkableclimb", sigc::mem_fun(*this, &MovementController::Config_WalkableClimb), mWalkableClimb);
+        mConfigListenerContainer->registerConfigListenerWithDefaults("navigation", "walkableslopeangle", sigc::mem_fun(*this, &MovementController::Config_WalkableSlopeAngle), mWalkableSlopeAngle);
 
 	mMovementCommandMapper.restrictToInputMode(Input::IM_MOVEMENT);
 	avatar.getEmberEntity().Moved.connect(sigc::mem_fun(*this, &MovementController::Entity_Moved));
@@ -332,6 +337,18 @@ void MovementController::Config_VisualizeRecastPath(const std::string&, const st
 			mAwarenessVisualizer->visualizePath(std::list<WFMath::Point<3>>());
 		}
 	}
+}
+
+void MovementController::Config_WalkableClimb(const std::string&, const std::string&, varconf::Variable& var) {
+        if (var.is_int()) {
+                mWalkableClimb = static_cast<int>(var);
+        }
+}
+
+void MovementController::Config_WalkableSlopeAngle(const std::string&, const std::string&, varconf::Variable& var) {
+        if (var.is_int()) {
+                mWalkableSlopeAngle = static_cast<int>(var);
+        }
 }
 
 MovementControllerMode::Mode MovementController::getMode() const {

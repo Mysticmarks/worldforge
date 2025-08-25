@@ -32,6 +32,9 @@
 #include <sigc++/trackable.h>
 #include "framework/AutoCloseConnection.h"
 
+namespace varconf {
+class Variable;
+}
 
 namespace Ember {
 class EmberEntity;
@@ -204,7 +207,9 @@ protected:
 
 	void Config_VisualizeRecastTiles(const std::string&, const std::string&, varconf::Variable& var);
 
-	void Config_VisualizeRecastPath(const std::string&, const std::string&, varconf::Variable& var);
+        void Config_VisualizeRecastPath(const std::string&, const std::string&, varconf::Variable& var);
+        void Config_WalkableClimb(const std::string&, const std::string&, varconf::Variable& var);
+        void Config_WalkableSlopeAngle(const std::string&, const std::string&, varconf::Variable& var);
 
 	void tileRebuild();
 
@@ -263,7 +268,17 @@ protected:
 	/**
 	 * @brief True if the path used for steering should be visualized.
 	 */
-	bool mVisualizePath;
+        bool mVisualizePath;
+
+        /**
+         * @brief Maximum climb in voxels allowed for walkable surfaces.
+         */
+        int mWalkableClimb;
+
+        /**
+         * @brief Maximum walkable slope angle in degrees.
+         */
+        int mWalkableSlopeAngle;
 
 	/**
 	 * @brief An active marker used for cancelling EventService handlers.

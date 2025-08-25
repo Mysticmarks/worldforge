@@ -13,6 +13,13 @@ And if you're a world builder who wants to build your own world, this is also th
 
 To learn more about Worldforge visit our [website](http://worldforge.org/ "The main Worldforge site").
 
+### Navigation settings
+
+The avatar's navigation mesh generation can be tuned through the configuration
+keys `navigation.walkableclimb` and `navigation.walkableslopeangle`. These
+control the maximum climb in voxels (default `100`) and the maximum walkable
+slope angle in degrees (default `70`).
+
 ### Working with media
 
 An alternative to the ```media-download``` target is to instead use the raw media repo source, as found at

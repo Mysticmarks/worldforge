@@ -134,7 +134,7 @@ protected:
 
 };
 
-Awareness::Awareness(EmberEntity& avatarEntity, IHeightProvider& heightProvider, int tileSize) :
+Awareness::Awareness(EmberEntity& avatarEntity, IHeightProvider& heightProvider, int tileSize, int walkableClimb, int walkableSlopeAngle) :
 		mAvatarEntity(avatarEntity),
 		mDomainEntity(*mAvatarEntity.getEmberLocation()),
 		mHeightProvider(heightProvider),
@@ -205,10 +205,10 @@ Awareness::Awareness(EmberEntity& avatarEntity, IHeightProvider& heightProvider,
 		mCfg.cs = cellsize;
 		mCfg.ch = mCfg.cs / 2.0f; //Height of one voxel; should really only come into play when doing 3d traversal
 		//	m_cfg.ch = std::max(upper.y() - lower.y(), 100.0f); //For 2d traversal make the voxel size as large as possible
-		mCfg.walkableHeight = (int) std::ceil(h / mCfg.ch); //This is in voxels
-		mCfg.walkableClimb = 100; //TODO: implement proper system for limiting climbing; for now just use a large voxel number
-		mCfg.walkableRadius = (int) std::ceil(mAvatarRadius / mCfg.cs);
-		mCfg.walkableSlopeAngle = 70; //TODO: implement proper system for limiting climbing; for now just use 70 degrees
+                mCfg.walkableHeight = (int) std::ceil(h / mCfg.ch); //This is in voxels
+                mCfg.walkableClimb = walkableClimb;
+                mCfg.walkableRadius = (int) std::ceil(mAvatarRadius / mCfg.cs);
+                mCfg.walkableSlopeAngle = walkableSlopeAngle;
 
 		mCfg.maxEdgeLen = mCfg.walkableRadius * 8;
 		mCfg.maxSimplificationError = 1.3f;
