@@ -35,6 +35,9 @@
 #include "wfmath/point.h"
 #include "wfmath/axisbox.h"
 #include "wfmath/ball.h"
+#include "wfmath/segment.h"
+#include "wfmath/rotmatrix.h"
+#include "wfmath/intersect.h"
 #include "wfmath/stream.h"
 #include "wfmath/line.h"
 
@@ -52,12 +55,58 @@ void test_line(const Line<dim>& p)
 {
   std::cout << "Testing line: " << p << std::endl;
 
-  // test_general(p);
-  // test_shape(p);
+  test_general(p);
+  test_shape(p);
 
   assert(p == p);
 
-  // FIXME more tests
+  // Intersection and distance tests operate on the first segment when available
+  if (p.numCorners() >= 2) {
+    Segment<dim> seg(p.getCorner(0), p.getCorner(1));
+
+    // The segment should intersect its own bounding box
+    AxisBox<dim> box = seg.boundingBox();
+    assert(Intersect(seg, box, false));
+
+    // A distant box should not intersect
+    Point<dim> far_low, far_high;
+    far_low.setToOrigin();
+    far_high.setToOrigin();
+    for (int i = 0; i < dim; ++i) {
+      far_low[i] = 100;
+      far_high[i] = 101;
+    }
+    AxisBox<dim> far_box(far_low, far_high);
+    assert(!Intersect(seg, far_box, false));
+
+    // Boundary condition: touching at endpoint counts as intersection when not proper
+    AxisBox<dim> end_box(seg.endpoint(0), seg.endpoint(0));
+    assert(Intersect(seg, end_box, false));
+    assert(!Intersect(seg, end_box, true));
+
+    // Distance checks
+    CoordType dist = Distance(seg.endpoint(0), seg.endpoint(1));
+    assert(dist >= 0);
+
+    Segment<dim> zero(seg.endpoint(0), seg.endpoint(0));
+    assert(Distance(zero.endpoint(0), zero.endpoint(1)) == 0);
+  }
+
+  // Orientation tests using rotation about the first corner in 2D
+  if (dim == 2 && p.numCorners() >= 2) {
+    Line<dim> rotated = p;
+    RotMatrix<dim> m;
+    m.rotation(0, 1, numeric_constants<CoordType>::pi() / 2);
+    rotated.rotateCorner(m, 0);
+
+    Vector<dim> orig = p.getCorner(1) - p.getCorner(0);
+    Vector<dim> expect;
+    expect.zero();
+    expect[0] = -orig[1];
+    expect[1] = orig[0];
+    Vector<dim> after = rotated.getCorner(1) - rotated.getCorner(0);
+    assert(Equal(after, expect));
+  }
 }
 
 void test_modify()
@@ -118,6 +167,9 @@ int main()
   assert(line2_1 == line2_4);
 
   Line<3> line3;
+  line3.addCorner(0, Point<3>(0, 0, 0));
+  line3.addCorner(0, Point<3>(1, 0, 0));
+  assert(line3.isValid());
 
   test_line(line3);
 
