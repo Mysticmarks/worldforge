@@ -104,7 +104,9 @@ void test_quaternion(const Quaternion& q)
 
 //  std::cout << m << std::endl << q4 << std::endl;
 
-  assert(q4 == q); //FIXME 2->1 Quaternion->RotMatrix<3> mapping
+  // Converting via a rotation matrix may flip quaternion sign.
+  CoordType dot = q4.scalar() * q.scalar() + Dot(q4.vector(), q.vector());
+  assert(Equal(std::fabs(dot), 1));
 
   Vector<3> v(1, 2, 3), v2(v);
 
@@ -152,6 +154,10 @@ int main()
   Quaternion q(Vector<3>(1, 3, -std::sqrt(0.7f)), .3f);
 
   test_quaternion(q);
+
+  // Edge case: rotation of 180 degrees around the x-axis
+  Quaternion q180(Vector<3>(1, 0, 0), numeric_constants<CoordType>::pi());
+  test_quaternion(q180);
 
   return 0;
 }
