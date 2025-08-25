@@ -23,13 +23,14 @@
 #include "LodManager.h"
 #include "LodDefinitionManager.h"
 #include "NaniteLodDefinition.h"
-#include "ScaledPixelCountLodStrategy.h"
+#include "ClusterLodStrategy.h"
 
 #include <MeshLodGenerator/OgreMeshLodGenerator.h>
 #include <OgreDistanceLodStrategy.h>
 #include <OgreCamera.h>
 #include <OgreRoot.h>
 #include <OgreSceneManager.h>
+#include <vector>
 
 
 namespace Ember::OgreView::Lod {
@@ -68,7 +69,7 @@ void LodManager::loadLod(Ogre::MeshPtr mesh, const LodDefinition& def) {
 		if (def.getStrategy() == LodDefinition::LS_DISTANCE) {
 			strategy = &Ogre::DistanceLodBoxStrategy::getSingleton();
 		} else {
-			strategy = &ScaledPixelCountLodStrategy::getSingleton();
+                        strategy = &ClusterLodStrategy::getSingleton();
 		}
 		mesh->setLodStrategy(strategy);
 
@@ -115,18 +116,19 @@ void LodManager::loadLod(Ogre::MeshPtr mesh, const NaniteLodDefinition& def) {
         }
 
         const auto& clusters = def.getClusters();
-        for (const auto& cluster : clusters) {
-                bool visible = true;
-                if (camera) {
-                        Ogre::Real dist = camera->getDerivedPosition().distance(cluster.bounds.getCenter());
-                        visible = dist < camera->getFarClipDistance();
-                }
+        std::vector<size_t> selected;
+        if (camera) {
+                ClusterLodStrategy::getSingleton().selectClusters(Ogre::Matrix4::IDENTITY,
+                                                                  camera,
+                                                                  clusters,
+                                                                  1.0f,
+                                                                  selected);
+        }
 
-                if (visible) {
-                        // Placeholder: in a full implementation, cluster geometry would
-                        // be streamed from disk and appended to the mesh here.
-                        (void)cluster; // suppress unused warning
-                }
+        for (size_t idx : selected) {
+                const auto& cluster = clusters[idx];
+                // Placeholder: cluster geometry streaming would occur here
+                (void)cluster;
         }
 }
 }

@@ -26,55 +26,70 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
-#ifndef ScaledPixel_Count_Lod_Strategy_H
-#define ScaledPixel_Count_Lod_Strategy_H
+#ifndef CLUSTER_LOD_STRATEGY_H
+#define CLUSTER_LOD_STRATEGY_H
 
 #include <OgrePrerequisites.h>
 
 #include <OgreLodStrategy.h>
 #include <OgreSingleton.h>
 #include <OgreNode.h>
+#include <OgreAxisAlignedBox.h>
+#include <OgreMatrix4.h>
+
+#include "NaniteLodDefinition.h"
 
 
 namespace Ember::OgreView::Lod {
 
 /**
- * @brief LOD strategy which acts very much like the Ogre::PixelCountLodStrategy with the addition of taking scale into account.
+ * @brief LOD strategy evaluating screen-space error per cluster using hierarchical bounds.
  *
- * The reason for this is that we
- * 1) have many scaled meshes
- * 2) most of the scaled meshes are uniformly scaled
- *
- * This allows us to take scale of the parent node into account when determining LOD level, at the expense of some more processing per frame.
+ * Instead of relying on whole-mesh pixel counts, this strategy traverses a
+ * cluster hierarchy and determines LOD based on the maximum projected error of
+ * the contained clusters. It can also select multiple visible clusters for a
+ * single frame.
  */
-class ScaledPixelCountLodStrategy : public Ogre::LodStrategy, public Ogre::Singleton<ScaledPixelCountLodStrategy> {
+class ClusterLodStrategy : public Ogre::LodStrategy, public Ogre::Singleton<ClusterLodStrategy> {
 protected:
-	/// @copydoc Ogre::LodStrategy::getValueImpl
-	Ogre::Real getValueImpl(const Ogre::MovableObject* movableObject, const Ogre::Camera* camera) const override;
+        /// @copydoc Ogre::LodStrategy::getValueImpl
+        Ogre::Real getValueImpl(const Ogre::MovableObject* movableObject, const Ogre::Camera* camera) const override;
+
+        /// Compute screen-space error for a cluster bounds
+        Ogre::Real getError(const Ogre::AxisAlignedBox& bounds,
+                           const Ogre::Matrix4& transform,
+                           const Ogre::Camera* camera) const;
 
 public:
-	/** Default constructor. */
-	explicit ScaledPixelCountLodStrategy();
+        /** Default constructor. */
+        explicit ClusterLodStrategy();
 
-	~ScaledPixelCountLodStrategy() override = default;
+        ~ClusterLodStrategy() override = default;
 
 	/// @copydoc Ogre::LodStrategy::getBaseValue
 	Ogre::Real getBaseValue() const override;
 
 	/// @copydoc Ogre::LodStrategy::transformBias
-	Ogre::Real transformBias(Ogre::Real factor) const override;
+        Ogre::Real transformBias(Ogre::Real factor) const override;
 
 	/// @copydoc Ogre::LodStrategy::getIndex
-	Ogre::ushort getIndex(Ogre::Real value, const Ogre::Mesh::MeshLodUsageList& meshLodUsageList) const override;
+        Ogre::ushort getIndex(Ogre::Real value, const Ogre::Mesh::MeshLodUsageList& meshLodUsageList) const override;
 
 	/// @copydoc Ogre::LodStrategy::getIndex
-	Ogre::ushort getIndex(Ogre::Real value, const Ogre::Material::LodValueList& materialLodValueList) const override;
+        Ogre::ushort getIndex(Ogre::Real value, const Ogre::Material::LodValueList& materialLodValueList) const override;
 
 	/// @copydoc Ogre::LodStrategy::sort
-	void sort(Ogre::Mesh::MeshLodUsageList& meshLodUsageList) const override;
+        void sort(Ogre::Mesh::MeshLodUsageList& meshLodUsageList) const override;
 
 	/// @copydoc Ogre::LodStrategy::isSorted
-	bool isSorted(const Ogre::Mesh::LodValueList& values) const override;
+        bool isSorted(const Ogre::Mesh::LodValueList& values) const override;
+
+        /// Select visible clusters using hierarchical bounds
+        void selectClusters(const Ogre::Matrix4& transform,
+                            const Ogre::Camera* camera,
+                            const std::vector<NaniteLodDefinition::Cluster>& clusters,
+                            Ogre::Real errorThreshold,
+                            std::vector<size_t>& out) const;
 
 	/** Override standard Singleton retrieval.
 	@remarks
@@ -91,7 +106,7 @@ public:
 	but the implementation stays in this single compilation unit,
 	preventing link errors.
 	*/
-	static ScaledPixelCountLodStrategy& getSingleton();
+        static ClusterLodStrategy& getSingleton();
 
 	/** Override standard Singleton retrieval.
 	@remarks
@@ -108,7 +123,7 @@ public:
 	but the implementation stays in this single compilation unit,
 	preventing link errors.
 	*/
-	static ScaledPixelCountLodStrategy* getSingletonPtr();
+        static ClusterLodStrategy* getSingletonPtr();
 
 };
 /** @} */

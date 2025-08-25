@@ -7,7 +7,7 @@ add_library(ember-ogre-lod STATIC
         LodManager.cpp
         XMLLodDefinitionSerializer.cpp
         PMInjectorSignaler.cpp
-        ScaledPixelCountLodStrategy.cpp
+        ClusterLodStrategy.cpp
 
 )
 
