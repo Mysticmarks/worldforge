@@ -22,10 +22,14 @@
 
 #include "LodManager.h"
 #include "LodDefinitionManager.h"
+#include "NaniteLodDefinition.h"
 #include "ScaledPixelCountLodStrategy.h"
 
 #include <MeshLodGenerator/OgreMeshLodGenerator.h>
 #include <OgreDistanceLodStrategy.h>
+#include <OgreCamera.h>
+#include <OgreRoot.h>
+#include <OgreSceneManager.h>
 
 
 namespace Ember::OgreView::Lod {
@@ -52,11 +56,13 @@ void LodManager::loadLod(Ogre::MeshPtr mesh) {
 }
 
 void LodManager::loadLod(Ogre::MeshPtr mesh, const LodDefinition& def) {
-	if (def.getUseAutomaticLod()) {
-		Ogre::MeshLodGenerator::getSingleton().generateAutoconfiguredLodLevels(mesh);
-	} else if (def.getLodDistanceCount() == 0) {
-		mesh->removeLodLevels();
-		return;
+        if (auto nanite = dynamic_cast<const NaniteLodDefinition*>(&def)) {
+                loadLod(mesh, *nanite);
+        } else if (def.getUseAutomaticLod()) {
+                Ogre::MeshLodGenerator::getSingleton().generateAutoconfiguredLodLevels(mesh);
+        } else if (def.getLodDistanceCount() == 0) {
+                mesh->removeLodLevels();
+                return;
 	} else {
 		Ogre::LodStrategy* strategy;
 		if (def.getStrategy() == LodDefinition::LS_DISTANCE) {
@@ -85,14 +91,44 @@ void LodManager::loadLod(Ogre::MeshPtr mesh, const LodDefinition& def) {
 			mesh->removeLodLevels();
 
 			const LodDefinition::LodDistanceMap& data = def.getManualLodData();
-			if (def.getStrategy() == LodDefinition::LS_DISTANCE) {
-				// TODO: Use C++11 lambda, instead of template.
-				loadUserLodImpl(data.begin(), data.end(), mesh.get());
-			} else {
-				loadUserLodImpl(data.rbegin(), data.rend(), mesh.get());
-			}
-		}
-	}
+                        if (def.getStrategy() == LodDefinition::LS_DISTANCE) {
+                                // TODO: Use C++11 lambda, instead of template.
+                                loadUserLodImpl(data.begin(), data.end(), mesh.get());
+                        } else {
+                                loadUserLodImpl(data.rbegin(), data.rend(), mesh.get());
+                        }
+                }
+        }
+}
+
+void LodManager::loadLod(Ogre::MeshPtr mesh, const NaniteLodDefinition& def) {
+        mesh->removeLodLevels();
+
+        Ogre::Camera* camera = nullptr;
+        if (auto* root = Ogre::Root::getSingletonPtr()) {
+                if (!root->getSceneManagerIterator().end()) {
+                        auto sm = root->getSceneManagerIterator().begin()->second;
+                        if (sm && !sm->getCameraIterator().end()) {
+                                camera = sm->getCameraIterator().begin()->second;
+                        }
+                }
+        }
+
+        const auto& clusters = def.getClusters();
+        for (const auto& cluster : clusters) {
+                bool visible = true;
+                if (camera) {
+                        Ogre::Real dist = camera->getDerivedPosition().distance(cluster.bounds.getCenter());
+                        visible = dist < camera->getFarClipDistance();
+                }
+
+                if (visible) {
+                        // Placeholder: in a full implementation, cluster geometry would
+                        // be streamed from disk and appended to the mesh here.
+                        (void)cluster; // suppress unused warning
+                }
+        }
+}
 }
 
 std::string LodManager::convertMeshNameToLodName(std::string meshName) {

@@ -2,6 +2,7 @@ add_library(ember-ogre-lod STATIC
         LodLevelManager.cpp
 
         LodDefinition.cpp
+        NaniteLodDefinition.cpp
         LodDefinitionManager.cpp
         LodManager.cpp
         XMLLodDefinitionSerializer.cpp

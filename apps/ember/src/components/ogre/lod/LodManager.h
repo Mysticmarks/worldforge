@@ -24,6 +24,7 @@
 #define LODMANAGER_H
 
 #include "LodDefinition.h"
+#include "NaniteLodDefinition.h"
 #include "XMLLodDefinitionSerializer.h"
 #include "framework/Singleton.h"
 
@@ -64,7 +65,10 @@ public:
 	/**
 	 * @brief Loads LodDefinition data into the mesh.
 	 */
-	static void loadLod(Ogre::MeshPtr mesh, const LodDefinition& definition);
+        static void loadLod(Ogre::MeshPtr mesh, const LodDefinition& definition);
+
+        /// Stream Nanite style clusters into the mesh on demand
+        static void loadLod(Ogre::MeshPtr mesh, const NaniteLodDefinition& definition);
 
 private:
 
