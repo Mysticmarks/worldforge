@@ -189,8 +189,8 @@ void MetaQuery::handleFailure(const std::string& msg) {
 void MetaQuery::handleTimeout(const std::string&) {
 }
 
-long MetaQuery::getElapsed() {
-	return 0L;
+std::int64_t MetaQuery::getElapsed() {
+        return 0LL;
 }
 
 BaseConnection::BaseConnection(boost::asio::io_context& io_service, std::string cnm,

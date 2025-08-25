@@ -32,6 +32,7 @@
 #include <sigc++/trackable.h>
 
 #include <condition_variable>
+#include <cstdint>
 
 using namespace Ember::OgreView;
 using namespace Ember::OgreView::Terrain;
@@ -192,9 +193,9 @@ public:
 
 	}
 
-	bool hasElapsed(long milliseconds) {
-		return (WFMath::TimeStamp::now() - startTime).milliseconds() > milliseconds;
-	}
+        bool hasElapsed(std::int64_t milliseconds) {
+                return (WFMath::TimeStamp::now() - startTime).milliseconds() > milliseconds;
+        }
 
 };
 
@@ -222,7 +223,7 @@ public:
 			mCompletedCount(0) {
 	}
 
-	int waitForCompletion(long milliseconds) {
+        int waitForCompletion(std::int64_t milliseconds) {
 		std::unique_lock <std::mutex> lock(mMutex);
 		if (mCompletedCount) {
 			return true;

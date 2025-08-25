@@ -4,6 +4,7 @@
 #include "BaseConnection.h"
 
 #include <wfmath/timestamp.h>
+#include <cstdint>
 
 namespace Eris {
 
@@ -33,7 +34,7 @@ public:
 	size_t getServerIndex() const;
 
         /// Access the elapsed time (in milliseconds) since the query was issued
-        std::int64_t getElapsed() const;
+        std::int64_t getElapsed();
 
 	bool isComplete() const;
 

@@ -29,6 +29,7 @@
 #include <wfmath/const.h>
 #include <algorithm> // For std::pair
 #include <iosfwd>
+#include <cstdint>
 
 /** Timing related primitives in a portable fashion - note this is for interval / elapsed
 time measurement, not displaying a human readable time. */
@@ -52,14 +53,14 @@ class TimeStamp;
  * It also has the full set of comparison * operators (<, <=, >, >=, ==, !=).
  **/
 class TimeDiff {
-	TimeDiff(long sec, long usec, bool is_valid);
+        TimeDiff(std::int64_t sec, std::int64_t usec, bool is_valid);
 
 public:
 	/// construct an uninitialized TimeDiff
 	TimeDiff() : m_isvalid(false) {}
 
 	/// construct a TimeDiff of a given number of milliseconds
-	TimeDiff(long msec);
+        TimeDiff(std::int64_t msec);
 	// default copy constructor is fine
 
 	/// Get the value of a TimeDiff in milliseconds
@@ -67,10 +68,10 @@ public:
 	 * WARNING! This function does not check for overflow, if the
 	 * number of milliseconds is large
 	 **/
-	long milliseconds() const;
+        std::int64_t milliseconds() const;
 
 	/// Get the value of a TimeDiff in (seconds, microseconds)
-	std::pair<long, long> full_time() const { return std::make_pair(m_sec, m_usec); }
+        std::pair<std::int64_t, std::int64_t> full_time() const { return std::make_pair(m_sec, m_usec); }
 
 	bool isValid() const { return m_isvalid; }
 
@@ -110,7 +111,7 @@ public:
 
 private:
 	bool m_isvalid;
-	long m_sec, m_usec;
+        std::int64_t m_sec, m_usec;
 };
 
 inline bool operator>(const TimeDiff& a, const TimeDiff& b) { return b < a; }
@@ -129,19 +130,13 @@ inline bool operator!=(const TimeDiff& a, const TimeDiff& b) { return !(b == a);
  **/
 class TimeStamp {
 private:
-#ifdef _WIN32
-	// We roll our own timeval... may only need to be done for mingw32.
-	struct {
-	  long tv_sec;	/* seconds */
-	  long tv_usec;	/* microseconds */
-	} _val;
-#else
-	// POSIX, BeOS, ....
-	struct timeval _val{};
-#endif
-	bool _isvalid;
+        struct {
+                std::int64_t tv_sec;  /* seconds */
+                std::int64_t tv_usec; /* microseconds */
+        } _val{};
+        bool _isvalid;
 
-	TimeStamp(long sec, long usec, bool isvalid);
+        TimeStamp(std::int64_t sec, std::int64_t usec, bool isvalid);
 
 public:
 	/// Construct an uninitialized TimeStamp
