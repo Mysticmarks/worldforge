@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.18)
 
 project(Worldforge)
 
+if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+    message(FATAL_ERROR "Worldforge requires a 64-bit build.")
+endif()
+
 # Meta data
 set(DESCRIPTION "The Worldforge project.")
 # Setting this at the top level prevents the libs from installing any artifacts.
