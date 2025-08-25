@@ -35,6 +35,7 @@
 #include "wfmath/point.h"
 #include "wfmath/axisbox.h"
 #include "wfmath/ball.h"
+#include "wfmath/rotmatrix.h"
 #include "wfmath/stream.h"
 
 #include "general_test.h"
@@ -106,6 +107,15 @@ int main()
     assert(!Point<3>(1,2,3).isEqualTo(Point<3>()));
     assert(!Point<3>().isEqualTo(Point<3>(3,2,1)));
     assert(!Point<3>().isEqualTo(Point<3>())); //invalid points are never equal
+
+  // Verify rotateInverse undoes rotate
+  RotMatrix<3> rot;
+  rot.rotation(0, 1, numeric_constants<CoordType>::pi() / 4);
+  Point<3> orig(1,2,3);
+  Point<3> rotated = orig;
+  rotated.rotate(rot, Point<3>::ZERO());
+  rotated.rotateInverse(rot, Point<3>::ZERO());
+  assert(rotated.isEqualTo(orig));
 
   return 0;
 }

@@ -243,10 +243,18 @@ Poly2Reorient Poly2Orient<dim>::reduce(const Polygon<2>& poly, size_t skip) {
 
 template<int dim>
 inline void Poly2Orient<dim>::rotate(const RotMatrix<dim>& m, const Point<dim>& p) {
-	m_origin.rotate(m, p);
+        m_origin.rotate(m, p);
 
-	for (int j = 0; j < 2; ++j)
-		m_axes[j] = Prod(m_axes[j], m);
+        for (int j = 0; j < 2; ++j)
+                m_axes[j] = Prod(m_axes[j], m);
+}
+
+template<int dim>
+inline void Poly2Orient<dim>::rotateInverse(const RotMatrix<dim>& m, const Point<dim>& p) {
+        m_origin.rotateInverse(m, p);
+
+        for (int j = 0; j < 2; ++j)
+                m_axes[j] = ProdInv(m_axes[j], m);
 }
 
 template<int dim>

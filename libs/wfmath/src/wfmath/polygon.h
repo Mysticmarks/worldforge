@@ -269,12 +269,15 @@ public:
 	// to be used to reorient the points to match the new basis.
 	Poly2Reorient reduce(const Polygon<2>& poly, size_t skip = std::numeric_limits<size_t>::max());
 
-	void shift(const Vector<dim>& v) { if (m_origin.isValid()) m_origin += v; }
+        void shift(const Vector<dim>& v) { if (m_origin.isValid()) m_origin += v; }
 
-	void rotate(const RotMatrix<dim>& m, const Point<dim>& p);
+        void rotate(const RotMatrix<dim>& m, const Point<dim>& p);
 
-	// Rotates about the point which corresponds to "p" in the oriented plane
-	void rotate2(const RotMatrix<dim>& m, const Point<2>& p);
+        /// Rotate using the inverse of m about point p
+        void rotateInverse(const RotMatrix<dim>& m, const Point<dim>& p);
+
+        // Rotates about the point which corresponds to "p" in the oriented plane
+        void rotate2(const RotMatrix<dim>& m, const Point<2>& p);
 
 //3D only
 	void rotate(const Quaternion& q, const Point<3>& p);

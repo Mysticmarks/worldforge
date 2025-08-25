@@ -568,9 +568,8 @@ bool Intersect(const Polygon<dim>& p, const RotBox<dim>& r, bool proper) {
 	if (corners == 0)
 		return false;
 
-	Poly2Orient<dim> orient(p.m_orient);
-	// FIXME rotateInverse()
-	orient.rotate(r.m_orient.inverse(), r.m_corner0);
+        Poly2Orient<dim> orient(p.m_orient);
+        orient.rotateInverse(r.m_orient, r.m_corner0);
 
 	AxisBox<dim> b(r.m_corner0, r.m_corner0 + r.m_size);
 
@@ -595,8 +594,8 @@ bool Intersect(const Polygon<dim>& p, const RotBox<dim>& r, bool proper) {
 
 template<int dim>
 inline bool Contains(const Polygon<dim>& p, const RotBox<dim>& r, bool proper) {
-	Poly2Orient<dim> orient(p.m_orient);
-	orient.rotate(r.m_orient.inverse(), r.m_corner0);
+        Poly2Orient<dim> orient(p.m_orient);
+        orient.rotateInverse(r.m_orient, r.m_corner0);
 
 	return _PolyContainsBox(orient, p.m_poly, r.m_corner0, r.m_size, proper);
 }
@@ -608,8 +607,8 @@ inline bool Contains(const RotBox<dim>& r, const Polygon<dim>& p, bool proper) {
 
 	AxisBox<dim> b(r.m_corner0, r.m_corner0 + r.m_size);
 
-	Poly2Orient<dim> orient(p.m_orient);
-	orient.rotate(r.m_orient.inverse(), r.m_corner0);
+        Poly2Orient<dim> orient(p.m_orient);
+        orient.rotateInverse(r.m_orient, r.m_corner0);
 
 	for (size_t i = 0; i < p.m_poly.numCorners(); ++i)
 		if (!Contains(b, orient.convert(p.m_poly[i]), proper))
@@ -1178,23 +1177,23 @@ bool Intersect<2>(const Polygon<2>& r, const Point<2>& p, bool proper) {
 	const Polygon<2>::theConstIter begin = r.m_points.begin(), end = r.m_points.end();
 	bool hit = false;
 
-	for (Polygon<2>::theConstIter i = begin, j = end - 1; i != end; j = i++) {
-		bool vertically_between =
-				(((*i)[1] <= p[1] && p[1] < (*j)[1]) ||
-				 ((*j)[1] <= p[1] && p[1] < (*i)[1]));
+        for (Polygon<2>::theConstIter i = begin, j = end - 1; i != end; j = i++) {
+                bool vertically_between =
+                                ((_LessEq((*i)[1], p[1], false) && _Less(p[1], (*j)[1], false)) ||
+                                 (_LessEq((*j)[1], p[1], false) && _Less(p[1], (*i)[1], false)));
 
-		if (!vertically_between)
-			continue;
+                if (!vertically_between)
+                        continue;
 
-		CoordType x_intersect = (*i)[0] + ((*j)[0] - (*i)[0])
-										  * (p[1] - (*i)[1]) / ((*j)[1] - (*i)[1]);
+                CoordType x_intersect = (*i)[0] + ((*j)[0] - (*i)[0])
+                                                                                  * (p[1] - (*i)[1]) / ((*j)[1] - (*i)[1]);
 
-		if (Equal(p[0], x_intersect))
-			return !proper;
+                if (Equal(p[0], x_intersect))
+                        return !proper;
 
-		if (p[0] < x_intersect)
-			hit = !hit;
-	}
+                if (_Less(p[0], x_intersect, false))
+                        hit = !hit;
+        }
 
 	return hit;
 }
@@ -1216,19 +1215,19 @@ bool Intersect<2>(const Polygon<2>& p, const AxisBox<2>& b, bool proper) {
 	const Polygon<2>::theConstIter begin = p.m_points.begin(), end = p.m_points.end();
 	bool hit = false;
 
-	for (Polygon<2>::theConstIter i = begin, j = end - 1; i != end; j = i++) {
-		bool low_vertically_between =
-				(((*i)[1] <= b.m_low[1] && b.m_low[1] < (*j)[1]) ||
-				 ((*j)[1] <= b.m_low[1] && b.m_low[1] < (*i)[1]));
-		bool low_horizontally_between =
-				(((*i)[0] <= b.m_low[0] && b.m_low[0] < (*j)[0]) ||
-				 ((*j)[0] <= b.m_low[0] && b.m_low[0] < (*i)[0]));
-		bool high_vertically_between =
-				(((*i)[1] <= b.m_high[1] && b.m_high[1] < (*j)[1]) ||
-				 ((*j)[1] <= b.m_high[1] && b.m_high[1] < (*i)[1]));
-		bool high_horizontally_between =
-				(((*i)[0] <= b.m_high[0] && b.m_high[0] < (*j)[0]) ||
-				 ((*j)[0] <= b.m_high[0] && b.m_high[0] < (*i)[0]));
+        for (Polygon<2>::theConstIter i = begin, j = end - 1; i != end; j = i++) {
+                bool low_vertically_between =
+                                ((_LessEq((*i)[1], b.m_low[1], false) && _Less(b.m_low[1], (*j)[1], false)) ||
+                                 (_LessEq((*j)[1], b.m_low[1], false) && _Less(b.m_low[1], (*i)[1], false)));
+                bool low_horizontally_between =
+                                ((_LessEq((*i)[0], b.m_low[0], false) && _Less(b.m_low[0], (*j)[0], false)) ||
+                                 (_LessEq((*j)[0], b.m_low[0], false) && _Less(b.m_low[0], (*i)[0], false)));
+                bool high_vertically_between =
+                                ((_LessEq((*i)[1], b.m_high[1], false) && _Less(b.m_high[1], (*j)[1], false)) ||
+                                 (_LessEq((*j)[1], b.m_high[1], false) && _Less(b.m_high[1], (*i)[1], false)));
+                bool high_horizontally_between =
+                                ((_LessEq((*i)[0], b.m_high[0], false) && _Less(b.m_high[0], (*j)[0], false)) ||
+                                 (_LessEq((*j)[0], b.m_high[0], false) && _Less(b.m_high[0], (*i)[0], false)));
 
 		CoordType xdiff = ((*j)[0] - (*i)[0]);
 		CoordType ydiff = ((*j)[1] - (*i)[1]);
@@ -1237,44 +1236,44 @@ bool Intersect<2>(const Polygon<2>& p, const AxisBox<2>& b, bool proper) {
 			CoordType x_intersect = (*i)[0] + (b.m_low[1] - (*i)[1])
 											  * xdiff / ydiff;
 
-			if (Equal(b.m_low[0], x_intersect) || Equal(b.m_high[0], x_intersect))
-				return !proper;
-			if (b.m_low[0] < x_intersect && b.m_high[0] > x_intersect)
-				return true;
+                        if (Equal(b.m_low[0], x_intersect) || Equal(b.m_high[0], x_intersect))
+                                return !proper;
+                        if (_Less(b.m_low[0], x_intersect, false) && _Greater(b.m_high[0], x_intersect, false))
+                                return true;
 
-			// Also check for point inclusion here, only need to do this for one point
-			if (b.m_low[0] < x_intersect)
-				hit = !hit;
+                        // Also check for point inclusion here, only need to do this for one point
+                        if (_Less(b.m_low[0], x_intersect, false))
+                                hit = !hit;
 		}
 
 		if (low_horizontally_between) { // Check for edge intersect
 			CoordType y_intersect = (*i)[1] + (b.m_low[0] - (*i)[0])
 											  * ydiff / xdiff;
 
-			if (Equal(b.m_low[1], y_intersect) || Equal(b.m_high[1], y_intersect))
-				return !proper;
-			if (b.m_low[1] < y_intersect && b.m_high[1] > y_intersect)
-				return true;
+                        if (Equal(b.m_low[1], y_intersect) || Equal(b.m_high[1], y_intersect))
+                                return !proper;
+                        if (_Less(b.m_low[1], y_intersect, false) && _Greater(b.m_high[1], y_intersect, false))
+                                return true;
 		}
 
 		if (high_vertically_between) { // Check for edge intersect
 			CoordType x_intersect = (*i)[0] + (b.m_high[1] - (*i)[1])
 											  * xdiff / ydiff;
 
-			if (Equal(b.m_low[0], x_intersect) || Equal(b.m_high[0], x_intersect))
-				return !proper;
-			if (b.m_low[0] < x_intersect && b.m_high[0] > x_intersect)
-				return true;
+                        if (Equal(b.m_low[0], x_intersect) || Equal(b.m_high[0], x_intersect))
+                                return !proper;
+                        if (_Less(b.m_low[0], x_intersect, false) && _Greater(b.m_high[0], x_intersect, false))
+                                return true;
 		}
 
 		if (high_horizontally_between) { // Check for edge intersect
 			CoordType y_intersect = (*i)[1] + (b.m_high[0] - (*i)[0])
 											  * ydiff / xdiff;
 
-			if (Equal(b.m_low[1], y_intersect) || Equal(b.m_high[1], y_intersect))
-				return !proper;
-			if (b.m_low[1] < y_intersect && b.m_high[1] > y_intersect)
-				return true;
+                        if (Equal(b.m_low[1], y_intersect) || Equal(b.m_high[1], y_intersect))
+                                return !proper;
+                        if (_Less(b.m_low[1], y_intersect, false) && _Greater(b.m_high[1], y_intersect, false))
+                                return true;
 		}
 	}
 
@@ -1286,19 +1285,19 @@ bool Contains<2>(const Polygon<2>& p, const AxisBox<2>& b, bool proper) {
 	const Polygon<2>::theConstIter begin = p.m_points.begin(), end = p.m_points.end();
 	bool hit = false;
 
-	for (Polygon<2>::theConstIter i = begin, j = end - 1; i != end; j = i++) {
-		bool low_vertically_between =
-				(((*i)[1] <= b.m_low[1] && b.m_low[1] < (*j)[1]) ||
-				 ((*j)[1] <= b.m_low[1] && b.m_low[1] < (*i)[1]));
-		bool low_horizontally_between =
-				(((*i)[0] <= b.m_low[0] && b.m_low[0] < (*j)[0]) ||
-				 ((*j)[0] <= b.m_low[0] && b.m_low[0] < (*i)[0]));
-		bool high_vertically_between =
-				(((*i)[1] <= b.m_high[1] && b.m_high[1] < (*j)[1]) ||
-				 ((*j)[1] <= b.m_high[1] && b.m_high[1] < (*i)[1]));
-		bool high_horizontally_between =
-				(((*i)[0] <= b.m_high[0] && b.m_high[0] < (*j)[0]) ||
-				 ((*j)[0] <= b.m_high[0] && b.m_high[0] < (*i)[0]));
+        for (Polygon<2>::theConstIter i = begin, j = end - 1; i != end; j = i++) {
+                bool low_vertically_between =
+                                ((_LessEq((*i)[1], b.m_low[1], false) && _Less(b.m_low[1], (*j)[1], false)) ||
+                                 (_LessEq((*j)[1], b.m_low[1], false) && _Less(b.m_low[1], (*i)[1], false)));
+                bool low_horizontally_between =
+                                ((_LessEq((*i)[0], b.m_low[0], false) && _Less(b.m_low[0], (*j)[0], false)) ||
+                                 (_LessEq((*j)[0], b.m_low[0], false) && _Less(b.m_low[0], (*i)[0], false)));
+                bool high_vertically_between =
+                                ((_LessEq((*i)[1], b.m_high[1], false) && _Less(b.m_high[1], (*j)[1], false)) ||
+                                 (_LessEq((*j)[1], b.m_high[1], false) && _Less(b.m_high[1], (*i)[1], false)));
+                bool high_horizontally_between =
+                                ((_LessEq((*i)[0], b.m_high[0], false) && _Less(b.m_high[0], (*j)[0], false)) ||
+                                 (_LessEq((*j)[0], b.m_high[0], false) && _Less(b.m_high[0], (*i)[0], false)));
 
 		CoordType xdiff = ((*j)[0] - (*i)[0]);
 		CoordType ydiff = ((*j)[1] - (*i)[1]);
@@ -1307,60 +1306,64 @@ bool Contains<2>(const Polygon<2>& p, const AxisBox<2>& b, bool proper) {
 			CoordType x_intersect = (*i)[0] + (b.m_low[1] - (*i)[1])
 											  * xdiff / ydiff;
 
-			bool on_corner = Equal(b.m_low[0], x_intersect)
-							 || Equal(b.m_high[0], x_intersect);
+                        bool on_corner = Equal(b.m_low[0], x_intersect)
+                                                         || Equal(b.m_high[0], x_intersect);
 
-			if (on_corner && proper)
-				return false;
+                        if (on_corner && proper)
+                                return false;
 
-			if (!on_corner && b.m_low[0] < x_intersect && b.m_high[0] > x_intersect)
-				return false;
+                        if (!on_corner && _Less(b.m_low[0], x_intersect, false)
+                                        && _Greater(b.m_high[0], x_intersect, false))
+                                return false;
 
-			// Also check for point inclusion here, only need to do this for one point
-			if (!on_corner && b.m_low[0] < x_intersect)
-				hit = !hit;
+                        // Also check for point inclusion here, only need to do this for one point
+                        if (!on_corner && _Less(b.m_low[0], x_intersect, false))
+                                hit = !hit;
 		}
 
 		if (low_horizontally_between) { // Check for edge intersect
 			CoordType y_intersect = (*i)[1] + (b.m_low[0] - (*i)[0])
 											  * ydiff / xdiff;
 
-			bool on_corner = Equal(b.m_low[1], y_intersect)
-							 || Equal(b.m_high[1], y_intersect);
+                        bool on_corner = Equal(b.m_low[1], y_intersect)
+                                                         || Equal(b.m_high[1], y_intersect);
 
-			if (on_corner && proper)
-				return false;
+                        if (on_corner && proper)
+                                return false;
 
-			if (!on_corner && b.m_low[1] < y_intersect && b.m_high[1] > y_intersect)
-				return false;
+                        if (!on_corner && _Less(b.m_low[1], y_intersect, false)
+                                        && _Greater(b.m_high[1], y_intersect, false))
+                                return false;
 		}
 
 		if (high_vertically_between) { // Check for edge intersect
 			CoordType x_intersect = (*i)[0] + (b.m_high[1] - (*i)[1])
 											  * xdiff / ydiff;
 
-			bool on_corner = Equal(b.m_low[0], x_intersect)
-							 || Equal(b.m_high[0], x_intersect);
+                        bool on_corner = Equal(b.m_low[0], x_intersect)
+                                                         || Equal(b.m_high[0], x_intersect);
 
-			if (on_corner && proper)
-				return false;
+                        if (on_corner && proper)
+                                return false;
 
-			if (!on_corner && b.m_low[0] < x_intersect && b.m_high[0] > x_intersect)
-				return false;
+                        if (!on_corner && _Less(b.m_low[0], x_intersect, false)
+                                        && _Greater(b.m_high[0], x_intersect, false))
+                                return false;
 		}
 
 		if (high_horizontally_between) { // Check for edge intersect
 			CoordType y_intersect = (*i)[1] + (b.m_high[0] - (*i)[0])
 											  * ydiff / xdiff;
 
-			bool on_corner = Equal(b.m_low[1], y_intersect)
-							 || Equal(b.m_high[1], y_intersect);
+                        bool on_corner = Equal(b.m_low[1], y_intersect)
+                                                         || Equal(b.m_high[1], y_intersect);
 
-			if (on_corner && proper)
-				return false;
+                        if (on_corner && proper)
+                                return false;
 
-			if (!on_corner && b.m_low[1] < y_intersect && b.m_high[1] > y_intersect)
-				return false;
+                        if (!on_corner && _Less(b.m_low[1], y_intersect, false)
+                                        && _Greater(b.m_high[1], y_intersect, false))
+                                return false;
 		}
 	}
 
@@ -1515,11 +1518,11 @@ bool Contains<2>(const Polygon<2>& p, const Segment<2>& s, bool proper) {
 															: (s2.m_p1 - s2.m_p2);
 			Vector<2> segment = s.m_p2 - s.m_p1;
 
-			if (Cross(segment, poly_edge) < 0)
-				hit = !hit;
-		} else if (s.m_p1[0] < x_intersect)
-			hit = !hit;
-	}
+                        if (Cross(segment, poly_edge) < 0)
+                                hit = !hit;
+                } else if (_Less(s.m_p1[0], x_intersect, false))
+                        hit = !hit;
+        }
 
 	return proper || hit;
 }
@@ -1548,32 +1551,30 @@ bool Intersect<2>(const Polygon<2>& p, const RotBox<2>& r, bool proper) {
 	}
 
 	Point<2> ends[2];
-	ends[0] = p.m_points.back();
-	// FIXME Point<>::rotateInverse()
-	ends[0].rotate(r.m_orient.inverse(), r.m_corner0);
+        ends[0] = p.m_points.back();
+        ends[0].rotateInverse(r.m_orient, r.m_corner0);
 	int next_end = 1;
 
 	const Polygon<2>::theConstIter begin = p.m_points.begin(), end = p.m_points.end();
 	bool hit = false;
 
 	for (Polygon<2>::theConstIter i = begin; i != end; ++i) {
-		ends[next_end] = *i;
-		// FIXME Point<>::rotateInverse()
-		ends[next_end].rotate(r.m_orient.inverse(), r.m_corner0);
+                ends[next_end] = *i;
+                ends[next_end].rotateInverse(r.m_orient, r.m_corner0);
 		next_end = next_end ? 0 : 1;
 
-		bool low_vertically_between =
-				(((ends[0])[1] <= m_low[1] && m_low[1] < (ends[1])[1]) ||
-				 ((ends[1])[1] <= m_low[1] && m_low[1] < (ends[0])[1]));
-		bool low_horizontally_between =
-				(((ends[0])[0] <= m_low[0] && m_low[0] < (ends[1])[0]) ||
-				 ((ends[1])[0] <= m_low[0] && m_low[0] < (ends[0])[0]));
-		bool high_vertically_between =
-				(((ends[0])[1] <= m_high[1] && m_high[1] < (ends[1])[1]) ||
-				 ((ends[1])[1] <= m_high[1] && m_high[1] < (ends[0])[1]));
-		bool high_horizontally_between =
-				(((ends[0])[0] <= m_high[0] && m_high[0] < (ends[1])[0]) ||
-				 ((ends[1])[0] <= m_high[0] && m_high[0] < (ends[0])[0]));
+                bool low_vertically_between =
+                                ((_LessEq((ends[0])[1], m_low[1], false) && _Less(m_low[1], (ends[1])[1], false)) ||
+                                 (_LessEq((ends[1])[1], m_low[1], false) && _Less(m_low[1], (ends[0])[1], false)));
+                bool low_horizontally_between =
+                                ((_LessEq((ends[0])[0], m_low[0], false) && _Less(m_low[0], (ends[1])[0], false)) ||
+                                 (_LessEq((ends[1])[0], m_low[0], false) && _Less(m_low[0], (ends[0])[0], false)));
+                bool high_vertically_between =
+                                ((_LessEq((ends[0])[1], m_high[1], false) && _Less(m_high[1], (ends[1])[1], false)) ||
+                                 (_LessEq((ends[1])[1], m_high[1], false) && _Less(m_high[1], (ends[0])[1], false)));
+                bool high_horizontally_between =
+                                ((_LessEq((ends[0])[0], m_high[0], false) && _Less(m_high[0], (ends[1])[0], false)) ||
+                                 (_LessEq((ends[1])[0], m_high[0], false) && _Less(m_high[0], (ends[0])[0], false)));
 
 		CoordType xdiff = (ends[1])[0] - (ends[0])[0];
 		CoordType ydiff = (ends[1])[1] - (ends[0])[1];
@@ -1582,44 +1583,44 @@ bool Intersect<2>(const Polygon<2>& p, const RotBox<2>& r, bool proper) {
 			CoordType x_intersect = (ends[0])[0] + (m_low[1] - (ends[0])[1])
 												   * xdiff / ydiff;
 
-			if (Equal(m_low[0], x_intersect) || Equal(m_high[0], x_intersect))
-				return !proper;
-			if (m_low[0] < x_intersect && m_high[0] > x_intersect)
-				return true;
+                        if (Equal(m_low[0], x_intersect) || Equal(m_high[0], x_intersect))
+                                return !proper;
+                        if (_Less(m_low[0], x_intersect, false) && _Greater(m_high[0], x_intersect, false))
+                                return true;
 
-			// Also check for point inclusion here, only need to do this for one point
-			if (m_low[0] < x_intersect)
-				hit = !hit;
+                        // Also check for point inclusion here, only need to do this for one point
+                        if (_Less(m_low[0], x_intersect, false))
+                                hit = !hit;
 		}
 
 		if (low_horizontally_between) { // Check for edge intersect
 			CoordType y_intersect = (ends[0])[1] + (m_low[0] - (ends[0])[0])
 												   * ydiff / xdiff;
 
-			if (Equal(m_low[1], y_intersect) || Equal(m_high[1], y_intersect))
-				return !proper;
-			if (m_low[1] < y_intersect && m_high[1] > y_intersect)
-				return true;
+                        if (Equal(m_low[1], y_intersect) || Equal(m_high[1], y_intersect))
+                                return !proper;
+                        if (_Less(m_low[1], y_intersect, false) && _Greater(m_high[1], y_intersect, false))
+                                return true;
 		}
 
 		if (high_vertically_between) { // Check for edge intersect
 			CoordType x_intersect = (ends[0])[0] + (m_high[1] - (ends[0])[1])
 												   * xdiff / ydiff;
 
-			if (Equal(m_low[0], x_intersect) || Equal(m_high[0], x_intersect))
-				return !proper;
-			if (m_low[0] < x_intersect && m_high[0] > x_intersect)
-				return true;
+                        if (Equal(m_low[0], x_intersect) || Equal(m_high[0], x_intersect))
+                                return !proper;
+                        if (_Less(m_low[0], x_intersect, false) && _Greater(m_high[0], x_intersect, false))
+                                return true;
 		}
 
 		if (high_horizontally_between) { // Check for edge intersect
 			CoordType y_intersect = (ends[0])[1] + (m_high[0] - (ends[0])[0])
 												   * ydiff / xdiff;
 
-			if (Equal(m_low[1], y_intersect) || Equal(m_high[1], y_intersect))
-				return !proper;
-			if (m_low[1] < y_intersect && m_high[1] > y_intersect)
-				return true;
+                        if (Equal(m_low[1], y_intersect) || Equal(m_high[1], y_intersect))
+                                return !proper;
+                        if (_Less(m_low[1], y_intersect, false) && _Greater(m_high[1], y_intersect, false))
+                                return true;
 		}
 	}
 
@@ -1640,33 +1641,31 @@ bool Contains<2>(const Polygon<2>& p, const RotBox<2>& r, bool proper) {
 		}
 	}
 
-	Point<2> ends[2];
-	ends[0] = p.m_points.back();
-	// FIXME Point<>::rotateInverse()
-	ends[0].rotate(r.m_orient.inverse(), r.m_corner0);
-	int next_end = 1;
+        Point<2> ends[2];
+        ends[0] = p.m_points.back();
+        ends[0].rotateInverse(r.m_orient, r.m_corner0);
+        int next_end = 1;
 
 	const Polygon<2>::theConstIter begin = p.m_points.begin(), end = p.m_points.end();
 	bool hit = false;
 
 	for (Polygon<2>::theConstIter i = begin; i != end; ++i) {
-		ends[next_end] = *i;
-		// FIXME Point<>::rotateInverse()
-		ends[next_end].rotate(r.m_orient.inverse(), r.m_corner0);
+                ends[next_end] = *i;
+                ends[next_end].rotateInverse(r.m_orient, r.m_corner0);
 		next_end = next_end ? 0 : 1;
 
-		bool low_vertically_between =
-				(((ends[0])[1] <= m_low[1] && m_low[1] < (ends[1])[1]) ||
-				 ((ends[1])[1] <= m_low[1] && m_low[1] < (ends[0])[1]));
-		bool low_horizontally_between =
-				(((ends[0])[0] <= m_low[0] && m_low[0] < (ends[1])[0]) ||
-				 ((ends[1])[0] <= m_low[0] && m_low[0] < (ends[0])[0]));
-		bool high_vertically_between =
-				(((ends[0])[1] <= m_high[1] && m_high[1] < (ends[1])[1]) ||
-				 ((ends[1])[1] <= m_high[1] && m_high[1] < (ends[0])[1]));
-		bool high_horizontally_between =
-				(((ends[0])[0] <= m_high[0] && m_high[0] < (ends[1])[0]) ||
-				 ((ends[1])[0] <= m_high[0] && m_high[0] < (ends[0])[0]));
+                bool low_vertically_between =
+                                ((_LessEq((ends[0])[1], m_low[1], false) && _Less(m_low[1], (ends[1])[1], false)) ||
+                                 (_LessEq((ends[1])[1], m_low[1], false) && _Less(m_low[1], (ends[0])[1], false)));
+                bool low_horizontally_between =
+                                ((_LessEq((ends[0])[0], m_low[0], false) && _Less(m_low[0], (ends[1])[0], false)) ||
+                                 (_LessEq((ends[1])[0], m_low[0], false) && _Less(m_low[0], (ends[0])[0], false)));
+                bool high_vertically_between =
+                                ((_LessEq((ends[0])[1], m_high[1], false) && _Less(m_high[1], (ends[1])[1], false)) ||
+                                 (_LessEq((ends[1])[1], m_high[1], false) && _Less(m_high[1], (ends[0])[1], false)));
+                bool high_horizontally_between =
+                                ((_LessEq((ends[0])[0], m_high[0], false) && _Less(m_high[0], (ends[1])[0], false)) ||
+                                 (_LessEq((ends[1])[0], m_high[0], false) && _Less(m_high[0], (ends[0])[0], false)));
 
 		CoordType xdiff = (ends[1])[0] - (ends[0])[0];
 		CoordType ydiff = (ends[1])[1] - (ends[0])[1];
@@ -1675,60 +1674,64 @@ bool Contains<2>(const Polygon<2>& p, const RotBox<2>& r, bool proper) {
 			CoordType x_intersect = (ends[0])[0] + (m_low[1] - (ends[0])[1])
 												   * xdiff / ydiff;
 
-			bool on_corner = Equal(m_low[0], x_intersect)
-							 || Equal(m_high[0], x_intersect);
+                        bool on_corner = Equal(m_low[0], x_intersect)
+                                                         || Equal(m_high[0], x_intersect);
 
-			if (on_corner && proper)
-				return false;
+                        if (on_corner && proper)
+                                return false;
 
-			if (!on_corner && m_low[0] < x_intersect && m_high[0] > x_intersect)
-				return false;
+                        if (!on_corner && _Less(m_low[0], x_intersect, false)
+                                        && _Greater(m_high[0], x_intersect, false))
+                                return false;
 
-			// Also check for point inclusion here, only need to do this for one point
-			if (!on_corner && m_low[0] < x_intersect)
-				hit = !hit;
+                        // Also check for point inclusion here, only need to do this for one point
+                        if (!on_corner && _Less(m_low[0], x_intersect, false))
+                                hit = !hit;
 		}
 
 		if (low_horizontally_between) { // Check for edge intersect
 			CoordType y_intersect = (ends[0])[1] + (m_low[0] - (ends[0])[0])
 												   * ydiff / xdiff;
 
-			bool on_corner = Equal(m_low[1], y_intersect)
-							 || Equal(m_high[1], y_intersect);
+                        bool on_corner = Equal(m_low[1], y_intersect)
+                                                         || Equal(m_high[1], y_intersect);
 
-			if (on_corner && proper)
-				return false;
+                        if (on_corner && proper)
+                                return false;
 
-			if (!on_corner && m_low[1] < y_intersect && m_high[1] > y_intersect)
-				return false;
+                        if (!on_corner && _Less(m_low[1], y_intersect, false)
+                                        && _Greater(m_high[1], y_intersect, false))
+                                return false;
 		}
 
 		if (high_vertically_between) { // Check for edge intersect
 			CoordType x_intersect = (ends[0])[0] + (m_high[1] - (ends[0])[1])
 												   * xdiff / ydiff;
 
-			bool on_corner = Equal(m_low[0], x_intersect)
-							 || Equal(m_high[0], x_intersect);
+                        bool on_corner = Equal(m_low[0], x_intersect)
+                                                         || Equal(m_high[0], x_intersect);
 
-			if (on_corner && proper)
-				return false;
+                        if (on_corner && proper)
+                                return false;
 
-			if (!on_corner && m_low[0] < x_intersect && m_high[0] > x_intersect)
-				return false;
+                        if (!on_corner && _Less(m_low[0], x_intersect, false)
+                                        && _Greater(m_high[0], x_intersect, false))
+                                return false;
 		}
 
 		if (high_horizontally_between) { // Check for edge intersect
 			CoordType y_intersect = (ends[0])[1] + (m_high[0] - (ends[0])[0])
 												   * ydiff / xdiff;
 
-			bool on_corner = Equal(m_low[1], y_intersect)
-							 || Equal(m_high[1], y_intersect);
+                        bool on_corner = Equal(m_low[1], y_intersect)
+                                                         || Equal(m_high[1], y_intersect);
 
-			if (on_corner && proper)
-				return false;
+                        if (on_corner && proper)
+                                return false;
 
-			if (!on_corner && m_low[1] < y_intersect && m_high[1] > y_intersect)
-				return false;
+                        if (!on_corner && _Less(m_low[1], y_intersect, false)
+                                        && _Greater(m_high[1], y_intersect, false))
+                                return false;
 		}
 	}
 
