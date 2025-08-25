@@ -26,7 +26,7 @@
 
 #include "OgreInfo.h"
 #include "MeshSerializerListener.h"
-#include "ScaledPixelCountLodStrategy.h"
+#include "ClusterLodStrategy.h"
 #include <MeshLodGenerator/OgreMeshLodGenerator.h>
 
 #include "services/config/ConfigService.h"
@@ -358,9 +358,9 @@ void OgreSetup::setStandardValues() {
 	//Default to require tangents for all meshes. This could perhaps be turned off on platforms which has no use, like Android?
 	Ogre::MeshManager::getSingleton().setListener(mMeshSerializerListener.get());
 
-	//We provide our own pixel size scaled LOD strategy. Note that ownership is transferred to the LodStrategyManager, hence we won't hold on to this instance.
-	Ogre::LodStrategy* lodStrategy = OGRE_NEW Lod::ScaledPixelCountLodStrategy();
-	Ogre::LodStrategyManager::getSingleton().addStrategy(lodStrategy);
+        // Register custom cluster-based LOD strategy
+        Ogre::LodStrategy* lodStrategy = OGRE_NEW Lod::ClusterLodStrategy();
+        Ogre::LodStrategyManager::getSingleton().addStrategy(lodStrategy);
 
 	Ogre::RTShader::ShaderGenerator::initialize();
 

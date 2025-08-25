@@ -89,10 +89,10 @@ public:
 		 */
 		LS_DISTANCE,
 
-		/**
-		 * @brief It will use the pixel count of the bounding sphere inside the rendered frame.
-		 */
-		LS_PIXEL_COUNT
+                /**
+                 * @brief Uses screen-space error measured on cluster bounds.
+                 */
+                LS_PIXEL_COUNT
 	};
 
 	/**
