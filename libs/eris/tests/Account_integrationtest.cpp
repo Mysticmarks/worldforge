@@ -41,6 +41,8 @@
 #include <sigc++/adaptors/hide.h>
 
 #include <iostream>
+#include <chrono>
+#include <cstdint>
 
 namespace {
     boost::asio::io_context io_service;
@@ -58,10 +60,32 @@ public:
 		setStatus(sc);
 	}
 
-	void send(const Atlas::Objects::Root& obj) override {
-		std::cout << "Sending " << obj->getParent()
-				  << std::endl;
-	}
+        void send(const Atlas::Objects::Root& obj) override {
+                std::cout << "Sending " << obj->getParent()
+                                  << std::endl;
+        }
+};
+
+class MockConnection : public TestConnection {
+public:
+        MockConnection(const std::string& name,
+                                           const std::string& host,
+                                           short port)
+                        : TestConnection(name, host, port), lastSerial(0) {}
+
+        void send(const Atlas::Objects::Root& obj) override {
+                auto op = smart_dynamic_cast<Atlas::Objects::Operation::RootOperation>(obj);
+                if (op.isValid()) {
+                        lastSerial = op->getSerialno();
+                }
+        }
+
+        void respond(const Atlas::Objects::Operation::RootOperation& op) {
+                op->setRefno(lastSerial);
+                getResponder().handleOp(op);
+        }
+
+        std::int64_t lastSerial;
 };
 
 class TestAccount : public Eris::Account {
@@ -140,17 +164,26 @@ public:
 		netFailure(msg);
 	}
 
-	void test_handleLogoutTimeout() {
-		handleLogoutTimeout();
-	}
+        void test_handleLogoutTimeout() {
+                handleLogoutTimeout();
+        }
 
-	void test_avatarLogoutResponse(const Atlas::Objects::Operation::RootOperation& op) {
-		avatarLogoutResponse(op);
-	}
+        void test_avatarLogoutResponse(const Atlas::Objects::Operation::RootOperation& op) {
+                avatarLogoutResponse(op);
+        }
 
-	Eris::Result test_internalLogin(const std::string& u, const std::string& p) {
-		return internalLogin(u, p);
-	}
+        bool query_hasTimeout() const {
+                return static_cast<bool>(m_timeout);
+        }
+
+        void setup_makeTimeout() {
+                m_timeout = std::make_unique<Eris::TimedEvent>(m_con.getEventService(),
+                                        std::chrono::seconds(1), []() {});
+        }
+
+        Eris::Result test_internalLogin(const std::string& u, const std::string& p) {
+                return internalLogin(u, p);
+        }
 
 	static const Eris::Account::Status DISCONNECTED = Eris::Account::Status::DISCONNECTED;
 	static const Eris::Account::Status LOGGING_IN = Eris::Account::Status::LOGGING_IN;
@@ -662,38 +695,105 @@ int main() {
 		assert(acc.isLoggedIn());
 	}
 
-	// Test internalLogin()
-	{
-		TestConnection con("name", "localhost",
-												 6767);
+        // Test internalLogin()
+        {
+                TestConnection con("name", "localhost",
+                                                                                                 6767);
 
-		TestAccount acc(con);
+                TestAccount acc(con);
 
-		Eris::Result res = acc.test_internalLogin("foo", "bar");
+                Eris::Result res = acc.test_internalLogin("foo", "bar");
 
-		assert(res == Eris::NO_ERR);
-	}
+                assert(res == Eris::NO_ERR);
+        }
 
-	// FIXME Cover logoutResponse once we can fake connections.
-#if 0
-	// Test logoutResponse() does nothing when given the wrong op.
-	{
-		TestConnection * con = new TestConnection("name", "localhost",
-												  6767);
+        // Test loginResponse() with successful Info
+        {
+                MockConnection con("name", "localhost",
+                                                                                                6767);
 
-		TestAccount acc(con);
+                TestAccount acc(con);
+                SignalFlagger loginSuccess_checker;
 
-		Atlas::Objects::Operation::RootOperation op;
-		acc.test_logoutResponse(op);
-	}
-#endif
-	// FIXME Cover internalLogout once we can fake connections.
-	// FIXME Cover loginResponse once we can fake connections.
+                con.test_setStatus(Eris::BaseConnection::CONNECTED);
+                acc.LoginSuccess.connect(sigc::mem_fun(loginSuccess_checker,
+                                                                                           &SignalFlagger::set));
 
-	// Test loginComplete() does nothing when not logged in.
-	{
-		TestConnection con("name", "localhost",
-												 6767);
+                Eris::Result res = acc.login("foo", "bar");
+                assert(res == Eris::NO_ERR);
+                assert(acc.query_hasTimeout());
+                assert(!acc.isLoggedIn());
+
+                Atlas::Objects::Operation::Info info;
+                Atlas::Objects::Entity::Account p;
+                p->setId("1");
+                p->setUsername("foo");
+                info->setArgs1(p);
+                con.respond(info);
+
+                assert(acc.isLoggedIn());
+                assert(!acc.query_hasTimeout());
+                assert(loginSuccess_checker.flagged());
+        }
+
+        // Test logoutResponse() with successful Info
+        {
+                MockConnection con("name", "localhost",
+                                                                                                6767);
+
+                TestAccount acc(con);
+                bool logoutSignal = false;
+
+                con.test_setStatus(Eris::BaseConnection::CONNECTED);
+                acc.login("foo", "bar");
+                Atlas::Objects::Operation::Info info;
+                Atlas::Objects::Entity::Account p;
+                p->setId("1");
+                p->setUsername("foo");
+                info->setArgs1(p);
+                con.respond(info);
+                assert(acc.isLoggedIn());
+
+                acc.LogoutComplete.connect([&](bool clean){ logoutSignal = clean; });
+
+                Eris::Result res = acc.logout();
+                assert(res == Eris::NO_ERR);
+                assert(acc.query_hasTimeout());
+
+                Atlas::Objects::Operation::Info logoutInfo;
+                con.respond(logoutInfo);
+
+                assert(!acc.isLoggedIn());
+                assert(!acc.query_hasTimeout());
+                assert(logoutSignal);
+        }
+
+        // Test internalLogout() forced
+        {
+                MockConnection con("name", "localhost",
+                                                                                                6767);
+
+                TestAccount acc(con);
+                bool logoutSignal = true;
+
+                acc.setup_setStatus(TestAccount::LOGGED_IN);
+                acc.setup_makeTimeout();
+                acc.LogoutComplete.connect([&](bool clean){ logoutSignal = clean; });
+
+                assert(acc.query_hasTimeout());
+                assert(acc.isLoggedIn());
+
+                acc.test_internalLogout(false);
+
+                assert(!acc.isLoggedIn());
+                assert(!acc.query_hasTimeout());
+                assert(!logoutSignal);
+        }
+
+        // Test loginComplete() does nothing when not logged in.
+        {
+                TestConnection con("name", "localhost",
+                                                                                                 6767);
 
 		TestAccount acc(con);
 		Atlas::Objects::Entity::Account p;
@@ -703,25 +803,26 @@ int main() {
 		acc.test_loginComplete(p);
 	}
 
-	// Test loginComplete()
-	{
-		TestConnection con("name", "localhost",
-												 6767);
+        // Test loginComplete()
+        {
+                TestConnection con("name", "localhost",
+                                                                                                 6767);
 
-		TestAccount acc(con);
-		Atlas::Objects::Entity::Account p;
-		SignalFlagger loginSuccess_checker;
+                TestAccount acc(con);
+                Atlas::Objects::Entity::Account p;
+                SignalFlagger loginSuccess_checker;
 
-		p->setUsername("bob");
-		acc.LoginSuccess.connect(sigc::mem_fun(loginSuccess_checker,
-											   &SignalFlagger::set));
+                p->setUsername("bob");
+                acc.setup_makeTimeout();
+                acc.LoginSuccess.connect(sigc::mem_fun(loginSuccess_checker,
+                                                                                           &SignalFlagger::set));
 
-		acc.test_loginComplete(p);
+                acc.test_loginComplete(p);
 
-		assert(acc.isLoggedIn());
-		assert(loginSuccess_checker.flagged());
-		// FIXME Verify timeout has been cleared?
-	}
+                assert(acc.isLoggedIn());
+                assert(loginSuccess_checker.flagged());
+                assert(!acc.query_hasTimeout());
+        }
 
 	// Test updateFromObject() with a bad character list
 	{
