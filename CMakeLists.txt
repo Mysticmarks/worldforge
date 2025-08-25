@@ -89,6 +89,14 @@ MESSAGE(STATUS "Setting compiler warnings to '${WF_WARNING_FLAGS}'")
 #Do this globally for the whole repo
 add_compile_options(${WF_WARNING_FLAGS})
 
+option(WORLDFORGE_ENABLE_COVERAGE "Enable coverage flags for Debug builds" OFF)
+if (WORLDFORGE_ENABLE_COVERAGE AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        add_compile_options(--coverage)
+        add_link_options(--coverage)
+    endif ()
+endif ()
+
 option(BUILD_TESTING "Should tests always be built; otherwise they will be built when the 'check' target is executed." OFF)
 option(SKIP_EMBER "Skips building the Ember client." OFF)
 option(SKIP_CYPHESIS "Skips building the Cyphesis server." OFF)
