@@ -31,6 +31,8 @@
 
 #include <cassert>
 #include <iostream>
+#include <algorithm>
+#include <vector>
 
 class DataObject_unittest : public CppUnit::TestFixture {
 CPPUNIT_TEST_SUITE(DataObject_unittest);
@@ -38,13 +40,15 @@ CPPUNIT_TEST_SUITE(DataObject_unittest);
 		CPPUNIT_TEST(testConstructor_counts);
 		CPPUNIT_TEST(test_ServerAttribute);
 		CPPUNIT_TEST(test_ClientAttribute);
-		CPPUNIT_TEST(test_ClientFilter);
-		CPPUNIT_TEST(test_Handshake);
-		CPPUNIT_TEST(test_ServerSession);
-		CPPUNIT_TEST(test_ClientSession);
+                CPPUNIT_TEST(test_ClientFilter);
+                CPPUNIT_TEST(test_Handshake);
+                CPPUNIT_TEST(test_ServerSession);
+                CPPUNIT_TEST(test_ClientSession);
+                CPPUNIT_TEST(test_ExpireServerSessions);
+                CPPUNIT_TEST(test_ExpireHandshakes);
 
 
-	CPPUNIT_TEST_SUITE_END();
+        CPPUNIT_TEST_SUITE_END();
 
 private:
 	DataObject* msdo;
@@ -240,7 +244,7 @@ public:
 
 	}
 
-	void test_ClientSession() {
+        void test_ClientSession() {
 
 		std::map<std::string, std::string> sess, sess_b;
 
@@ -271,9 +275,27 @@ public:
 		CPPUNIT_ASSERT(sess_b.empty());
 
 		// negative check for session again
-		CPPUNIT_ASSERT(msdo->clientSessionExists("123123") == false);
+                CPPUNIT_ASSERT(msdo->clientSessionExists("123123") == false);
 
-	}
+        }
+
+        void test_ExpireServerSessions() {
+                msdo->addServerSession("expired1");
+                msdo->addServerSession("expired2");
+                std::vector<std::string> expired = msdo->expireServerSessions(0);
+                CPPUNIT_ASSERT(expired.size() == 2);
+                CPPUNIT_ASSERT(std::find(expired.begin(), expired.end(), "expired1") != expired.end());
+                CPPUNIT_ASSERT(msdo->serverSessionExists("expired1") == false);
+        }
+
+        void test_ExpireHandshakes() {
+                msdo->addHandshake(1);
+                msdo->addHandshake(2);
+                std::vector<unsigned int> expired = msdo->expireHandshakes(0);
+                CPPUNIT_ASSERT(expired.size() == 2);
+                CPPUNIT_ASSERT(std::find(expired.begin(), expired.end(), 1u) != expired.end());
+                CPPUNIT_ASSERT(msdo->handshakeExists(1) == false);
+        }
 
 };
 

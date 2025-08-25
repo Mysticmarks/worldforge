@@ -26,10 +26,39 @@ template<>
 struct fmt::formatter<boost::posix_time::ptime> : ostream_formatter {
 };
 
+namespace {
+template<typename MapType, typename RemoveFunc, typename ExpiryGetter>
+auto expireEntries(MapType& container, unsigned int expiry,
+                   const boost::posix_time::ptime& now,
+                   RemoveFunc removeFunc, ExpiryGetter getExpiry)
+        -> std::vector<typename MapType::key_type> {
+        std::vector<typename MapType::key_type> expired;
+        for (auto itr = container.begin(); itr != container.end();) {
+                auto key = itr->first;
+                std::string et = getExpiry(itr->second, key);
+                if (et.empty()) {
+                        et = "20000101T010000.000000";
+                }
+                auto etime = boost::posix_time::from_iso_string(et)
+                                + boost::posix_time::seconds(expiry);
+                if (now > etime) {
+                        auto itr_copy = itr;
+                        ++itr_copy;
+                        removeFunc(key);
+                        itr = itr_copy;
+                        expired.push_back(key);
+                } else {
+                        ++itr;
+                }
+        }
+        return expired;
+}
+} // namespace
+
 DataObject::DataObject() {
-	m_serverData.clear();
-	m_clientData.clear();
-	m_clientFilterData.clear();
+        m_serverData.clear();
+        m_clientData.clear();
+        m_clientFilterData.clear();
 	m_handshakeQueue.clear();
 	m_serverListreq.clear();
 	m_listreqExpiry.clear();
@@ -340,55 +369,22 @@ DataObject::getServerSessionList(uint32_t start_idx, uint32_t max_items, std::st
 	return ss_slice;
 }
 
-/*
- * TODO: this is a copy of expireHandshakes ... refactor same as keyExists<T>(blah)
- */
 std::vector<std::string>
 DataObject::expireServerSessions(unsigned int expiry) {
-	std::vector<std::string> expiredSS;
-	expiredSS.clear();
-
-	boost::posix_time::ptime now = getNow();
-	boost::posix_time::ptime etime;
-
-	/*
-	 * Option 1: etime = 0.  The end time becomes now + 0, thus guaranteed expiry.
-	 * Option 2: etime = expiry(sec). End time becomes now + expiry.
-	 *           a) expiry>0 : all entries that are older that m_handshakeExpirySeconds are removed
-	 *           b) expiry<=0 : immediate expiry by making the etime less than now.
-	 */
-	for (auto itr = m_serverData.begin(); itr != m_serverData.end();) {
-		std::string key = itr->first;
-
-		spdlog::trace("  from_iso_string ({}: {}", key, getServerExpiryIso(key));
-		etime = boost::posix_time::from_iso_string(getServerExpiryIso(key)) +
-				boost::posix_time::seconds(expiry);
-
-		/**
-		 * We need to make a copy of the iterator if we modify the
-		 * underlying container because the iterator becomes invalid
-		 */
-		if (now > etime) {
-			auto itr_copy = itr;
-			++itr_copy;
-
-			/*
-			 * This also remove listreq cache items as well as the default cache
-			 */
-			removeServerSession(key);
-			itr = itr_copy;
-			expiredSS.push_back(key);
-		} else {
-			/**
-			 * We are not modifying, just increment normally.
-			 */
-			++itr;
-		}
-
-	}
-	return expiredSS;
-
-
+        boost::posix_time::ptime now = getNow();
+        return expireEntries(m_serverData, expiry, now,
+                             [this](const std::string& key) {
+                                     /*
+                                      * This also remove listreq cache items as well as the default cache
+                                      */
+                                     removeServerSession(key);
+                             },
+                             [this](const auto&, const std::string& key) {
+                                     std::string k = key;
+                                     auto iso = getServerExpiryIso(k);
+                                     spdlog::trace("  from_iso_string ({}: {}", key, iso);
+                                     return iso;
+                             });
 }
 
 std::list<std::string>
@@ -555,55 +551,18 @@ DataObject::handshakeExists(unsigned int hs) {
 
 std::vector<unsigned int>
 DataObject::expireHandshakes(unsigned int expiry) {
-	/**
-	 * Go over handshake queue ... expire any that are older than m_handshakeExpirySeconds
-	 */
-	std::vector<unsigned int> removedHS;
-
-	boost::posix_time::ptime now = getNow();
-	boost::posix_time::ptime etime;
-
-	/*
-	 * Option 1: etime = 0.  The end time becomes now + 0, thus guaranteed expiry.m_handshakeExpirySeconds
-	 * Option 2: etime = expiry(sec). End time becomes now + expiry.
-	 *           a) expiry>0 : all entries that are older that m_handshakeExpirySeconds are removed
-	 *           b) expiry<=0 : immediate expiry by making the etime less than now.
-	 */
-	std::map<unsigned int, std::map<std::string, std::string> >::iterator itr;
-	for (itr = m_handshakeQueue.begin(); itr != m_handshakeQueue.end();) {
-		unsigned int key = itr->first;
-		std::string et = itr->second["expiry"];
-
-		if (et.empty()) {
-			/*
-			 * arbitrary iso string for conversion
-			 */
-			et = "20000101T010000.000000";
-		}
-
-		spdlog::trace("  from_iso_string: {}", et);
-		etime = boost::posix_time::from_iso_string(et) +
-				boost::posix_time::seconds(expiry);
-
-		/**
-		 * We need to make a copy of the iterator if we modify the
-		 * underlying container because the iterator becomes invalid
-		 */
-		if (now > etime) {
-			auto itr_copy = itr;
-			++itr_copy;
-			removeHandshake(key);
-			itr = itr_copy;
-			removedHS.push_back(key);
-		} else {
-			/**
-			 * We are not modifying, just increment normally.
-			 */
-			++itr;
-		}
-
-	}
-	return removedHS;
+        boost::posix_time::ptime now = getNow();
+        return expireEntries(m_handshakeQueue, expiry, now,
+                             [this](unsigned int key) { removeHandshake(key); },
+                             [](const auto& val, unsigned int) {
+                                     auto itr = val.find("expiry");
+                                     std::string et;
+                                     if (itr != val.end()) {
+                                             et = itr->second;
+                                     }
+                                     spdlog::trace("  from_iso_string: {}", et);
+                                     return et;
+                             });
 }
 
 boost::posix_time::ptime
