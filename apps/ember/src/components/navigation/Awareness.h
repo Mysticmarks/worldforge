@@ -117,13 +117,15 @@ public:
 	 */
 	typedef std::function<void(unsigned int, dtTileCachePolyMesh&, float* origin, float cellsize, float cellheight, dtTileCacheLayer& layer)> TileProcessor;
 
-	/**
-	 * @brief Ctor.
-	 * @param avatarEntity The avatar entity.
-	 * @param heightProvider A height provider, used for getting terrain height data.
-	 * @param tileSize The size, in voxels, of one side of a tile. The larger this is the longer each tile takes to generate, but the overhead of managing tiles is decreased.
-	 */
-	Awareness(EmberEntity& avatarEntity, IHeightProvider& heightProvider, int tileSize = 64);
+        /**
+         * @brief Ctor.
+         * @param avatarEntity The avatar entity.
+         * @param heightProvider A height provider, used for getting terrain height data.
+         * @param tileSize The size, in voxels, of one side of a tile. The larger this is the longer each tile takes to generate, but the overhead of managing tiles is decreased.
+         * @param walkableClimb Maximum climb in voxels allowed for walkable surfaces. Default is 100.
+         * @param walkableSlopeAngle Maximum slope angle in degrees that is considered walkable. Default is 70.
+         */
+        Awareness(EmberEntity& avatarEntity, IHeightProvider& heightProvider, int tileSize = 64, int walkableClimb = 100, int walkableSlopeAngle = 70);
 
 	virtual ~Awareness();
 
