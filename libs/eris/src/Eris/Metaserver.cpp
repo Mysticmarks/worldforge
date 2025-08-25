@@ -36,7 +36,6 @@ char* pack_uint32(uint32_t data, char* buffer, unsigned int& size);
 
 char* unpack_uint32(uint32_t& dest, char* buffer);
 
-const char* META_SERVER_PORT = "8453";
 
 // meta-server protocol commands	
 const uint32_t CKEEP_ALIVE = 2,
@@ -63,19 +62,21 @@ struct MetaDecoder : Atlas::Objects::ObjectsDecoder {
 };
 
 Meta::Meta(boost::asio::io_context& io_service,
-		   EventService& eventService,
-		   std::string metaServer,
-		   unsigned int maxQueries) :
-		m_factories(new Atlas::Objects::Factories()),
-		m_io_service(io_service),
-		m_event_service(eventService),
-		m_decoder(new MetaDecoder(*this, *m_factories)),
-		m_status(INVALID),
-		m_metaHost(std::move(metaServer)),
-		m_maxActiveQueries(maxQueries),
-		m_nextQuery(0),
-		m_resolver(io_service),
-		m_socket(io_service),
+                   EventService& eventService,
+                   std::string metaServer,
+                   unsigned int maxQueries,
+                   unsigned short metaServerPort) :
+                m_factories(new Atlas::Objects::Factories()),
+                m_io_service(io_service),
+                m_event_service(eventService),
+                m_decoder(new MetaDecoder(*this, *m_factories)),
+                m_status(INVALID),
+                m_metaHost(std::move(metaServer)),
+                m_metaPort(std::to_string(metaServerPort)),
+                m_maxActiveQueries(maxQueries),
+                m_nextQuery(0),
+                m_resolver(io_service),
+                m_socket(io_service),
 		m_metaTimer(io_service),
 		m_receive_stream(&m_receive_buffer),
 		m_send_buffer(new boost::asio::streambuf()),
@@ -181,8 +182,8 @@ size_t Meta::getGameServerCount() const {
 }
 
 void Meta::connect() {
-	m_resolver.async_resolve(m_metaHost, META_SERVER_PORT,
-							 [&](const boost::system::error_code& ec, boost::asio::ip::udp::resolver::results_type iterator) {
+        m_resolver.async_resolve(m_metaHost, m_metaPort,
+                                                         [&](const boost::system::error_code& ec, boost::asio::ip::udp::resolver::results_type iterator) {
 								 if (!ec && !iterator.empty()) {
 									 this->connect(*iterator.begin());
 								 } else {

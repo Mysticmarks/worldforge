@@ -30,13 +30,72 @@
 
 #include <Atlas/Objects/Factories.h>
 #include <iostream>
+#include <thread>
+#include <array>
+#include <atomic>
+#include <boost/asio.hpp>
+#include <arpa/inet.h>
 
 #include <cassert>
 
 using Eris::Meta;
 
-static const std::string TEST_METASERVER("127.0.0.1");
 static const std::string TEST_INVALID_IP("327.0.0.1");
+
+class MockMetaserver {
+public:
+        explicit MockMetaserver(bool sendInvalid = false)
+                : m_socket(m_io, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0)),
+                  m_sendInvalid(sendInvalid),
+                  m_running(true),
+                  m_thread([this] { serve(); }) {}
+
+        ~MockMetaserver() {
+                m_running = false;
+                m_socket.close();
+                if (m_thread.joinable()) {
+                        m_thread.join();
+                }
+        }
+
+        unsigned short port() const { return m_socket.local_endpoint().port(); }
+
+private:
+        void serve() {
+                using boost::asio::ip::udp;
+                udp::endpoint remote;
+                std::array<char, 16> data{};
+                while (m_running) {
+                        boost::system::error_code ec;
+                        m_socket.receive_from(boost::asio::buffer(data), remote, 0, ec);
+                        if (ec) {
+                                break;
+                        }
+                        if (m_sendInvalid) {
+                                uint32_t cmd = htonl(9999);
+                                m_socket.send_to(boost::asio::buffer(&cmd, sizeof(cmd)), remote, 0, ec);
+                                break;
+                        }
+                        uint32_t handshake[2] = {htonl(3), htonl(1)}; // HANDSHAKE + stamp
+                        m_socket.send_to(boost::asio::buffer(handshake), remote, 0, ec);
+                        if (ec) break;
+                        // clientshake
+                        m_socket.receive_from(boost::asio::buffer(data), remote, 0, ec);
+                        if (ec) break;
+                        // list request
+                        m_socket.receive_from(boost::asio::buffer(data), remote, 0, ec);
+                        if (ec) break;
+                        uint32_t listResp[3] = {htonl(8), htonl(0), htonl(0)}; // LIST_RESP, 0 servers
+                        m_socket.send_to(boost::asio::buffer(listResp), remote, 0, ec);
+                }
+        }
+
+        boost::asio::io_context m_io;
+        boost::asio::ip::udp::socket m_socket;
+        bool m_sendInvalid;
+        std::atomic<bool> m_running;
+        std::thread m_thread;
+};
 
 //static bool test_failure_flag;
 
@@ -47,106 +106,81 @@ static const std::string TEST_INVALID_IP("327.0.0.1");
 //}
 
 int main() {
-	boost::asio::io_context io_service;
-	Eris::EventService event_service(io_service);
-	{
-		Meta* m = new Meta(io_service, event_service, TEST_METASERVER, 20);
+        boost::asio::io_context io_service;
+        Eris::EventService event_service(io_service);
 
-		assert(m->getGameServerCount() == 0);
+        {
+                MockMetaserver server;
+                Meta* m = new Meta(io_service, event_service,
+                                   boost::asio::ip::address_v4::loopback().to_string(), 20, server.port());
+                assert(m->getGameServerCount() == 0);
+                delete m;
+        }
 
-		delete m;
-	}
+        bool test_failure_flag;
+        auto test_fail = [&](const std::string &) { test_failure_flag = true; };
 
-//    // Test refreshing with normal configuration
-//    {
-//        Meta * m = new Meta(io_service, TEST_METASERVER, 20);
-//
-//        test_failure_flag = false;
-//
-//        m->Failure.connect(sigc::ptr_fun(&test_fail));
-//        m->refresh();
-//
-//        assert(!test_failure_flag);
-//        assert(m->getStatus() == Meta::GETTING_LIST);
-//
-//        delete m;
-//    }
+        // Test refreshing with normal configuration
+        {
+                MockMetaserver server;
+                Meta m(io_service, event_service,
+                        boost::asio::ip::address_v4::loopback().to_string(), 20, server.port());
+                test_failure_flag = false;
+                m.Failure.connect(test_fail);
+                m.refresh();
+                io_service.run_for(std::chrono::milliseconds(50));
+                io_service.restart();
+                assert(!test_failure_flag);
+                assert(m.getStatus() == Meta::GETTING_LIST);
+        }
 
-	// Test refreshing with non-parsable IP fails
-//    {
-//        Meta * m = new Meta(io_service, TEST_INVALID_IP, 20);
-//
-//        test_failure_flag = false;
-//
-//        m->Failure.connect(sigc::ptr_fun(&test_fail));
-//        m->refresh();
-//
-//        assert(test_failure_flag);
-//        assert(m->getStatus() == Meta::INVALID);
-//
-//        delete m;
-//    }
+        // Test refreshing with non-parsable IP fails
+        {
+                Meta m(io_service, event_service, TEST_INVALID_IP, 20);
+                test_failure_flag = false;
+                m.Failure.connect(test_fail);
+                m.refresh();
+                io_service.run_for(std::chrono::milliseconds(50));
+                io_service.restart();
+                assert(test_failure_flag);
+                assert(m.getStatus() == Meta::INVALID);
+        }
 
-	// Test refreshing with normal configuration, refreshing twice
-//    {
-//        Meta * m = new Meta(io_service, TEST_METASERVER, 20);
-//
-//        test_failure_flag = false;
-//
-//        m->Failure.connect(sigc::ptr_fun(&test_fail));
-//        m->refresh();
-//
-//        assert(!test_failure_flag);
-//        assert(m->getStatus() == Meta::GETTING_LIST);
-//
-//        m->refresh();
-//
-//        assert(!test_failure_flag);
-//        assert(m->getStatus() == Meta::GETTING_LIST);
-//
-//        delete m;
-//    }
+        // Test refreshing with normal configuration, refreshing twice
+        {
+                MockMetaserver server;
+                Meta m(io_service, event_service,
+                        boost::asio::ip::address_v4::loopback().to_string(), 20, server.port());
+                test_failure_flag = false;
+                m.Failure.connect(test_fail);
+                m.refresh();
+                io_service.run_for(std::chrono::milliseconds(50));
+                io_service.restart();
+                assert(!test_failure_flag);
+                assert(m.getStatus() == Meta::GETTING_LIST);
 
-	// Test hitting poll does nothing before refresh
-//    {
-//        Meta * m = new Meta(io_service, TEST_METASERVER, 20);
-//
-//        test_failure_flag = false;
-//
-//        TestPollData test_data;
-//        assert(!test_data.ready_called);
-//
-//        Eris::Poll::instance().Ready.emit(test_data);
-//
-//        assert(!test_failure_flag);
-//        assert(!test_data.ready_called);
-//        assert(m->getStatus() == Meta::INVALID);
-//
-//        delete m;
-//    }
+                m.refresh();
+                io_service.run_for(std::chrono::milliseconds(50));
+                io_service.restart();
+                assert(!test_failure_flag);
+                assert(m.getStatus() == Meta::GETTING_LIST);
+        }
 
-#if 0
-	// Test poll works
-	{
-		Meta * m = new Meta(io_service, event_service, TEST_METASERVER, 20);
+        // Test mock server sending invalid response
+        {
+                MockMetaserver server(true);
+                Meta m(io_service, event_service,
+                        boost::asio::ip::address_v4::loopback().to_string(), 20, server.port());
+                test_failure_flag = false;
+                m.Failure.connect(test_fail);
+                m.refresh();
+                io_service.run_for(std::chrono::milliseconds(50));
+                io_service.restart();
+                assert(test_failure_flag);
+                assert(m.getStatus() == Meta::INVALID);
+        }
 
-		test_failure_flag = false;
-
-		TestPollData test_data;
-		assert(!test_data.ready_called);
-
-		m->refresh();
-		Eris::Poll::instance().Ready.emit(test_data);
-
-		assert(!test_failure_flag);
-		assert(test_data.ready_called);
-		assert(m->getStatus() == Meta::INVALID);
-
-		delete m;
-	}
-#endif
-
-	return 0;
+        return 0;
 }
 
 // stubs

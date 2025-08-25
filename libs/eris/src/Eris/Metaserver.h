@@ -78,10 +78,11 @@ public:
 	active at any one time. 10 is a sensible value, too low and querying will
 	take a long time, too high and .... I'm not sure.
 	*/
-	Meta(boost::asio::io_context& io_service,
-		 EventService& eventService,
-		 std::string msv,
-		 unsigned int maxQueries);
+        Meta(boost::asio::io_context& io_service,
+                 EventService& eventService,
+                 std::string msv,
+                 unsigned int maxQueries,
+                 unsigned short metaServerPort = 8453);
 
 	~Meta();
 
@@ -200,8 +201,10 @@ private:
 	const std::string m_clientName;    ///< the name to use when negotiating
 
 	MetaStatus m_status;
-	/// the metaserver query, eg metaserver.worldforge.org
-	const std::string m_metaHost;
+        /// the metaserver query, eg metaserver.worldforge.org
+        const std::string m_metaHost;
+        /// The port used to communicate with the metaserver
+        const std::string m_metaPort;
 
 	typedef std::vector<std::unique_ptr<MetaQuery>> QuerySet;
 	QuerySet m_activeQueries;
