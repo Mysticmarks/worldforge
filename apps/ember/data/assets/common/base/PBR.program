@@ -1,0 +1,7 @@
+vertex_program PBR/Vp glsl {
+    source PBR.vert
+}
+
+fragment_program PBR/Fp glsl {
+    source PBR.frag
+}

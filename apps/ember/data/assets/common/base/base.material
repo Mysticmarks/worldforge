@@ -731,7 +731,31 @@ abstract material /common/base/normalmap/specular/alpharejected : /common/base/n
 //Useful for any material which is two-sided and semi-transparent.
 abstract material /common/base/normalmap/specular/nonculled/alphablended : /common/base/normalmap/specular/nonculled
 {
-	set $scene_blend "alpha_blend"
-	set $shadow_caster_material "/common/ShadowCaster"
+        set $scene_blend "alpha_blend"
+        set $shadow_caster_material "/common/ShadowCaster"
+}
+
+//Physically based material supporting common PBR maps.
+abstract material /common/base/pbr
+{
+        set $albedo_map ""
+        set $metallic_map ""
+        set $roughness_map ""
+        set $normal_map ""
+        set $ao_map ""
+
+        technique General
+        {
+                pass Main
+                {
+                        vertex_program_ref PBR/Vp { }
+                        fragment_program_ref PBR/Fp { }
+                        texture_unit AlbedoMap { texture $albedo_map }
+                        texture_unit MetallicMap { texture $metallic_map }
+                        texture_unit RoughnessMap { texture $roughness_map }
+                        texture_unit NormalMap { texture $normal_map }
+                        texture_unit AOMap { texture $ao_map }
+                }
+        }
 }
 
