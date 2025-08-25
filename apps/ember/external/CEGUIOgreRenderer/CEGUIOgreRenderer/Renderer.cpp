@@ -50,6 +50,13 @@
 #include <OgreTextureManager.h>
 #include <OgreTextureUnitState.h>
 
+#include <SDL3/SDL.h>
+#ifdef _WIN32
+#   include <windows.h>
+#elif defined(__APPLE__)
+#   include <ApplicationServices/ApplicationServices.h>
+#endif
+
 #ifdef CEGUI_USE_OGRE_COMPOSITOR2
 #include <Compositor/OgreCompositorManager2.h>
 #include <Compositor/OgreCompositorCommon.h>
@@ -252,13 +259,52 @@ typedef std::map<String, OgreTexture*, StringFastLessCompare
                  CEGUI_MAP_ALLOC(String, OgreTexture*)> TextureMap;
 
 //----------------------------------------------------------------------------//
+static Vector2f getDisplayDPI()
+{
+    float dpiX = 96.0f;
+    float dpiY = 96.0f;
+
+#if SDL_VERSION_ATLEAST(2,0,0)
+    float ddpi = 0.0f;
+#if SDL_VERSION_ATLEAST(3,0,0)
+    SDL_DisplayID display = SDL_GetPrimaryDisplay();
+    if (display && SDL_GetDisplayDPI(display, &ddpi, &dpiX, &dpiY) == 0)
+        return Vector2f(dpiX, dpiY);
+#else
+    if (SDL_GetDisplayDPI(0, &ddpi, &dpiX, &dpiY) == 0)
+        return Vector2f(dpiX, dpiY);
+#endif
+#elif defined(_WIN32)
+    HDC screen = GetDC(nullptr);
+    if (screen)
+    {
+        dpiX = static_cast<float>(GetDeviceCaps(screen, LOGPIXELSX));
+        dpiY = static_cast<float>(GetDeviceCaps(screen, LOGPIXELSY));
+        ReleaseDC(nullptr, screen);
+        return Vector2f(dpiX, dpiY);
+    }
+#elif defined(__APPLE__)
+    CGDirectDisplayID display = CGMainDisplayID();
+    CGSize size = CGDisplayScreenSize(display);
+    if (size.width > 0 && size.height > 0)
+    {
+        dpiX = static_cast<float>(CGDisplayPixelsWide(display)) /
+               static_cast<float>(size.width / 25.4);
+        dpiY = static_cast<float>(CGDisplayPixelsHigh(display)) /
+               static_cast<float>(size.height / 25.4);
+        return Vector2f(dpiX, dpiY);
+    }
+#endif
+    return Vector2f(dpiX, dpiY);
+}
+
+//----------------------------------------------------------------------------//
 // Implementation data for the OgreRenderer
 struct OgreRenderer_impl :
     public AllocatedObject<OgreRenderer_impl>
 {
     OgreRenderer_impl() :
-        d_displayDPI(96, 96),
-        // TODO: should be set to correct value
+        d_displayDPI(getDisplayDPI()),
         d_maxTextureSize(2048),
         d_ogreRoot(Ogre::Root::getSingletonPtr()),
         d_ogreSampler(d_ogreRoot->getTextureManager()->createSampler("CEGUI")),
