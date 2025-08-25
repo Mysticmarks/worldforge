@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.18)
 
 project(Worldforge)
 
+option(PREBUILT_DIR "Directory for prebuilt artifacts" "${CMAKE_SOURCE_DIR}/prebuilt")
+set(CMAKE_INSTALL_PREFIX "${PREBUILT_DIR}" CACHE PATH "Install path prefix" FORCE)
+
 if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(FATAL_ERROR "Worldforge requires a 64-bit build.")
 endif()
@@ -85,6 +88,14 @@ endif ()
 MESSAGE(STATUS "Setting compiler warnings to '${WF_WARNING_FLAGS}'")
 #Do this globally for the whole repo
 add_compile_options(${WF_WARNING_FLAGS})
+
+option(WORLDFORGE_ENABLE_COVERAGE "Enable coverage flags for Debug builds" OFF)
+if (WORLDFORGE_ENABLE_COVERAGE AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        add_compile_options(--coverage)
+        add_link_options(--coverage)
+    endif ()
+endif ()
 
 option(BUILD_TESTING "Should tests always be built; otherwise they will be built when the 'check' target is executed." OFF)
 option(SKIP_EMBER "Skips building the Ember client." OFF)
