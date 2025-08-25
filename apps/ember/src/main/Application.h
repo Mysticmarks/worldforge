@@ -111,6 +111,8 @@ class ConfigConsoleCommands;
 
 class ConsoleInputBinder;
 
+struct RayTracingState;
+
 /**
  * @author Erik Ogenvik <erik@ogenvik.org>
  *
@@ -165,7 +167,9 @@ public:
 	/**
 	 * @brief Callback for running Console Commands
 	 */
-	void runCommand(const std::string& command, const std::string& args) override;
+        void runCommand(const std::string& command, const std::string& args) override;
+
+        const RayTracingState& getRayTracingState() const;
 
 private:
 
@@ -226,7 +230,9 @@ private:
 
 	std::unique_ptr<ConfigConsoleCommands> mConfigConsoleCommands;
 
-	std::unique_ptr<ConsoleInputBinder> mConsoleInputBinder;
+        std::unique_ptr<ConsoleInputBinder> mConsoleInputBinder;
+
+        std::unique_ptr<RayTracingState> mRayTracingState;
 
 
 	struct AssetsUpdateBridge {
