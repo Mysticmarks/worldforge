@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.18)
 
 project(Worldforge)
 
+option(PREBUILT_DIR "Directory for prebuilt artifacts" "${CMAKE_SOURCE_DIR}/prebuilt")
+set(CMAKE_INSTALL_PREFIX "${PREBUILT_DIR}" CACHE PATH "Install path prefix" FORCE)
+
 if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(FATAL_ERROR "Worldforge requires a 64-bit build.")
 endif()

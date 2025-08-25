@@ -7,6 +7,7 @@
 .idea
 !.idea/codeStyles
 build
+prebuilt/
 cmake-*
 CMakeUserPresets.json
 conan_provider.cmake
