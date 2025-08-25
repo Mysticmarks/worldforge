@@ -1,3 +1,5 @@
+// This test writes a configuration file to a temporary directory
+// and cleans up afterwards so no artifacts remain in the working tree.
 #include <varconf/varconf.h>
 
 #include <sigc++/slot.h>
@@ -5,8 +7,20 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <filesystem>
+#include <chrono>
 
 #include <cassert>
+
+struct TempDir {
+        std::filesystem::path path;
+        TempDir() {
+                auto stamp = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+                path = std::filesystem::temp_directory_path() / ("varconf-test-" + std::to_string(stamp));
+                std::filesystem::create_directories(path);
+        }
+        ~TempDir() { std::filesystem::remove_all(path); }
+};
 
 void callback(const std::string& section,
 			  const std::string& key,
@@ -57,14 +71,26 @@ int main(int argc, char** argv) {
 		std::cout << p.what();
 	}
 
-	assert(config.find("general", "setting"));
-	assert(config.find("general", "emptyrightbeforeeof"));
+        assert(config.find("general", "setting"));
+        assert(config.find("general", "emptyrightbeforeeof"));
 
-	config.writeToFile("conf2.cfg");
+        std::filesystem::path conf_file;
+        {
+                TempDir tmp;
+                conf_file = tmp.path / "conf2.cfg";
+                config.writeToFile(conf_file.string());
+                assert(std::filesystem::exists(conf_file));
 
-	std::cout << "\nFile configuration data:\n"
-			  << "--------------------------\n"
-			  << config;
+                varconf::Config file_conf;
+                assert(file_conf.readFromFile(conf_file.string()));
+                assert(file_conf.find("general", "setting"));
+                assert(file_conf.find("general", "emptyrightbeforeeof"));
+        }
+        assert(!std::filesystem::exists(conf_file));
+
+        std::cout << "\nFile configuration data:\n"
+                          << "--------------------------\n"
+                          << config;
 
 	std::cout << "\nUSER configuration data:\n"
 			  << "--------------------------\n";
