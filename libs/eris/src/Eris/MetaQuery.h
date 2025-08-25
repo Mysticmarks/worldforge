@@ -32,8 +32,8 @@ public:
 
 	size_t getServerIndex() const;
 
-	/// Access the elapsed time (in milliseconds) since the query was issued
-	long getElapsed();
+        /// Access the elapsed time (in milliseconds) since the query was issued
+        std::int64_t getElapsed() const;
 
 	bool isComplete() const;
 
