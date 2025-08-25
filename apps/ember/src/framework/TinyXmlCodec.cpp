@@ -19,6 +19,7 @@
 #include "TinyXmlCodec.h"
 
 #include <stack>
+#include <stdexcept>
 
 namespace Ember {
 
@@ -49,72 +50,72 @@ public:
 		const std::string& tag = element.ValueStr();
 		switch (mState.top()) {
 			case PARSE_NOTHING:
-				if (tag == "atlas") {
-					mBridge.streamBegin();
-					mState.push(PARSE_STREAM);
-				} else {
-					// FIXME signal error here
-					// unexpected tag
-				}
-				break;
+                                if (tag == "atlas") {
+                                        mBridge.streamBegin();
+                                        mState.push(PARSE_STREAM);
+                                } else {
+                                        // Unexpected tag outside root; halt parsing
+                                        throw std::runtime_error("Unexpected tag '" + tag + "'");
+                                }
+                                break;
 
 			case PARSE_STREAM:
-				if (tag == "map") {
-					mBridge.streamMessage();
-					mState.push(PARSE_MAP);
-				} else {
-					// FIXME signal error here
-					// unexpected tag
-				}
-				break;
+                                if (tag == "map") {
+                                        mBridge.streamMessage();
+                                        mState.push(PARSE_MAP);
+                                } else {
+                                        // Invalid tag in stream; stop processing
+                                        throw std::runtime_error("Unexpected tag '" + tag + "' in stream");
+                                }
+                                break;
 
 			case PARSE_MAP: {
 				const std::string* name = element.Attribute(std::string("name"));
 				mName = *name;
-				if (tag == "map") {
-					mBridge.mapMapItem(*name);
-					mState.push(PARSE_MAP);
-				} else if (tag == "list") {
-					mBridge.mapListItem(*name);
-					mState.push(PARSE_LIST);
-				} else if (tag == "int") {
-					mState.push(PARSE_INT);
-				} else if (tag == "float") {
-					mState.push(PARSE_FLOAT);
-				} else if (tag == "string") {
-					mState.push(PARSE_STRING);
-				} else {
-					// FIXME signal error here
-					// unexpected tag
-				}
-			}
-				break;
+                                if (tag == "map") {
+                                        mBridge.mapMapItem(*name);
+                                        mState.push(PARSE_MAP);
+                                } else if (tag == "list") {
+                                        mBridge.mapListItem(*name);
+                                        mState.push(PARSE_LIST);
+                                } else if (tag == "int") {
+                                        mState.push(PARSE_INT);
+                                } else if (tag == "float") {
+                                        mState.push(PARSE_FLOAT);
+                                } else if (tag == "string") {
+                                        mState.push(PARSE_STRING);
+                                } else {
+                                        // Unknown child tag within map; abort parsing
+                                        throw std::runtime_error("Unexpected tag '" + tag + "' in map");
+                                }
+                        }
+                                break;
 
 			case PARSE_LIST:
-				if (tag == "map") {
-					mBridge.listMapItem();
-					mState.push(PARSE_MAP);
-				} else if (tag == "list") {
-					mBridge.listListItem();
-					mState.push(PARSE_LIST);
-				} else if (tag == "int") {
-					mState.push(PARSE_INT);
-				} else if (tag == "float") {
-					mState.push(PARSE_FLOAT);
-				} else if (tag == "string") {
-					mState.push(PARSE_STRING);
-				} else {
-					// FIXME signal error here
-					// unexpected tag
-				}
-				break;
+                                if (tag == "map") {
+                                        mBridge.listMapItem();
+                                        mState.push(PARSE_MAP);
+                                } else if (tag == "list") {
+                                        mBridge.listListItem();
+                                        mState.push(PARSE_LIST);
+                                } else if (tag == "int") {
+                                        mState.push(PARSE_INT);
+                                } else if (tag == "float") {
+                                        mState.push(PARSE_FLOAT);
+                                } else if (tag == "string") {
+                                        mState.push(PARSE_STRING);
+                                } else {
+                                        // Unsupported list item; throw to halt visitor
+                                        throw std::runtime_error("Unexpected tag '" + tag + "' in list");
+                                }
+                                break;
 
-			case PARSE_INT:
-			case PARSE_FLOAT:
-			case PARSE_STRING:
-				// FIXME signal error here
-				// unexpected tag
-				break;
+                        case PARSE_INT:
+                        case PARSE_FLOAT:
+                        case PARSE_STRING:
+                                // Nested elements inside value types are invalid; stop parsing
+                                throw std::runtime_error("Unexpected nested tag '" + tag + "'");
+                                break;
 		}
 		return true;
 	}
@@ -123,81 +124,81 @@ public:
 	bool VisitExit(const TiXmlElement& element) override {
 		const std::string& tag = element.ValueStr();
 		switch (mState.top()) {
-			case PARSE_NOTHING:
-				// FIXME signal error here
-				// unexpected tag
-				break;
+                        case PARSE_NOTHING:
+                                // Closing tag without matching open; abort
+                                throw std::runtime_error("Unexpected closing tag '" + tag + "'");
+                                break;
 
 			case PARSE_STREAM:
-				if (tag == "atlas") {
-					mBridge.streamEnd();
-					mState.pop();
-				} else {
-					// FIXME signal error here
-					// unexpected tag
-				}
-				break;
+                                if (tag == "atlas") {
+                                        mBridge.streamEnd();
+                                        mState.pop();
+                                } else {
+                                        // Unknown stream closing tag; halt
+                                        throw std::runtime_error("Unexpected closing tag '" + tag + "' in stream");
+                                }
+                                break;
 
 			case PARSE_MAP:
-				if (tag == "map") {
-					mBridge.mapEnd();
-					mState.pop();
-				} else {
-					// FIXME signal error here
-					// unexpected tag
-				}
-				break;
+                                if (tag == "map") {
+                                        mBridge.mapEnd();
+                                        mState.pop();
+                                } else {
+                                        // Mismatched map closing tag; raise error
+                                        throw std::runtime_error("Unexpected closing tag '" + tag + "' in map");
+                                }
+                                break;
 
 			case PARSE_LIST:
-				if (tag == "list") {
-					mBridge.listEnd();
-					mState.pop();
-				} else {
-					// FIXME signal error here
-					// unexpected tag
-				}
-				break;
+                                if (tag == "list") {
+                                        mBridge.listEnd();
+                                        mState.pop();
+                                } else {
+                                        // Wrong list closing tag; stop parsing
+                                        throw std::runtime_error("Unexpected closing tag '" + tag + "' in list");
+                                }
+                                break;
 
 			case PARSE_INT:
-				if (tag == "int") {
-					mState.pop();
-					if (mState.top() == PARSE_MAP) {
-						mBridge.mapIntItem(mName, std::stoll(mData));
-					} else {
-						mBridge.listIntItem(std::stoll(mData));
-					}
-				} else {
-					// FIXME signal error here
-					// unexpected tag
-				}
-				break;
+                                if (tag == "int") {
+                                        mState.pop();
+                                        if (mState.top() == PARSE_MAP) {
+                                                mBridge.mapIntItem(mName, std::stoll(mData));
+                                        } else {
+                                                mBridge.listIntItem(std::stoll(mData));
+                                        }
+                                } else {
+                                        // Mismatched int closing tag; abort
+                                        throw std::runtime_error("Unexpected closing tag '" + tag + "' for int");
+                                }
+                                break;
 
 			case PARSE_FLOAT:
-				if (tag == "float") {
-					mState.pop();
-					if (mState.top() == PARSE_MAP) {
-						mBridge.mapFloatItem(mName, std::stod(mData));
-					} else {
-						mBridge.listFloatItem(std::stod(mData));
-					}
-				} else {
-					// FIXME signal error here
-					// unexpected tag
-				}
-				break;
+                                if (tag == "float") {
+                                        mState.pop();
+                                        if (mState.top() == PARSE_MAP) {
+                                                mBridge.mapFloatItem(mName, std::stod(mData));
+                                        } else {
+                                                mBridge.listFloatItem(std::stod(mData));
+                                        }
+                                } else {
+                                        // Mismatched float closing tag; abort
+                                        throw std::runtime_error("Unexpected closing tag '" + tag + "' for float");
+                                }
+                                break;
 
 			case PARSE_STRING:
-				if (tag == "string") {
-					mState.pop();
-					if (mState.top() == PARSE_MAP) {
-						mBridge.mapStringItem(mName, mData);
-					} else {
-						mBridge.listStringItem(mData);
-					}
-				} else {
-					// FIXME signal error here
-					// unexpected tag
-				}
+                                if (tag == "string") {
+                                        mState.pop();
+                                        if (mState.top() == PARSE_MAP) {
+                                                mBridge.mapStringItem(mName, mData);
+                                        } else {
+                                                mBridge.listStringItem(mData);
+                                        }
+                                } else {
+                                        // Mismatched string closing tag; abort
+                                        throw std::runtime_error("Unexpected closing tag '" + tag + "' for string");
+                                }
 				break;
 		}
 
