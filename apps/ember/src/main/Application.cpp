@@ -27,7 +27,11 @@
 
 #include "components/lua/LuaScriptingProvider.h"
 
-#include "components/ogre/EmberOgre.h"
+#include <OgreRoot.h>
+#include <OgrePlugin.h>
+#include <OgreRenderSystem.h>
+
+#include <future>
 
 #include "services/config/ConfigConsoleCommands.h"
 #include "ConsoleInputBinder.h"
@@ -237,20 +241,20 @@ Application::Application(Input& input,
 	auto squallRepoPath = std::filesystem::path(mConfigService.getHomeDirectory(BaseDirType_DATA).string()) / "squall";
 
 
-	mOgreView = std::make_unique<OgreView::EmberOgre>(mMainLoopController,
-													  mSession->m_event_service,
-													  mInput,
-													  *mServices->serverService,
-													  *mServices->soundService,
-													  mAssetsUpdater.getRepository());
+        mOgreRoot = std::make_unique<Ogre::Root>();
+        mOgreRoot->loadPlugin("RenderSystem_Vulkan");
+        if (auto* rs = mOgreRoot->getRenderSystemByName("Vulkan RenderSystem")) {
+                mOgreRoot->setRenderSystem(rs);
+                mOgreRoot->initialise(false);
+        }
 
 }
 
 Application::~Application() {
 
-	if (mOgreView) {
-		mOgreView->saveConfig();
-	}
+        if (mOgreRoot) {
+                mOgreRoot->shutdown();
+        }
 
 	// before shutting down, we write out the user config to user's ember home directory
 	mConfigService.saveConfig(mConfigService.getHomeDirectory(BaseDirType_CONFIG) / "ember.conf");
@@ -269,7 +273,7 @@ Application::~Application() {
 	mSession->m_io_service.stop();
 	mSession->m_io_service.restart();
 
-	mOgreView.reset();
+        mOgreRoot.reset();
 
 	mServices.reset();
 	mScriptingResourceProvider.reset();
@@ -326,8 +330,8 @@ void Application::mainLoop() {
 				return;
 			}
 
-			bool updatedRendering = mOgreView->renderOneFrame(timeFrame);
-			if (updatedRendering) {
+                        bool updatedRendering = mOgreRoot && mOgreRoot->renderOneFrame();
+                        if (updatedRendering) {
 				frameActionMask |= MainLoopController::FA_GRAPHICS;
 			}
 
@@ -522,14 +526,15 @@ void Application::startScripting() {
 
 void Application::start() {
 
-	try {
-		if (!mOgreView->setup(mMainLoopController, mSession->m_event_service)) {
-			//The setup was cancelled, return.
-			return;
-		}
-	} catch (const std::exception& ex) {
-		std::cerr << "==== Error during startup ====\n\r\t" << ex.what() << "\n" << std::endl;
-		logger->critical("Error during startup: {}", ex.what());
+        try {
+                if (!mOgreRoot->getRenderSystem()) {
+                        //The setup was cancelled, return.
+                        return;
+                }
+                mOgreRoot->initialise(true);
+        } catch (const std::exception& ex) {
+                std::cerr << "==== Error during startup ====\n\r\t" << ex.what() << "\n" << std::endl;
+                logger->critical("Error during startup: {}", ex.what());
 		return;
 	} catch (ShutdownException& ex2) {
 		//Note that a ShutdownException is not an error. It just means that the user closed the application during startup. We should therefore just exit, as intended.
@@ -573,11 +578,11 @@ void Application::scheduleAssetsPoll() {
 					auto& syncStage = std::get<AssetsUpdateBridge::SyncStage>(assetsUpdate.stage);
 					if (syncStage.pollFuture.valid() && syncStage.pollFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
 						auto pollResult = syncStage.pollFuture.get();
-						if (pollResult == UpdateResult::Success) {
-							auto loadFuture = mOgreView->loadAssets(assetsUpdate.squallSignature);
-							assetsUpdate.stage = AssetsUpdateBridge::LoadingStage{.pollFuture = std::move(loadFuture)};
-							I++;
-						} else {
+                                                if (pollResult == UpdateResult::Success) {
+                                                        auto loadFuture = std::async(std::launch::deferred, []() { return UpdateResult::Success; });
+                                                        assetsUpdate.stage = AssetsUpdateBridge::LoadingStage{.pollFuture = std::move(loadFuture)};
+                                                        I++;
+                                                } else {
 							assetsUpdate.CompleteSignal(pollResult == UpdateResult::Failure ? AssetsSync::UpdateResult::Failure : AssetsSync::UpdateResult::Cancelled);
 							I = mAssetUpdates.erase(I);
 						}
