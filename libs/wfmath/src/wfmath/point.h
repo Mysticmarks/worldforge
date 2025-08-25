@@ -159,8 +159,11 @@ public:
 
 	friend Point& operator-=<dim>(Point& p, const Vector<dim>& rhs);
 
-	/// Rotate about point p
-	Point& rotate(const RotMatrix<dim>& m, const Point& p) { return (*this = p + Prod(*this - p, m)); }
+        /// Rotate about point p
+        Point& rotate(const RotMatrix<dim>& m, const Point& p) { return (*this = p + Prod(*this - p, m)); }
+
+        /// Rotate about point p using the inverse of m
+        Point& rotateInverse(const RotMatrix<dim>& m, const Point& p) { return (*this = p + ProdInv(*this - p, m)); }
 
 	// Functions so that Point<> has the generic shape interface
 
