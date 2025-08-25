@@ -185,13 +185,15 @@ protected:
 	 * If the loading state has progressed it will be updated.
 	 * @return True if the loading is complete.
 	 */
-	bool performLoading();
+        bool performLoading();
 
-	void prepareMaterialInBackground(const std::string& materialName);
+        void prepareMaterialInBackground(const std::string& materialName);
 
-	void prepareMeshInBackground(const std::string& meshName);
+        void prepareMeshInBackground(const std::string& meshName);
 
-	void prepareTextureInBackground(const std::string& textureName);
+        void prepareTextureInBackground(const std::string& textureName);
+
+        void preparePBRTextures(const Ogre::MaterialPtr& material);
 
 };
 

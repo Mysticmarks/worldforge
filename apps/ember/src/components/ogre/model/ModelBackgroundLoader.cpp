@@ -29,9 +29,14 @@
 #include <OgreMaterialManager.h>
 #include <OgreMeshManager.h>
 #include <OgreTextureManager.h>
+#include <array>
 
 #include <framework/MainLoopController.h>
 #include <Ogre.h>
+
+#ifndef OGRE_VERSION_CHECK
+#define OGRE_VERSION_CHECK(major, minor, patch) (((major) << 16) | ((minor) << 8) | (patch))
+#endif
 
 namespace Ember::OgreView::Model {
 
@@ -61,25 +66,27 @@ bool ModelBackgroundLoader::poll() {
 }
 
 void ModelBackgroundLoader::prepareMaterialInBackground(const std::string& materialName) {
-	if (!materialName.empty()) {
-		auto materialPtr = Ogre::MaterialManager::getSingleton().createOrRetrieve(materialName, "world").first;
-		if (materialPtr) {
-			mMaterialsToLoad.insert(std::static_pointer_cast<Ogre::Material>(materialPtr));
-			if (!materialPtr->isPrepared() && !materialPtr->isLoading() && !materialPtr->isLoaded()) {
-				mResourcesBeingLoadingInBackground++;
-				auto task = std::make_shared<std::packaged_task<void()>>(
-						[materialPtr, this]() {
-							materialPtr->prepare(true);
-							Ogre::Root::getSingleton().getWorkQueue()->addMainThreadTask([materialPtr, this]() {
-								materialPtr->_firePreparingComplete();
-								this->mResourcesBeingLoadingInBackground--;
-								this->poll();
-							});
-						});
-				Ogre::Root::getSingleton().getWorkQueue()->addTask([task]() { (*task)(); });
-			}
-		}
-	}
+        if (!materialName.empty()) {
+                auto materialPtr = Ogre::MaterialManager::getSingleton().createOrRetrieve(materialName, "world").first;
+                if (materialPtr) {
+                        mMaterialsToLoad.insert(std::static_pointer_cast<Ogre::Material>(materialPtr));
+                        materialPtr->load();
+                        preparePBRTextures(std::static_pointer_cast<Ogre::Material>(materialPtr));
+                        if (!materialPtr->isPrepared() && !materialPtr->isLoading() && !materialPtr->isLoaded()) {
+                                mResourcesBeingLoadingInBackground++;
+                                auto task = std::make_shared<std::packaged_task<void()>>(
+                                                [materialPtr, this]() {
+                                                        materialPtr->prepare(true);
+                                                        Ogre::Root::getSingleton().getWorkQueue()->addMainThreadTask([materialPtr, this]() {
+                                                                materialPtr->_firePreparingComplete();
+                                                                this->mResourcesBeingLoadingInBackground--;
+                                                                this->poll();
+                                                        });
+                                                });
+                                Ogre::Root::getSingleton().getWorkQueue()->addTask([task]() { (*task)(); });
+                        }
+                }
+        }
 }
 
 void ModelBackgroundLoader::prepareMeshInBackground(const std::string& meshName) {
@@ -105,14 +112,20 @@ void ModelBackgroundLoader::prepareMeshInBackground(const std::string& meshName)
 }
 
 void ModelBackgroundLoader::prepareTextureInBackground(const std::string& textureName) {
-	if (!textureName.empty()) {
-		auto texturePtr = Ogre::TextureManager::getSingleton().getByName(textureName, "world");
-		if (texturePtr) {
-			mTexturesToLoad.insert(texturePtr->getName());
-			if (!texturePtr->isPrepared() && !texturePtr->isLoading() && !texturePtr->isLoaded()) {
-				mResourcesBeingLoadingInBackground++;
-				auto task = std::make_shared<std::packaged_task<void()>>(
-						[texturePtr, this]() {
+        if (!textureName.empty()) {
+                auto texturePtr = Ogre::TextureManager::getSingleton().getByName(textureName, "world");
+                if (texturePtr) {
+                        #if defined(OGRE_VERSION) && OGRE_VERSION >= OGRE_VERSION_CHECK(1,12,0)
+                        texturePtr->setStreamable(true);
+                        if (texturePtr->getNumMipmaps() == 0) {
+                                texturePtr->generateMipmaps();
+                        }
+                        #endif
+                        mTexturesToLoad.insert(texturePtr->getName());
+                        if (!texturePtr->isPrepared() && !texturePtr->isLoading() && !texturePtr->isLoaded()) {
+                                mResourcesBeingLoadingInBackground++;
+                                auto task = std::make_shared<std::packaged_task<void()>>(
+                                                [texturePtr, this]() {
 							texturePtr->prepare(true);
 							Ogre::Root::getSingleton().getWorkQueue()->addMainThreadTask([texturePtr, this]() {
 								texturePtr->_firePreparingComplete();
@@ -126,6 +139,21 @@ void ModelBackgroundLoader::prepareTextureInBackground(const std::string& textur
 	}
 }
 
+
+void ModelBackgroundLoader::preparePBRTextures(const Ogre::MaterialPtr& material) {
+        static const std::array<std::string, 5> textureNames{{"AlbedoMap", "MetallicMap", "RoughnessMap", "NormalMap", "AOMap"}};
+        for (auto* technique : material->getTechniques()) {
+                for (auto* pass : technique->getPasses()) {
+                        for (auto* unit : pass->getTextureUnitStates()) {
+                                for (const auto& name : textureNames) {
+                                        if (unit->getName() == name && !unit->getTextureName().empty()) {
+                                                prepareTextureInBackground(unit->getTextureName());
+                                        }
+                                }
+                        }
+                }
+        }
+}
 
 bool ModelBackgroundLoader::performLoading() {
 //	TimedLog log("performLoading " + mModelDefinition.getName() + " state: " + std::to_string(mState));
