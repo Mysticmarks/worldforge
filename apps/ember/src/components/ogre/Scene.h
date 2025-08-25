@@ -22,6 +22,8 @@
 #include "OgreIncludes.h"
 #include "BulletWorld.h"
 #include "terrain/ITerrainAdapter.h"
+#include "CullingManager.h"
+#include "InstancingManager.h"
 #include <map>
 #include <string>
 #include <memory>
@@ -94,7 +96,7 @@ public:
 	 * @brief Creates a terrain adapter which can be used to communicate with the terrain rendering system.
 	 * @return An instance of the terrain adapter
 	 */
-	std::unique_ptr<Terrain::ITerrainAdapter> createTerrainAdapter() const;
+        std::unique_ptr<Terrain::ITerrainAdapter> createTerrainAdapter() const;
 
 	/**
 	 * @brief Gets the main camera of the scene.
@@ -102,9 +104,26 @@ public:
 	 * Each scene has one main camera used to render it. There can of course be many more cameras.
 	 * @returns The main camera.
 	 */
-	Ogre::Camera& getMainCamera() const;
+        Ogre::Camera& getMainCamera() const;
 
-	BulletWorld& getBulletWorld() const;
+        BulletWorld& getBulletWorld() const;
+
+        /**
+         * Access the culling manager responsible for frustum and occlusion
+         * culling.
+         */
+        CullingManager& getCullingManager() const;
+
+        /**
+         * Access the instancing manager handling GPU instancing and indirect
+         * drawing.
+         */
+        InstancingManager& getInstancingManager() const;
+
+        /**
+         * Update scene level systems (culling, instancing etc.).
+         */
+        void update();
 
 protected:
 
@@ -122,9 +141,15 @@ protected:
 	/**
 	 * @brief A store of rendering techniques.
 	 */
-	std::map<std::string, std::unique_ptr<ISceneRenderingTechnique>> mTechniques;
+        std::map<std::string, std::unique_ptr<ISceneRenderingTechnique>> mTechniques;
 
-	std::unique_ptr<BulletWorld> mBulletWorld;
+        std::unique_ptr<BulletWorld> mBulletWorld;
+
+        /** Visibility manager for frustum/occlusion culling. */
+        std::unique_ptr<CullingManager> mCullingManager;
+
+        /** Manager for GPU instancing/indirect drawing. */
+        std::unique_ptr<InstancingManager> mInstancingManager;
 
 };
 

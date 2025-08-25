@@ -65,7 +65,10 @@
 
 #include <memory>
 #include <utility>
+#include <execution>
+#include <vector>
 
+#include "framework/Profiler.h"
 
 namespace Ember::OgreView {
 
@@ -252,18 +255,25 @@ Environment::Environment* World::getEnvironment() const {
 }
 
 void World::terrainManager_AfterTerrainUpdate(const std::vector<WFMath::AxisBox<2>>& areas, const std::vector<std::shared_ptr<Terrain::TerrainPageGeometry>>&) {
-	auto* emberEntity = dynamic_cast<EmberEntity*>(mView.getTopLevel());
-	if (emberEntity) {
-		updateEntityPosition(emberEntity, areas);
-	}
+        Profiler::start("terrainUpdate");
+        auto* emberEntity = dynamic_cast<EmberEntity*>(mView.getTopLevel());
+        if (emberEntity) {
+                updateEntityPosition(emberEntity, areas);
+        }
+        Profiler::stop("terrainUpdate");
 }
 
 void World::updateEntityPosition(EmberEntity* entity, const std::vector<WFMath::AxisBox<2>>& areas) {
-	entity->adjustPosition();
-	for (size_t i = 0; i < entity->numContained(); ++i) {
-		auto* containedEntity = dynamic_cast<EmberEntity*>(entity->getContained(i));
-		updateEntityPosition(containedEntity, areas);
-	}
+        entity->adjustPosition();
+        std::vector<EmberEntity*> children;
+        for (size_t i = 0; i < entity->numContained(); ++i) {
+                if (auto* containedEntity = dynamic_cast<EmberEntity*>(entity->getContained(i))) {
+                        children.push_back(containedEntity);
+                }
+        }
+        std::for_each(std::execution::par, children.begin(), children.end(), [&](EmberEntity* child) {
+                updateEntityPosition(child, areas);
+        });
 }
 
 void World::View_gotAvatarCharacter(Eris::Entity* entity) {
