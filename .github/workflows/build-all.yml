@@ -18,7 +18,7 @@ env:
     CI: 1 #This will turn off a couple of warnings in the build
 
 jobs:
-    build:
+    package:
         name: Build on *NIX and Windows
         runs-on: ${{ matrix.os }}
         strategy:
@@ -191,6 +191,21 @@ jobs:
                 run: |
                     echo "Building Snap"
                     cmake --build --preset conan-release  --parallel 4 --target snap-build-cyphesis
+
+            -   name: Verify packaged binaries
+                if: ${{ success() }}
+                shell: bash
+                run: |
+                    set -e
+                    if ls "$HOME"/install/usr/bin/* >/dev/null 2>&1; then
+                        for bin in "$HOME"/install/usr/bin/*; do
+                            echo "Checking $bin"
+                            "$bin" --version >/dev/null 2>&1 || "$bin" -v >/dev/null 2>&1 || "$bin" version >/dev/null 2>&1 || { echo "$bin failed to report version"; exit 1; }
+                        done
+                    else
+                        echo "No executables found in $HOME/install/usr/bin"
+                        exit 1
+                    fi
 
             -   name: Upload Snaps to Snapstore
                 if: env.BUILD_SNAP == 'true'
