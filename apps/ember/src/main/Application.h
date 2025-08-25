@@ -28,6 +28,10 @@
 #include <unordered_map>
 #include <memory>
 
+namespace Ogre {
+class Root;
+}
+
 /**
  * @mainpage
  *
@@ -177,10 +181,10 @@ private:
 
 	std::unique_ptr<FileSystemObserver> mFileSystemObserver;
 
-	/**
-	 * @brief The main Ogre graphical view.
-	 */
-	std::unique_ptr<OgreView::EmberOgre> mOgreView;
+        /**
+         * @brief The OGRE 2.x root object.
+         */
+        std::unique_ptr<Ogre::Root> mOgreRoot;
 
 
 	/**

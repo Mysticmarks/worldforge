@@ -50,7 +50,7 @@ class Worldforge(ConanFile):
 
         # If we've enabled widget plugins we need to build OGRE and some used libraries as shared libs.
         if self.options.widgets_as_plugins:
-            self.options["ogre/*:shared"] = True
+            self.options["ogre-next/*:shared"] = True
             self.options["glslang/*:shared"] = False
             self.options["spirv-tools/*:shared"] = False
 
@@ -76,7 +76,7 @@ class Worldforge(ConanFile):
 
         if self.options.with_client:
             self.requires("cegui/0.8.7@worldforge")
-            self.requires("ogre/14.3.4@worldforge")
+            self.requires("ogre-next/2.3.0@worldforge")
             self.requires("sdl/3.2.14")
             self.requires("lua/5.3.6")
             self.requires("vorbis/1.3.7")
@@ -99,7 +99,7 @@ class Worldforge(ConanFile):
     def generate(self):
         deps = CMakeDeps(self)
         # OGRE provides its own CMake files which we should use
-        deps.set_property("ogre", "cmake_find_mode", "none")
+        deps.set_property("ogre-next", "cmake_find_mode", "none")
         deps.generate()
 
         tc = CMakeToolchain(self)
