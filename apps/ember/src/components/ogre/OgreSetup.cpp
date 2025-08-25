@@ -273,12 +273,18 @@ void OgreSetup::configure() {
 		parseWindowGeometry(mRoot->getRenderSystem()->getConfigOptions(), width, height, fullscreen);
 
 
-	} catch (const std::exception& ex) {
-		logger->error("Got exception when setting up OGRE: {}", ex.what());
-	}
+        } catch (const std::exception& ex) {
+                logger->error("Got exception when setting up OGRE: {}", ex.what());
+        }
 
+        if (configService.hasItem("graphics", "window_width")) {
+                width = static_cast<unsigned int>(configService.getValue("graphics", "window_width"));
+        }
+        if (configService.hasItem("graphics", "window_height")) {
+                height = static_cast<unsigned int>(configService.getValue("graphics", "window_height"));
+        }
 
-	bool handleOpenGL = false;
+        bool handleOpenGL = false;
 #ifdef __APPLE__
 	handleOpenGL = true;
 #endif
