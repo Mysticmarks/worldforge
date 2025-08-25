@@ -19,6 +19,8 @@
 #include "Scene.h"
 #include "ISceneRenderingTechnique.h"
 #include "terrain/OgreTerrain/OgreTerrainAdapter.h"
+#include "CullingManager.h"
+#include "InstancingManager.h"
 
 #include "services/config/ConfigService.h"
 
@@ -33,11 +35,13 @@ namespace Ember::OgreView {
 
 Scene::Scene() :
 //The default scene manager actually provides better performance in our benchmarks than the Octree SceneManager
-		mSceneManager(Ogre::Root::getSingleton().createSceneManager(Ogre::SMT_DEFAULT, "World")),
-		//create the main camera, we will of course have a couple of different cameras, but this will be the main one
-		mMainCamera(mSceneManager->createCamera("MainCamera")),
-		mBulletWorld(std::make_unique<BulletWorld>()) {
-	logger->info("Using SceneManager: {}", mSceneManager->getTypeName());
+                mSceneManager(Ogre::Root::getSingleton().createSceneManager(Ogre::SMT_DEFAULT, "World")),
+                //create the main camera, we will of course have a couple of different cameras, but this will be the main one
+                mMainCamera(mSceneManager->createCamera("MainCamera")),
+                mBulletWorld(std::make_unique<BulletWorld>()),
+                mCullingManager(std::make_unique<CullingManager>(mMainCamera)),
+                mInstancingManager(std::make_unique<InstancingManager>()) {
+        logger->info("Using SceneManager: {}", mSceneManager->getTypeName());
 
 }
 
@@ -103,12 +107,30 @@ std::unique_ptr<Terrain::ITerrainAdapter> Scene::createTerrainAdapter() const {
 }
 
 Ogre::Camera& Scene::getMainCamera() const {
-	assert(mMainCamera);
-	return *mMainCamera;
+        assert(mMainCamera);
+        return *mMainCamera;
 }
 
 BulletWorld& Scene::getBulletWorld() const {
-	return *mBulletWorld;
+        return *mBulletWorld;
+}
+
+CullingManager& Scene::getCullingManager() const {
+        assert(mCullingManager);
+        return *mCullingManager;
+}
+
+InstancingManager& Scene::getInstancingManager() const {
+        assert(mInstancingManager);
+        return *mInstancingManager;
+}
+
+void Scene::update() {
+        // Update instancing buffers and perform culling steps.
+        if (mInstancingManager) {
+                mInstancingManager->update();
+        }
+        // Additional culling logic can be added here using mCullingManager.
 }
 
 }
