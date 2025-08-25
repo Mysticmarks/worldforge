@@ -23,7 +23,10 @@ import importlib
 importlib.reload(test_objects)
 from test_objects import *
 
-import os, time
+import sys
+import time
+import multiprocessing
+import pytest
 import pdb
 
 # pdb.set_trace()
@@ -84,21 +87,30 @@ class TestClient(atlas.transport.TCP.client.TcpClient):
             self.process_communication()
 
 
-tserver = TestServer("test server", args2address(sys.argv), TestConnection)
+pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="TCP test uses multiprocessing and is unstable on Windows")
 
-res = os.fork()
-if res == 0:
-    tclient = TestClient("test client", args2address(sys.argv))
+
+def _run_client(address, queue):
+    tclient = TestClient("test client", address)
     tclient.connect_and_negotiate()
     tclient.loop()
-    assert (
-                tclient.str_op == '{\012\011arg: {\012\011\011arg: {\012\011\011\011say: "Hello Joe!"\012\011\011},\012\011\011from: "Joe",\012\011\011objtype: "op",\012\011\011parents: ["talk"]\012\011},\012\011from: "Joe",\012\011objtype: "op",\012\011parents: ["sound"]\012}\012')
-    if print_debug:
-        print("client exits")
-else:
+    queue.put(tclient.str_op)
+
+
+def main():
+    address = args2address(sys.argv)
+    tserver = TestServer("test server", address, TestConnection)
+    queue = multiprocessing.Queue()
+    process = multiprocessing.Process(target=_run_client, args=(address, queue))
+    process.start()
     tserver.loop()
+    client_str = queue.get()
+    process.join()
     assert (
-                tserver.str_op == '{\012\011arg: {\012\011\011say: "Hello world!"\012\011},\012\011from: "Joe",\012\011objtype: "op",\012\011parents: ["talk"]\012}\012')
-    if print_debug:
-        print("server exits")
-    os.wait()
+            client_str == '{\012\011arg: {\012\011\011arg: {\012\011\011\011say: "Hello Joe!"\012\011\011},\012\011\011from: "Joe",\012\011\011objtype: "op",\012\011\011parents: ["talk"]\012\011},\012\011from: "Joe",\012\011objtype: "op",\012\011parents: ["sound"]\012}\012')
+    assert (
+            tserver.str_op == '{\012\011arg: {\012\011\011say: "Hello world!"\012\011},\012\011from: "Joe",\012\011objtype: "op",\012\011parents: ["talk"]\012}\012')
+
+
+if __name__ == "__main__":
+    main()
