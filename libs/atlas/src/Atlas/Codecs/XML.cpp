@@ -8,6 +8,7 @@
 #include "Atlas/Message/Element.h"
 
 #include <iostream>
+#include <stdexcept>
 
 namespace Atlas::Codecs {
 
@@ -26,10 +27,8 @@ void XML::tokenTag(char next) {
 			m_token = TOKEN_END_TAG;
 			break;
 
-		case '>':
-			// FIXME signal error here
-			// unexpected character
-			break;
+                case '>':
+                        throw std::runtime_error("XML parse error: unexpected '>' in tag token");
 
 		default:
 			m_token = TOKEN_START_TAG;
@@ -39,11 +38,9 @@ void XML::tokenTag(char next) {
 }
 
 void XML::tokenStartTag(char next) {
-	switch (next) {
-		case '<':
-			// FIXME signal error here
-			// unexpected character
-			break;
+        switch (next) {
+                case '<':
+                        throw std::runtime_error("XML parse error: unexpected '<' in start tag");
 
 		case '>':
 			parseStartTag();
@@ -64,11 +61,9 @@ void XML::tokenStartTag(char next) {
 }
 
 void XML::tokenEndTag(char next) {
-	switch (next) {
-		case '<':
-			// FIXME signal error here
-			// unexpected character
-			break;
+        switch (next) {
+                case '<':
+                        throw std::runtime_error("XML parse error: unexpected '<' in end tag");
 
 		case '>':
 			parseEndTag();
@@ -83,15 +78,13 @@ void XML::tokenEndTag(char next) {
 }
 
 void XML::tokenData(char next) {
-	switch (next) {
-		case '<':
-			m_token = TOKEN_TAG;
-			break;
+        switch (next) {
+                case '<':
+                        m_token = TOKEN_TAG;
+                        break;
 
-		case '>':
-			// FIXME signal error here
-			// unexpected character
-			break;
+                case '>':
+                        throw std::runtime_error("XML parse error: unexpected '>' in data");
 
 		default:
 			m_data.top() += next;
@@ -114,27 +107,25 @@ void XML::parseStartTag() {
 	m_tag = std::string(m_tag, 0, (unsigned long) tag_end);
 
 	switch (m_state.top()) {
-		case PARSE_NOTHING:
-			if (m_tag == "atlas") {
-				m_bridge.streamBegin();
-				m_state.push(PARSE_STREAM);
-			} else {
-				// FIXME signal error here
-				// unexpected tag
-			}
-			break;
+                case PARSE_NOTHING:
+                        if (m_tag == "atlas") {
+                                m_bridge.streamBegin();
+                                m_state.push(PARSE_STREAM);
+                        } else {
+                                throw std::runtime_error("XML parse error: unexpected tag '" + m_tag + "' while not parsing");
+                        }
+                        break;
 
-		case PARSE_STREAM:
-			if (m_tag == "map") {
-				m_bridge.streamMessage();
-				m_state.push(PARSE_MAP);
-			} else {
-				// FIXME signal error here
-				// unexpected tag
-			}
-			break;
+                case PARSE_STREAM:
+                        if (m_tag == "map") {
+                                m_bridge.streamMessage();
+                                m_state.push(PARSE_MAP);
+                        } else {
+                                throw std::runtime_error("XML parse error: unexpected tag '" + m_tag + "' in stream");
+                        }
+                        break;
 
-		case PARSE_MAP:
+                case PARSE_MAP:
 			if (m_tag == "map") {
 				m_bridge.mapMapItem(m_name);
 				m_state.push(PARSE_MAP);
@@ -149,13 +140,12 @@ void XML::parseStartTag() {
 				m_state.push(PARSE_STRING);
 			} else if (m_tag == "none") {
 				m_state.push(PARSE_NONE);
-			} else {
-				// FIXME signal error here
-				// unexpected tag
-			}
-			break;
+                        } else {
+                                throw std::runtime_error("XML parse error: unexpected tag '" + m_tag + "' in map");
+                        }
+                        break;
 
-		case PARSE_LIST:
+                case PARSE_LIST:
 			if (m_tag == "map") {
 				m_bridge.listMapItem();
 				m_state.push(PARSE_MAP);
@@ -170,62 +160,55 @@ void XML::parseStartTag() {
 				m_state.push(PARSE_STRING);
 			} else if (m_tag == "none") {
 				m_state.push(PARSE_NONE);
-			} else {
-				// FIXME signal error here
-				// unexpected tag
-			}
-			break;
+                        } else {
+                                throw std::runtime_error("XML parse error: unexpected tag '" + m_tag + "' in list");
+                        }
+                        break;
 
-		case PARSE_INT:
-		case PARSE_FLOAT:
-		case PARSE_STRING:
-		case PARSE_NONE:
-			// FIXME signal error here
-			// unexpected tag
-			break;
-	}
+                case PARSE_INT:
+                case PARSE_FLOAT:
+                case PARSE_STRING:
+                case PARSE_NONE:
+                        throw std::runtime_error("XML parse error: unexpected tag inside value");
+                        break;
+        }
 }
 
 void XML::parseEndTag() {
-	switch (m_state.top()) {
-		case PARSE_NOTHING:
-			// FIXME signal error here
-			// unexpected tag
-			break;
+        switch (m_state.top()) {
+                case PARSE_NOTHING:
+                        throw std::runtime_error("XML parse error: unexpected end tag '" + m_tag + "'");
 
-		case PARSE_STREAM:
-			if (m_tag == "atlas") {
-				m_bridge.streamEnd();
-				m_state.pop();
-			} else {
-				// FIXME signal error here
-				// unexpected tag
-			}
-			break;
+                case PARSE_STREAM:
+                        if (m_tag == "atlas") {
+                                m_bridge.streamEnd();
+                                m_state.pop();
+                        } else {
+                                throw std::runtime_error("XML parse error: unexpected tag '" + m_tag + "' in stream end");
+                        }
+                        break;
 
-		case PARSE_MAP:
+                case PARSE_MAP:
 			if (m_tag == "map") {
 				m_bridge.mapEnd();
 				m_state.pop();
-			} else {
-				// FIXME signal error here
-				// unexpected tag
-			}
-			break;
+                        } else {
+                                throw std::runtime_error("XML parse error: unexpected tag '" + m_tag + "' in map end");
+                        }
+                        break;
 
-		case PARSE_LIST:
+                case PARSE_LIST:
 			if (m_tag == "list") {
 				m_bridge.listEnd();
 				m_state.pop();
-			} else {
-				// FIXME signal error here
-				// unexpected tag
-			}
-			break;
+                        } else {
+                                throw std::runtime_error("XML parse error: unexpected tag '" + m_tag + "' in list end");
+                        }
+                        break;
 
-		case PARSE_INT:
-			if (m_tag == "int") {
-				m_state.pop();
+                case PARSE_INT:
+                        if (m_tag == "int") {
+                                m_state.pop();
 				try {
 					Atlas::Message::IntType value = 0;
 					auto data = m_data.top();
@@ -237,17 +220,16 @@ void XML::parseEndTag() {
 					} else {
 						m_bridge.listIntItem(value);
 					}
-				} catch (...) {
-					//Could not parse long; just ignore
-				}
-			} else {
-				// FIXME signal error here
-				// unexpected tag
-			}
-			break;
+                                } catch (...) {
+                                        //Could not parse long; just ignore
+                                }
+                        } else {
+                                throw std::runtime_error("XML parse error: unexpected tag '" + m_tag + "' in int end");
+                        }
+                        break;
 
-		case PARSE_FLOAT:
-			if (m_tag == "float") {
+                case PARSE_FLOAT:
+                        if (m_tag == "float") {
 				m_state.pop();
 				try {
 					Atlas::Message::FloatType value = 0;
@@ -260,42 +242,39 @@ void XML::parseEndTag() {
 					} else {
 						m_bridge.listFloatItem(value);
 					}
-				} catch (...) {
-					//Could not parse double; just ignore.
-				}
-			} else {
-				// FIXME signal error here
-				// unexpected tag
-			}
-			break;
+                                } catch (...) {
+                                        //Could not parse double; just ignore.
+                                }
+                        } else {
+                                throw std::runtime_error("XML parse error: unexpected tag '" + m_tag + "' in float end");
+                        }
+                        break;
 
-		case PARSE_STRING:
-			if (m_tag == "string") {
+                case PARSE_STRING:
+                        if (m_tag == "string") {
 				m_state.pop();
 				if (m_state.top() == PARSE_MAP) {
 					m_bridge.mapStringItem(m_name, unescape(m_data.top()));
 				} else {
 					m_bridge.listStringItem(unescape(m_data.top()));
 				}
-			} else {
-				// FIXME signal error here
-				// unexpected tag
-			}
-			break;
-		case PARSE_NONE:
-			if (m_tag == "none") {
+                        } else {
+                                throw std::runtime_error("XML parse error: unexpected tag '" + m_tag + "' in string end");
+                        }
+                        break;
+                case PARSE_NONE:
+                        if (m_tag == "none") {
 				m_state.pop();
 				if (m_state.top() == PARSE_MAP) {
 					m_bridge.mapNoneItem(m_name);
 				} else {
 					m_bridge.listNoneItem();
 				}
-			} else {
-				// FIXME signal error here
-				// unexpected tag
-			}
-			break;
-	}
+                        } else {
+                                throw std::runtime_error("XML parse error: unexpected tag '" + m_tag + "' in none end");
+                        }
+                        break;
+        }
 }
 
 void XML::poll() {
