@@ -59,8 +59,8 @@ void MetaQuery::dispatch() {
 	_meta.dispatch();
 }
 
-long MetaQuery::getElapsed() {
-	return (TimeStamp::now() - _stamp).milliseconds();
+std::int64_t MetaQuery::getElapsed() const {
+        return static_cast<std::int64_t>((TimeStamp::now() - _stamp).milliseconds());
 }
 
 void MetaQuery::handleFailure(const std::string& msg) {
