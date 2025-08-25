@@ -128,12 +128,7 @@ jobs:
 
             -   name: Test
                 shell: bash
-                run: |
-                    if [[ "$ImageOS" == "win22" ]]; then
-                        ctest --preset conan-release --output-on-failure
-                    else
-                        cmake --build --preset conan-release --parallel 4 --target check
-                    fi
+                run: ctest --preset conan-release --output-on-failure
 
     package:
         name: Package on *NIX and Windows
