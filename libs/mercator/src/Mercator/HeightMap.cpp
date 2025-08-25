@@ -14,6 +14,7 @@
 #include <cmath>
 #include <cassert>
 #include <algorithm>
+#include <iostream>
 
 namespace Mercator {
 
@@ -320,24 +321,24 @@ void HeightMap::fill2d(const BasePoint& p1, const BasePoint& p2,
 }
 
 void HeightMap::getHeight(float x, float z, float& h) const {
-	// FIXME this ignores edges and corners
-	assert(x <= m_res);
-	assert(x >= 0.0f);
-	assert(z <= m_res);
-	assert(z >= 0.0f);
+        bool oob = (x < 0.f) || (x > m_res) || (z < 0.f) || (z > m_res);
+        if (oob) {
+                std::cerr << "HeightMap::getHeight out of bounds: (" << x << ", " << z << ")" << std::endl;
+        }
+        assert(!oob);
+        x = std::clamp(x, 0.f, (float) m_res);
+        z = std::clamp(z, 0.f, (float) m_res);
 
-	// get index of the actual tile in the segment
-	int tile_x = I_ROUND(std::floor(x));
-	int tile_z = I_ROUND(std::floor(z));
+        int tile_x = (x >= m_res) ? m_res - 1 : I_ROUND(std::floor(x));
+        int tile_z = (z >= m_res) ? m_res - 1 : I_ROUND(std::floor(z));
 
-	// work out the offset into that tile
-	float off_x = x - (float) tile_x;
-	float off_z = z - (float) tile_z;
+        float off_x = (x >= m_res) ? 1.f : x - (float) tile_x;
+        float off_z = (z >= m_res) ? 1.f : z - (float) tile_z;
 
-	float h1 = get(tile_x, tile_z);
-	float h2 = get(tile_x, tile_z + 1);
-	float h3 = get(tile_x + 1, tile_z + 1);
-	float h4 = get(tile_x + 1, tile_z);
+        float h1 = get(tile_x, tile_z);
+        float h2 = get(tile_x, tile_z + 1);
+        float h3 = get(tile_x + 1, tile_z + 1);
+        float h4 = get(tile_x + 1, tile_z);
 
 	// square is broken into two triangles
 	// top triangle |/
@@ -364,25 +365,25 @@ void HeightMap::getHeight(float x, float z, float& h) const {
 /// triangle has relative vertex coordinates (0,0) (1,0) (1,1) and
 /// the second triangle has vertex coordinates (0,0) (0,1) (1,1).
 void HeightMap::getHeightAndNormal(float x, float z, float& h,
-								   WFMath::Vector<3>& normal) const {
-	// FIXME this ignores edges and corners
-	assert(x <= m_res);
-	assert(x >= 0.0f);
-	assert(z <= m_res);
-	assert(z >= 0.0f);
+                                                                   WFMath::Vector<3>& normal) const {
+        bool oob = (x < 0.f) || (x > m_res) || (z < 0.f) || (z > m_res);
+        if (oob) {
+                std::cerr << "HeightMap::getHeightAndNormal out of bounds: (" << x << ", " << z << ")" << std::endl;
+        }
+        assert(!oob);
+        x = std::clamp(x, 0.f, (float) m_res);
+        z = std::clamp(z, 0.f, (float) m_res);
 
-	// get index of the actual tile in the segment
-	int tile_x = I_ROUND(std::floor(x));
-	int tile_z = I_ROUND(std::floor(z));
+        int tile_x = (x >= m_res) ? m_res - 1 : I_ROUND(std::floor(x));
+        int tile_z = (z >= m_res) ? m_res - 1 : I_ROUND(std::floor(z));
 
-	// work out the offset into that tile
-	float off_x = x - (float) tile_x;
-	float off_z = z - (float) tile_z;
+        float off_x = (x >= m_res) ? 1.f : x - (float) tile_x;
+        float off_z = (z >= m_res) ? 1.f : z - (float) tile_z;
 
-	float h1 = get(tile_x, tile_z);
-	float h2 = get(tile_x, tile_z + 1);
-	float h3 = get(tile_x + 1, tile_z + 1);
-	float h4 = get(tile_x + 1, tile_z);
+        float h1 = get(tile_x, tile_z);
+        float h2 = get(tile_x, tile_z + 1);
+        float h3 = get(tile_x + 1, tile_z + 1);
+        float h4 = get(tile_x + 1, tile_z);
 
 	// square is broken into two triangles
 	// top triangle |/
