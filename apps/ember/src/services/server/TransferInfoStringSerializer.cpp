@@ -26,6 +26,7 @@
 #include <Atlas/Message/QueuedDecoder.h>
 #include <Atlas/Codecs/Bach.h>
 #include <Atlas/Formatter.h>
+#include <cstdint>
 
 namespace Ember {
 
@@ -81,11 +82,11 @@ bool TransferInfoStringSerializer::deserialize(TransferInfoStore& infoObjects, s
 							Atlas::Message::MapType info = infoElement.asMap();
 							const std::string& host = info["host"].asString();
 							auto port = info["port"].asInt();
-							const std::string& key = info["key"].asString();
-							const std::string& entityId = info["entityid"].asString();
-							const std::string& avatarName = info["avatarname"].asString();
-							auto timestamp = info["timestamp"].asInt();
-							infoObjects.emplace_back(avatarName, WFMath::TimeStamp::epochStart() + WFMath::TimeDiff((long) timestamp), Eris::TransferInfo(host, (int) port, key, entityId));
+                                                        const std::string& key = info["key"].asString();
+                                                        const std::string& entityId = info["entityid"].asString();
+                                                        const std::string& avatarName = info["avatarname"].asString();
+                                                        std::int64_t timestamp = info["timestamp"].asInt();
+                                                        infoObjects.emplace_back(avatarName, WFMath::TimeStamp::epochStart() + WFMath::TimeDiff(timestamp), Eris::TransferInfo(host, (int) port, key, entityId));
 						}
 					}
 				}
