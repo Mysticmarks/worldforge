@@ -31,6 +31,8 @@
 
 #include <Atlas/Objects/Root.h>
 #include <Atlas/Objects/SmartPtr.h>
+#include <Atlas/Objects/Operation.h>
+#include <Atlas/Objects/Entity.h>
 
 #include <iostream>
 
@@ -52,6 +54,8 @@ class TestConnection : public Eris::Connection {
     void testSetStatus(Status sc) { setStatus(sc); }
 
     void testDispatch() { dispatch(); }
+
+    std::size_t queuedOps() const { return m_opDeque.size(); }
 };
 
 int main()
@@ -139,6 +143,29 @@ int main()
         TestConnection c(io_service, event_service, " name", "localhost", 6767);
 
         c.testDispatch();
+    }
+
+    // Additional tests exercising data reception paths
+    {
+        boost::asio::io_context io_service;
+        Eris::EventService event_service(io_service);
+        TestConnection c(io_service, event_service, " name", "localhost", 6767);
+
+        Atlas::Objects::Operation::Login login;
+        c.objectArrived(login);
+        assert(c.queuedOps() == 1);
+        c.testDispatch();
+        assert(c.queuedOps() == 0);
+    }
+
+    {
+        boost::asio::io_context io_service;
+        Eris::EventService event_service(io_service);
+        TestConnection c(io_service, event_service, " name", "localhost", 6767);
+
+        Atlas::Objects::Entity::RootEntity ent;
+        c.objectArrived(ent);
+        assert(c.queuedOps() == 0);
     }
 
     // FIXME Not testing all the code paths through gotData()
