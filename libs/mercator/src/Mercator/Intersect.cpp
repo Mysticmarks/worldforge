@@ -6,6 +6,8 @@
 #include "Segment.h"
 
 #include <algorithm>
+#include <cmath>
+#include <limits>
 
 namespace Mercator {
 //floor and ceil functions that return d-1 and d+1
@@ -220,90 +222,148 @@ static bool cellIntersect(double h1, double h2, double h3, double h4, double X, 
 //0.0 == start, 1.0 == end.
 
 bool Intersect(const Terrain& t, const WFMath::Point<3>& sPt, const WFMath::Vector<3>& dir,
-			   WFMath::Point<3>& intersection, WFMath::Vector<3>& normal, double& par) {
-	//FIXME early reject using segment max
-	//FIXME handle height point getting in a more optimal way
-	//FIXME early reject for vertical ray
+                           WFMath::Point<3>& intersection, WFMath::Vector<3>& normal, double& par) {
+        // check if startpoint is below ground
+        double hot;
+        if (HOT(t, sPt, hot) && hot < 0.0) return true;
 
+        // Fast path for vertical rays
+        if ((dir[0] == 0.0f) && (dir[2] == 0.0f)) {
+                if (dir[1] == 0.0f) {
+                        return false;
+                }
 
-	// check if startpoint is below ground
-	double hot;
-	if (HOT(t, sPt, hot) && hot < 0.0) return true;
+                float terrHeight;
+                WFMath::Vector<3> terrNormal;
+                if (!t.getHeightAndNormal(sPt[0], sPt[2], terrHeight, terrNormal)) {
+                        return false;
+                }
 
-	double paraX = 0.0, paraZ = 0.0; //used to store the parametric gap between grid crossings
-	double pX, pZ; //the accumulators for the parametrics as we traverse the ray
-	float h1, h2, h3, h4;
+                if (dir[1] > 0.0f) {
+                        // vertical up: already checked start point, so no intersection
+                        return false;
+                }
 
-	WFMath::Point<3> last(sPt), next(sPt);
-	WFMath::Vector<3> nDir(dir);
-	nDir.normalize();
-	float dirLen = dir.mag();
+                double endY = sPt[1] + dir[1];
+                if (endY > terrHeight) {
+                        return false;
+                }
 
-	//work out where the ray first crosses an X grid line
-	if (dir[0] != 0.0f) {
-		paraX = 1.0f / dir[0];
-		double crossX = (dir[0] > 0.0f) ? gridceil(last[0]) : gridfloor(last[0]);
-		pX = (crossX - last[0]) * paraX;
-		pX = std::min(pX, 1.0);
-	} else { //parallel: never crosses
-		pX = 1.0f;
-	}
+                intersection = WFMath::Point<3>(sPt[0], terrHeight, sPt[2]);
+                normal = terrNormal;
+                par = (sPt[1] - terrHeight) / std::abs(dir[1]);
+                return true;
+        }
 
-	//work out where the ray first crosses a Y grid line
-	if (dir[2] != 0.0f) {
-		paraZ = 1.0f / dir[2];
-		double crossZ = (dir[2] > 0.0f) ? gridceil(last[2]) : gridfloor(last[2]);
-		pZ = (crossZ - sPt[2]) * paraZ;
-		pZ = std::min(pZ, 1.0);
-	} else { //parallel: never crosses
-		pZ = 1.0f;
-	}
+        const int res = t.getResolution();
+        const int size = res + 1;
 
-	//ensure we traverse the ray forwards
-	paraX = std::abs(paraX);
-	paraZ = std::abs(paraZ);
+        double paraX = 0.0, paraZ = 0.0; //used to store the parametric gap between grid crossings
+        double pX, pZ; //the accumulators for the parametrics as we traverse the ray
+        float h1, h2, h3, h4;
 
-	bool endpoint = false;
-	//check each candidate tile for an intersection
-	while (true) {
-		last = next;
-		if (pX < pZ) { // cross x grid line first
-			next = sPt + (pX * dir);
-			pX += paraX; // set x accumulator to current p
-		} else { //cross z grid line first
-			next = sPt + (pZ * dir);
-			if (pX == pZ) {
-				pX += paraX; //unusual case where ray crosses corner
-			}
-			pZ += paraZ; // set z accumulator to current p
-		}
+        WFMath::Point<3> last(sPt), next(sPt);
+        WFMath::Vector<3> nDir(dir);
+        nDir.normalize();
+        float dirLen = dir.mag();
 
-		//FIXME these gets could be optimized a bit
-		float x = (dir[0] > 0) ? std::floor(last[0]) : std::floor(next[0]);
-		float z = (dir[2] > 0) ? std::floor(last[2]) : std::floor(next[2]);
-		h1 = t.get(x, z);
-		h2 = t.get(x, z + 1);
-		h3 = t.get(x + 1, z + 1);
-		h4 = t.get(x + 1, z);
-		auto height = std::max(std::max(h1, h2),
-							   std::max(h3, h4));
+        //work out where the ray first crosses an X grid line
+        if (dir[0] != 0.0f) {
+                paraX = 1.0f / dir[0];
+                double crossX = (dir[0] > 0.0f) ? gridceil(last[0]) : gridfloor(last[0]);
+                pX = (crossX - last[0]) * paraX;
+                pX = std::min(pX, 1.0);
+        } else { //parallel: never crosses
+                pX = 1.0f;
+        }
 
-		if ((last[1] < height) || (next[1] < height)) {
-			// possible intersect with this tile
-			if (cellIntersect(h1, h2, h3, h4, x, z, nDir, dirLen, sPt,
-							  intersection, normal, par)) {
-				return true;
-			}
-		}
+        //work out where the ray first crosses a Y grid line
+        if (dir[2] != 0.0f) {
+                paraZ = 1.0f / dir[2];
+                double crossZ = (dir[2] > 0.0f) ? gridceil(last[2]) : gridfloor(last[2]);
+                pZ = (crossZ - sPt[2]) * paraZ;
+                pZ = std::min(pZ, 1.0);
+        } else { //parallel: never crosses
+                pZ = 1.0f;
+        }
 
-		if ((pX >= 1.0f) && (pZ >= 1.0f)) {
-			if (endpoint) {
-				break;
-			} else endpoint = true;
-		}
-	}
+        //ensure we traverse the ray forwards
+        paraX = std::abs(paraX);
+        paraZ = std::abs(paraZ);
 
-	return false;
+        bool endpoint = false;
+
+        Segment* seg = nullptr;
+        const float* segData = nullptr;
+        float segMax = Terrain::defaultLevel;
+        int segX = std::numeric_limits<int>::min();
+        int segZ = std::numeric_limits<int>::min();
+
+        //check each candidate tile for an intersection
+        while (true) {
+                last = next;
+                if (pX < pZ) { // cross x grid line first
+                        next = sPt + (pX * dir);
+                        pX += paraX; // set x accumulator to current p
+                } else { //cross z grid line first
+                        next = sPt + (pZ * dir);
+                        if (pX == pZ) {
+                                pX += paraX; //unusual case where ray crosses corner
+                        }
+                        pZ += paraZ; // set z accumulator to current p
+                }
+
+                float x = (dir[0] > 0) ? std::floor(last[0]) : std::floor(next[0]);
+                float z = (dir[2] > 0) ? std::floor(last[2]) : std::floor(next[2]);
+
+                int csx = static_cast<int>(x) / res;
+                int csz = static_cast<int>(z) / res;
+                if (csx != segX || csz != segZ) {
+                        seg = t.getSegmentAtIndex(csx, csz);
+                        if (seg) {
+                                segData = seg->getPoints();
+                                segMax = seg->getMax();
+                        } else {
+                                segData = nullptr;
+                                segMax = Terrain::defaultLevel;
+                        }
+                        segX = csx;
+                        segZ = csz;
+                }
+
+                if ((last[1] > segMax) && (next[1] > segMax)) {
+                        // Ray section entirely above segment
+                } else {
+                        if (segData) {
+                                int localX = static_cast<int>(x) - segX * res;
+                                int localZ = static_cast<int>(z) - segZ * res;
+                                int base = localZ * size + localX;
+                                h1 = segData[base];
+                                h2 = segData[base + size];
+                                h3 = segData[base + size + 1];
+                                h4 = segData[base + 1];
+                        } else {
+                                h1 = h2 = h3 = h4 = Terrain::defaultLevel;
+                        }
+                        auto height = std::max(std::max(h1, h2), std::max(h3, h4));
+
+                        if ((last[1] < height) || (next[1] < height)) {
+                                // possible intersect with this tile
+                                if (cellIntersect(h1, h2, h3, h4, x, z, nDir, dirLen, sPt,
+                                                                  intersection, normal, par)) {
+                                        return true;
+                                }
+                        }
+                }
+
+                if ((pX >= 1.0f) && (pZ >= 1.0f)) {
+                        if (endpoint) {
+                                break;
+                        } else endpoint = true;
+                }
+        }
+
+        return false;
 }
 
 } // namespace Mercator
