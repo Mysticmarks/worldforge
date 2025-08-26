@@ -116,11 +116,18 @@ int main() {
 		return 1;
 	}
 
-	if (!Mercator::Intersect(terrain, WFMath::Point<3>(20.1, segmax + 3, 20.2),
-							 WFMath::Vector<3>(0.0, -50.0, 0.0), intPoint, intNorm, par)) {
-		std::cerr << "vertical ray didnt intersect when it should" << std::endl;
-		return 1;
-	}
+        if (!Mercator::Intersect(terrain, WFMath::Point<3>(20.1, segmax + 3, 20.2),
+                                                         WFMath::Vector<3>(0.0, -50.0, 0.0), intPoint, intNorm, par)) {
+                std::cerr << "vertical ray didnt intersect when it should" << std::endl;
+                return 1;
+        }
+
+        //test horizontal ray above terrain
+        if (Mercator::Intersect(terrain, WFMath::Point<3>(20.1, segmax + 3, 20.2),
+                                                        WFMath::Vector<3>(10.0, 0.0, 10.0), intPoint, intNorm, par)) {
+                std::cerr << "horizontal ray intersected when it should not" << std::endl;
+                return 1;
+        }
 
 	//test each quadrant
 	if (!Mercator::Intersect(terrain, WFMath::Point<3>(20.1, segmax + 3, 20.2),
