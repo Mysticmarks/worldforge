@@ -73,36 +73,33 @@ std::ostream& operator<<(std::ostream& os,
 	return os;
 }
 
-class TestObject : public ConnectableRouter {
+// Mock implementation of ConnectableRouter used for exercising Admin logic in
+// tests. The methods provide minimal behaviour but are intentionally
+// documented to clarify their mock nature.
+class MockRouter : public ConnectableRouter {
 public:
-	explicit TestObject(RouterId id);
+        explicit MockRouter(RouterId id);
 
-	void externalOperation(const Operation&, Link&) override;
+        // No-op mock of external operation handling.
+        void externalOperation(const Operation&, Link&) override;
 
-	void operation(const Operation&, OpVector&) override;
+        // No-op mock of internal operation handling.
+        void operation(const Operation&, OpVector&) override;
 
-	void setConnection(Connection* connection) override {
+        void setConnection(Connection*) override {}
 
-	}
+        Connection* getConnection() const override { return nullptr; }
 
-	Connection* getConnection() const override {
-		return nullptr;
-	}
-
-	void addToEntity(const Atlas::Objects::Entity::RootEntity& ent) const override {
-		ent->setId(m_id.asString());
-	}
-
+        void addToEntity(const Atlas::Objects::Entity::RootEntity& ent) const override {
+                ent->setId(m_id.asString());
+        }
 };
 
-TestObject::TestObject(RouterId id) : ConnectableRouter(id) {
-}
+MockRouter::MockRouter(RouterId id) : ConnectableRouter(id) {}
 
-void TestObject::externalOperation(const Operation& op, Link&) {
-}
+void MockRouter::externalOperation(const Operation&, Link&) {}
 
-void TestObject::operation(const Operation&, OpVector&) {
-}
+void MockRouter::operation(const Operation&, OpVector&) {}
 
 class Admintest : public Cyphesis::TestBase {
 protected:
@@ -640,7 +637,7 @@ void Admintest::test_GetOperation_obj_unconnected() {
 void Admintest::test_GetOperation_obj_OOG() {
 	long cid = m_id_counter++;
 	std::string cid_str = std::to_string(cid);
-	auto to = new TestObject(RouterId{cid});
+    auto to = new MockRouter(RouterId{cid});
 
 	m_server->addRouter(std::unique_ptr<ConnectableRouter>(to));
 
