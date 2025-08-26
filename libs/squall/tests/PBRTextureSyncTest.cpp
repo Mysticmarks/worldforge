@@ -15,7 +15,9 @@ TEST_CASE("PBR textures sync to client", "[pbr]") {
     std::filesystem::path sourceDir("PBRSourceDir");
     std::filesystem::remove_all(sourceDir);
     std::filesystem::create_directories(sourceDir);
-    std::vector<std::string> textures{"albedo.png", "metallic.png", "roughness.png", "normal.png", "ao.png"};
+    // Only verify the PBR specific texture types that recently gained support
+    // in the syncing layer.
+    const std::vector<std::string> textures{"metallic.png", "roughness.png", "normal.png", "ao.png"};
     for (const auto &tex : textures) {
         std::ofstream(sourceDir / tex) << "data";
     }
@@ -40,6 +42,8 @@ TEST_CASE("PBR textures sync to client", "[pbr]") {
     } while (result.status == RealizeStatus::INPROGRESS);
 
     for (const auto &tex : textures) {
-        REQUIRE(std::filesystem::exists(destDir / tex));
+        auto path = destDir / tex;
+        REQUIRE(std::filesystem::exists(path));
+        REQUIRE(std::filesystem::file_size(path) > 0);
     }
 }

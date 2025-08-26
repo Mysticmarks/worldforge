@@ -12,6 +12,13 @@ import subprocess
 import sys
 
 
+# Known PBR texture aliases that should trigger inclusion of their referenced
+# textures when packaging assets. These cover the typical Physically Based
+# Rendering maps used by the client, such as metallic, roughness, normal and
+# ambient occlusion maps.
+PBR_ALIASES = {"AlbedoMap", "MetallicMap", "RoughnessMap", "NormalMap", "AOMap"}
+
+
 def find_matches(files, patterns):
     matches = []
     for pattern in patterns:
@@ -184,7 +191,6 @@ OPTIONS
     assets_no_conversion = set()
 
     # Copy all files found in the "assets" directory. Skip "source" directories.
-    pbr_aliases = {"AlbedoMap", "MetallicMap", "RoughnessMap", "NormalMap", "AOMap"}
     for dirpath, dirnames, files in os.walk(src_assets_dir):
         if "source" in dirnames:
             dirnames.remove("source")
@@ -200,7 +206,7 @@ OPTIONS
                     with open(full_path, 'r', encoding='utf-8', errors='ignore') as material_file:
                         for line in material_file:
                             tokens = line.strip().split()
-                            if len(tokens) >= 3 and tokens[0] == 'texture_alias' and tokens[1] in pbr_aliases:
+                            if len(tokens) >= 3 and tokens[0] == 'texture_alias' and tokens[1] in PBR_ALIASES:
                                 texture_rel = os.path.relpath(os.path.join(dirpath, tokens[2]), src_assets_dir)
                                 assets.add(texture_rel)
                 except OSError:

@@ -46,6 +46,11 @@ THE SOFTWARE.
 #include <sstream>
 #include <set>
 
+// Recognized PBR texture aliases. These are forwarded to the caller so that
+// clients can load the associated texture maps alongside the mesh.
+static const std::set<std::string> PBR_TEXTURE_ALIASES{
+        "AlbedoMap", "MetallicMap", "RoughnessMap", "NormalMap", "AOMap"};
+
 const std::uint16_t HEADER_STREAM_ID = 0x1000;
 const std::uint16_t OTHER_ENDIAN_HEADER_STREAM_ID = 0x0010;
 
@@ -668,8 +673,7 @@ void OgreMeshDeserializer::readSubMesh() {
                                 if (streamID == M_SUBMESH_TEXTURE_ALIAS) {
                                         auto alias = readString(m_stream);
                                         auto texture = readString(m_stream);
-                                        static const std::set<std::string> pbr_aliases{"AlbedoMap", "MetallicMap", "RoughnessMap", "NormalMap", "AOMap"};
-                                        if (pbr_aliases.find(alias) != pbr_aliases.end()) {
+                                        if (PBR_TEXTURE_ALIASES.find(alias) != PBR_TEXTURE_ALIASES.end()) {
                                                 m_textureAliases[alias] = texture;
                                         }
                                 } else {
