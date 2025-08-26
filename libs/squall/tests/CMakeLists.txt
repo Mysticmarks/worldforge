@@ -46,8 +46,13 @@ squall_add_test(PrunerTest.cpp)
 target_link_libraries(PrunerTest
         squallcore)
 
+squall_add_test(PBRTextureSyncTest.cpp)
+target_link_libraries(PBRTextureSyncTest
+        squallcore)
+
 add_custom_target(check-squall
         COMMAND PrunerTest
+        COMMAND PBRTextureSyncTest
         COMMAND RealizerTest
         COMMAND SignatureTest
         COMMAND GeneratorTest

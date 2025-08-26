@@ -44,6 +44,7 @@ THE SOFTWARE.
 #include "OgreMeshDeserializer.h"
 
 #include <sstream>
+#include <set>
 
 const std::uint16_t HEADER_STREAM_ID = 0x1000;
 const std::uint16_t OTHER_ENDIAN_HEADER_STREAM_ID = 0x0010;
@@ -657,26 +658,35 @@ void OgreMeshDeserializer::readSubMesh() {
 		}
 
 
-		// Find all bone assignments, submesh operation, and texture aliases (if present)
-		if (!m_stream.eof()) {
-			unsigned short streamID = readChunk(m_stream);
-			while (!m_stream.eof() &&
-				   (streamID == M_SUBMESH_BONE_ASSIGNMENT ||
-					streamID == M_SUBMESH_OPERATION ||
-					streamID == M_SUBMESH_TEXTURE_ALIAS)) {
-				skipChunk(m_stream);
+                // Find all bone assignments, submesh operation, and texture aliases (if present)
+                if (!m_stream.eof()) {
+                        unsigned short streamID = readChunk(m_stream);
+                        while (!m_stream.eof() &&
+                                   (streamID == M_SUBMESH_BONE_ASSIGNMENT ||
+                                        streamID == M_SUBMESH_OPERATION ||
+                                        streamID == M_SUBMESH_TEXTURE_ALIAS)) {
+                                if (streamID == M_SUBMESH_TEXTURE_ALIAS) {
+                                        auto alias = readString(m_stream);
+                                        auto texture = readString(m_stream);
+                                        static const std::set<std::string> pbr_aliases{"AlbedoMap", "MetallicMap", "RoughnessMap", "NormalMap", "AOMap"};
+                                        if (pbr_aliases.find(alias) != pbr_aliases.end()) {
+                                                m_textureAliases[alias] = texture;
+                                        }
+                                } else {
+                                        skipChunk(m_stream);
+                                }
 
-				if (!m_stream.eof()) {
-					streamID = readChunk(m_stream);
-				}
+                                if (!m_stream.eof()) {
+                                        streamID = readChunk(m_stream);
+                                }
 
-			}
-			if (!m_stream.eof()) {
-				// Backpedal back to start of m_stream
-				backpedalChunkHeader(m_stream);
-			}
-		}
-	}
+                        }
+                        if (!m_stream.eof()) {
+                                // Backpedal back to start of m_stream
+                                backpedalChunkHeader(m_stream);
+                        }
+                }
+        }
 
 
 }
