@@ -17,6 +17,7 @@
 
 #include <cassert>
 #include <algorithm>
+#include <chrono>
 
 #define ATLAS_LOG 0
 
@@ -108,11 +109,11 @@ int Connection::disconnect() {
 		return -1;
 	}
 
-	// This assert means that this function will always return early below
-	// where m_lock is checked. m_lock seems to be used by Account to prevent
-	// disconnecting when something is pending.
-	// FIXME Look into this.
-	assert(m_lock == 0);
+        // Disconnect should only be invoked when no external component has
+        // locked the connection.  Any unexpected locks are cleared by
+        // handleFailure(), so hitting this assert indicates a logic error in
+        // callers which forgot to release their locks.
+        assert(m_lock == 0);
 
 	if (_socket && _status == CONNECTED) {
 		//Be nice and send a Logout op to the connection when disconnecting down.
@@ -127,10 +128,11 @@ int Connection::disconnect() {
 	setStatus(DISCONNECTING);
 	Disconnecting.emit();
 
-	if (m_lock == 0) {
-		hardDisconnect(true);
-		return 0;
-	}
+        if (m_lock == 0) {
+                hardDisconnect(true);
+                resetState();
+                return 0;
+        }
 
 	// fell through, so someone has locked =>
 	// start a disconnect timeout
@@ -324,14 +326,15 @@ void Connection::dispatchOp(const RootOperation& op) {
 
 
 void Connection::setStatus(Status ns) {
-	if (_status != ns) StatusChanged.emit(ns);
-	_status = ns;
+        if (_status != ns) StatusChanged.emit(ns);
+        _status = ns;
 }
 
 void Connection::handleFailure(const std::string& msg) {
-	Failure.emit(msg);
-	// FIXME - reset I think, but ensure this is safe
-	m_lock = 0;
+        Failure.emit(msg);
+        // A failure may leave the connection in an inconsistent state.
+        // Reset internal bookkeeping so the instance can be reused safely.
+        resetState();
 }
 
 void Connection::handleTimeout(const std::string& msg) {
@@ -357,6 +360,18 @@ void Connection::handleServerInfo(const RootOperation& op) {
 		m_info.processServer(svr);
 		GotServerInfo.emit();
 	}
+}
+
+void Connection::resetState() {
+        m_opDeque.clear();
+        m_toRouters.clear();
+        m_fromRouters.clear();
+        m_finishedRedispatches.clear();
+        m_defaultRouter = nullptr;
+        m_lock = 0;
+        m_info = ServerInfo{_host};
+        m_responder.reset(new ResponseTracker);
+        m_typeService.reset(new TypeService(*this));
 }
 
 void Connection::onConnect() {
@@ -391,11 +406,14 @@ void Connection::cleanupRedispatch(Redispatch* r) {
 }
 
 std::int64_t getNewSerialno() {
-	static std::int64_t _nextSerial = 1001;
-	// note this will eventually loop (in theory), but that's okay
-	// FIXME - using the same intial starting offset is problematic
-	// if the client dies, and quickly reconnects
-	return _nextSerial++;
+        static std::int64_t _nextSerial = [] {
+                // Seed the serial with a time based value so that quick
+                // reconnects after a crash are unlikely to reuse the same
+                // numbers and confuse the server.
+                return std::chrono::steady_clock::now().time_since_epoch().count();
+        }();
+        // note this will eventually loop (in theory), but that's okay
+        return _nextSerial++;
 }
 
 } // of namespace

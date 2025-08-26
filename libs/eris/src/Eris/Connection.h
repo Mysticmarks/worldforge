@@ -153,11 +153,14 @@ protected:
 	void setStatus(Status sc) override;
 
 	/// Process failures (to track when reconnection should be permitted)
-	void handleFailure(const std::string& msg) override;
+        void handleFailure(const std::string& msg) override;
 
-	void handleTimeout(const std::string& msg) override;
+        void handleTimeout(const std::string& msg) override;
 
-	void onConnect() override;
+        void onConnect() override;
+
+        /// Reset internal state so the connection instance can be reused.
+        void resetState();
 
 	virtual void objectArrived(Atlas::Objects::Root obj);
 
@@ -181,7 +184,7 @@ protected:
 
 	void dispatchOp(const Atlas::Objects::Operation::RootOperation& op);
 
-	void handleServerInfo(const Atlas::Objects::Operation::RootOperation& op);
+        void handleServerInfo(const Atlas::Objects::Operation::RootOperation& op);
 
 	void onDisconnectTimeout();
 
