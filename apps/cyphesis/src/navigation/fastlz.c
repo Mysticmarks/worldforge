@@ -75,11 +75,38 @@
 #endif
 
 /*
- * FIXME: use preprocessor magic to set this on different platforms!
+ * Platform-dependent constants and integral types.
+ * Defaults cover the most common architectures; extend by adding more
+ * branches in the conditional block below and defining a corresponding
+ * FASTLZ_ARCH_<NAME> macro.
  */
-typedef unsigned char  flzuint8;
-typedef unsigned short flzuint16;
-typedef unsigned int   flzuint32;
+#if defined(__x86_64__) || defined(_M_X64)
+#define FASTLZ_ARCH_X86_64 1
+#define FASTLZ_POINTER_SIZE 8
+#elif defined(__i386__) || defined(_M_IX86)
+#define FASTLZ_ARCH_X86 1
+#define FASTLZ_POINTER_SIZE 4
+#elif defined(__aarch64__) || defined(_M_ARM64)
+#define FASTLZ_ARCH_ARM64 1
+#define FASTLZ_POINTER_SIZE 8
+#elif defined(__arm__) || defined(_M_ARM)
+#define FASTLZ_ARCH_ARM 1
+#define FASTLZ_POINTER_SIZE 4
+#else
+#define FASTLZ_ARCH_UNKNOWN 1
+#define FASTLZ_POINTER_SIZE (sizeof(void*))
+#endif
+
+#include <stdint.h>
+typedef uint8_t  flzuint8;
+typedef uint16_t flzuint16;
+typedef uint32_t flzuint32;
+
+/*
+ * To support additional architectures, add a new #elif branch above
+ * and define the appropriate FASTLZ_ARCH_<NAME> and FASTLZ_POINTER_SIZE
+ * values.
+ */
 
 /* prototypes */
 int fastlz_compress(const void* input, int length, void* output);

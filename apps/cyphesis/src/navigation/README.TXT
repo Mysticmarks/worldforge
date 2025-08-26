@@ -6,9 +6,14 @@ Official website: http://www.fastlz.org
 FastLZ is distributed using the MIT license, see file LICENSE
 for details.
 
-FastLZ consists of two files: fastlz.h and fastlz.c. Just add these 
-files to your project in order to use FastLZ. For information on 
+FastLZ consists of two files: fastlz.h and fastlz.c. Just add these
+files to your project in order to use FastLZ. For information on
 compression and decompression routines, see fastlz.h.
+
+fastlz.c includes platform detection macros (e.g., FASTLZ_ARCH_X86_64,
+FASTLZ_ARCH_ARM) that set defaults for common pointer sizes. To support
+another architecture, add a new #elif branch in fastlz.c defining
+FASTLZ_ARCH_<NAME> and the corresponding FASTLZ_POINTER_SIZE.
 
 A simple file compressor called 6pack is included as an example 
 on how to use FastLZ. The corresponding decompressor is 6unpack. 
