@@ -12,6 +12,7 @@
 // Atlas negotiation
 #include <Atlas/Net/Stream.h>
 #include <Atlas/Codec.h>
+#include <memory>
 // tcp_socket_server, tcp_socket_stream - the iostream socket classes
 #include <skstream/skserver.h>
 // cout, cerr
@@ -34,7 +35,7 @@ int main(int argc, char** argv)
     // The DebugBridge puts all that comes through the codec on cout
     DebugBridge bridge;
     // Do server negotiation for Atlas with the new client
-    Atlas::Net::StreamAccept accepter("simple_server", client);
+    Atlas::Net::StreamAccept accepter("simple_server", client, client);
 
     std::cout << "Negotiating.... " << std::flush;
     // accepter.Poll() does all the negotiation
@@ -50,8 +51,8 @@ int main(int argc, char** argv)
     }
     // Negotiation was successful! 
 
-    // Get the codec that negotation established
-    Atlas::Codec * codec = accepter.getCodec(bridge);
+    // Get the codec that negotiation established
+    auto codec = accepter.getCodec(bridge);
 
     std::cout << "Polling client..." << std::endl;
     

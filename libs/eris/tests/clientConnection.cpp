@@ -13,6 +13,7 @@
 #include <Atlas/Codecs/Bach.h>
 
 #include <cstdio>
+#include <memory>
 
 #pragma warning(disable: 4068)  //unknown pragma
 
@@ -30,7 +31,7 @@ ClientConnection::ClientConnection(StubServer* ss, int socket) :
     m_codec(nullptr),
     m_encoder(nullptr)
 {
-    m_acceptor = new Atlas::Net::StreamAccept("Eris Stub Server", m_stream);
+    m_acceptor = std::make_unique<Atlas::Net::StreamAccept>("Eris Stub Server", m_stream, m_stream);
     m_acceptor->poll(false);
 }
 
@@ -40,9 +41,7 @@ ClientConnection::~ClientConnection()
         delete A->second;
     }
 
-    delete m_encoder;
-    delete m_acceptor;
-    delete m_codec;
+    // m_encoder, m_acceptor and m_codec are automatically cleaned up
 }
 
 void ClientConnection::poll()
@@ -112,11 +111,10 @@ void ClientConnection::negotiate()
 
     case Atlas::Net::StreamAccept::SUCCEEDED:
         m_codec = m_acceptor->getCodec(*this);
-        m_encoder = new Atlas::Objects::ObjectsEncoder(*m_codec);
+        m_encoder = std::make_unique<Atlas::Objects::ObjectsEncoder>(*m_codec);
         m_codec->streamBegin();
-                
-        delete m_acceptor;
-        m_acceptor = nullptr;
+
+        m_acceptor.reset();
         break;
 
     default:

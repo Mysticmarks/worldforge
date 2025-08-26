@@ -161,7 +161,6 @@ Atlas::Negotiate::State StreamConnect::getState() {
 	return FAILED;
 }
 
-/// FIXME We should pass in the Bridge here, not at construction time.
 std::unique_ptr<Atlas::Codec> StreamConnect::getCodec(Atlas::Bridge& bridge) {
 	if (m_canPacked) { return std::make_unique<Atlas::Codecs::Packed>(m_inStream, m_outStream, bridge); }
 	if (m_canXML) { return std::make_unique<Atlas::Codecs::XML>(m_inStream, m_outStream, bridge); }
@@ -298,7 +297,6 @@ Atlas::Negotiate::State StreamAccept::getState() {
 	return FAILED;
 }
 
-/// FIXME We should pass in the Bridge here, not at construction time.
 std::unique_ptr<Atlas::Codec> StreamAccept::getCodec(Atlas::Bridge& bridge) {
 	// XXX XXX XXX XXX
 	// should pass an appropriate filterbuf here instead of socket,

@@ -9,6 +9,7 @@
 #include <Atlas/Objects/Root.h>
 
 #include <deque>
+#include <memory>
 
 class StubServer;
 class Agent;
@@ -73,9 +74,9 @@ private:
     RootDeque m_objDeque;
 
 // Atlas stuff
-    Atlas::Codec* m_codec;
-    Atlas::Net::StreamAccept* m_acceptor;
-    Atlas::Objects::ObjectsEncoder* m_encoder;
+    std::unique_ptr<Atlas::Codec> m_codec;
+    std::unique_ptr<Atlas::Net::StreamAccept> m_acceptor;
+    std::unique_ptr<Atlas::Objects::ObjectsEncoder> m_encoder;
     
     typedef std::map<std::string, Agent*> AgentMap;
     AgentMap m_agents;

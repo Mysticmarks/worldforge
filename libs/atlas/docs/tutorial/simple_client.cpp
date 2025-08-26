@@ -15,6 +15,7 @@
 #include <Atlas/Net/Stream.h>
 // The DebugBridge
 #include "DebugBridge.h"
+#include <memory>
 
 #include "sockbuf.h"
 
@@ -34,7 +35,7 @@ using namespace Atlas;
 using namespace std;
 
 // This sends a very simple message to c
-void helloWorld(Codec<std::iostream> & c)
+void helloWorld(Atlas::Codec & c)
 {
     cout << "Sending hello world message... " << flush;
     c.streamMessage(Bridge::mapBegin);
@@ -72,7 +73,7 @@ int main(int argc, char** argv)
     // The DebugBridge puts all that comes through the codec on cout
     DebugBridge bridge;
     // Do client negotiation with the server
-    Net::StreamConnect conn("simple_client", connection, &bridge);
+    Net::StreamConnect conn("simple_client", connection, connection);
 
     cout << "Negotiating... " << flush;
     // conn.poll() does all the negotiation
@@ -89,7 +90,7 @@ int main(int argc, char** argv)
     // Negotiation was successful
 
     // Get the codec that negotiation established
-    Codec<std::iostream> * codec = conn.getCodec();
+    auto codec = conn.getCodec(bridge);
 
     // This should always be sent at the beginning of a session
     codec->streamBegin();

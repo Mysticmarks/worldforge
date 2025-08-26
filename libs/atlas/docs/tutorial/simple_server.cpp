@@ -14,6 +14,7 @@
 // The DebugBridge
 #include "DebugBridge.h"
 #include "sockbuf.h"
+#include <memory>
 
 extern "C" {
     #include <stdio.h>
@@ -68,7 +69,7 @@ int main(int argc, char** argv)
     // The DebugBridge puts all that comes through the codec on cout
     DebugBridge bridge;
     // Do server negotiation for Atlas with the new client
-    Net::StreamAccept accepter("simple_server", client, &bridge);
+    Net::StreamAccept accepter("simple_server", client, client);
 
     cout << "Negotiating.... " << flush;
     // accepter.poll() does all the negotiation
@@ -83,8 +84,8 @@ int main(int argc, char** argv)
     }
     // Negotiation was successful! 
 
-    // Get the codec that negotation established
-    Codec<std::iostream> * codec = accepter.getCodec();
+    // Get the codec that negotiation established
+    auto codec = accepter.getCodec(bridge);
 
     cout << "Polling client..." << endl;
     

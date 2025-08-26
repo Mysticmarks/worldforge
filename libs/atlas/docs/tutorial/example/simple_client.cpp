@@ -52,7 +52,7 @@ int main(int argc, char** argv)
     // The DebugBridge puts all that comes through the codec on cout
     DebugBridge bridge;
     // Do client negotiation with the server
-    Atlas::Net::StreamConnect conn("simple_client", connection);
+    Atlas::Net::StreamConnect conn("simple_client", connection, connection);
 
     std::cout << "Negotiating... " << std::flush;
     // conn.poll() does all the negotiation

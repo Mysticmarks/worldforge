@@ -4,6 +4,7 @@
 #include <Atlas/Objects/ObjectsFwd.h>
 #include <Atlas/Objects/Decoder.h>
 #include <wfmath/point.h>
+#include <memory>
 
 namespace Atlas { class Codec; }
 
@@ -43,8 +44,8 @@ private:
     
     unix_socket_stream m_stream;
 
-    Atlas::Objects::ObjectsEncoder* m_encode;
-    Atlas::Codec* m_codec;
+    std::unique_ptr<Atlas::Objects::ObjectsEncoder> m_encode;
+    std::unique_ptr<Atlas::Codec> m_codec;
 };
 
 #endif // of TEST_CONTROLLER_H
