@@ -56,7 +56,7 @@ bool ModelBackgroundLoader::poll() {
 		return true;
 	}
 
-	if (mResourcesBeingLoadingInBackground == 0) {
+        if (mResourcesBeingLoadingInBackground.load() == 0) {
 		MainLoopController::getSingleton().getEventService().runOnMainThread([this]() {
 			this->poll();
 		}, mIsActive);
@@ -73,13 +73,13 @@ void ModelBackgroundLoader::prepareMaterialInBackground(const std::string& mater
                         materialPtr->load();
                         preparePBRTextures(std::static_pointer_cast<Ogre::Material>(materialPtr));
                         if (!materialPtr->isPrepared() && !materialPtr->isLoading() && !materialPtr->isLoaded()) {
-                                mResourcesBeingLoadingInBackground++;
+                                mResourcesBeingLoadingInBackground.fetch_add(1);
                                 auto task = std::make_shared<std::packaged_task<void()>>(
                                                 [materialPtr, this]() {
                                                         materialPtr->prepare(true);
                                                         Ogre::Root::getSingleton().getWorkQueue()->addMainThreadTask([materialPtr, this]() {
                                                                 materialPtr->_firePreparingComplete();
-                                                                this->mResourcesBeingLoadingInBackground--;
+                                                                this->mResourcesBeingLoadingInBackground.fetch_sub(1);
                                                                 this->poll();
                                                         });
                                                 });
@@ -95,13 +95,13 @@ void ModelBackgroundLoader::prepareMeshInBackground(const std::string& meshName)
 		auto meshPtr = Ogre::MeshManager::getSingleton().createOrRetrieve(meshName, "world").first;
 		if (meshPtr) {
 			if (!meshPtr->isPrepared() && !meshPtr->isLoading() && !meshPtr->isLoaded()) {
-				mResourcesBeingLoadingInBackground++;
+                                mResourcesBeingLoadingInBackground.fetch_add(1);
 				auto task = std::make_shared<std::packaged_task<void()>>(
 						[meshPtr, this]() {
 							meshPtr->prepare(true);
 							Ogre::Root::getSingleton().getWorkQueue()->addMainThreadTask([meshPtr, this]() {
 								meshPtr->_firePreparingComplete();
-								this->mResourcesBeingLoadingInBackground--;
+                                                                  this->mResourcesBeingLoadingInBackground.fetch_sub(1);
 								this->poll();
 							});
 						});
@@ -123,13 +123,13 @@ void ModelBackgroundLoader::prepareTextureInBackground(const std::string& textur
                         #endif
                         mTexturesToLoad.insert(texturePtr->getName());
                         if (!texturePtr->isPrepared() && !texturePtr->isLoading() && !texturePtr->isLoaded()) {
-                                mResourcesBeingLoadingInBackground++;
+                                mResourcesBeingLoadingInBackground.fetch_add(1);
                                 auto task = std::make_shared<std::packaged_task<void()>>(
                                                 [texturePtr, this]() {
 							texturePtr->prepare(true);
 							Ogre::Root::getSingleton().getWorkQueue()->addMainThreadTask([texturePtr, this]() {
 								texturePtr->_firePreparingComplete();
-								this->mResourcesBeingLoadingInBackground--;
+                                                                  this->mResourcesBeingLoadingInBackground.fetch_sub(1);
 								this->poll();
 							});
 						});
@@ -307,7 +307,7 @@ bool ModelBackgroundLoader::performLoading() {
 }
 
 bool ModelBackgroundLoader::areAllTicketsProcessed() const {
-	return mResourcesBeingLoadingInBackground == 0;
+        return mResourcesBeingLoadingInBackground.load() == 0;
 }
 
 ModelBackgroundLoader::LoadingState ModelBackgroundLoader::getState() const {

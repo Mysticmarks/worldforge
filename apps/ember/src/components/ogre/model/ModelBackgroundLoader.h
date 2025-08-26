@@ -27,6 +27,7 @@
 #include "ModelDefinition.h"
 
 #include <Eris/ActiveMarker.h>
+#include <atomic>
 
 namespace Eris {
 class EventService;
@@ -149,7 +150,7 @@ protected:
 	ModelDefinition& mModelDefinition;
 
 
-	int mResourcesBeingLoadingInBackground;
+        std::atomic<std::size_t> mResourcesBeingLoadingInBackground;
 
 	/**
 	 * @brief The current loading state of the instance.
