@@ -56,6 +56,10 @@ class TestConnection : public Eris::Connection {
     void testDispatch() { dispatch(); }
 
     std::size_t queuedOps() const { return m_opDeque.size(); }
+
+    void testHandleFailure(const std::string& msg) { handleFailure(msg); }
+
+    int lockValue() const { return m_lock; }
 };
 
 int main()
@@ -166,6 +170,29 @@ int main()
         Atlas::Objects::Entity::RootEntity ent;
         c.objectArrived(ent);
         assert(c.queuedOps() == 0);
+    }
+
+    // Test that handleFailure resets state
+    {
+        boost::asio::io_context io_service;
+        Eris::EventService event_service(io_service);
+        TestConnection c(io_service, event_service, " name", "localhost", 6767);
+
+        c.lock();
+        Atlas::Objects::Operation::Login login;
+        c.objectArrived(login);
+        assert(c.queuedOps() == 1);
+        c.testHandleFailure("fail");
+        assert(c.lockValue() == 0);
+        assert(c.queuedOps() == 0);
+    }
+
+    // Test serial number generation
+    {
+        auto first = Eris::getNewSerialno();
+        auto second = Eris::getNewSerialno();
+        assert(second == first + 1);
+        assert(first > 1001);
     }
 
     // FIXME Not testing all the code paths through gotData()
