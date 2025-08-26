@@ -24,6 +24,7 @@
 #include <fstream>
 #include <wfmath/wfmath.h>
 #include <vector>
+#include <map>
 #include <LinearMath/btScalar.h>
 
 /**
@@ -37,10 +38,11 @@ public:
 
 	void deserialize();
 
-	std::vector<btScalar> m_vertices;
-	std::vector<unsigned int> m_indices;
-	WFMath::AxisBox<3> m_bounds;
-	float m_radius;
+        std::vector<btScalar> m_vertices;
+        std::vector<unsigned int> m_indices;
+        WFMath::AxisBox<3> m_bounds;
+        float m_radius;
+        std::map<std::string, std::string> m_textureAliases;
 
 protected:
 
