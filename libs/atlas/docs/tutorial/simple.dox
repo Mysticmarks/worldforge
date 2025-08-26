@@ -59,12 +59,12 @@ this for you. Whenever you connect to a server or client, you first enter a
 negotiation stage, in which the client and server decide which Codec to use.
 
 This is done by creating a Net::StreamAccept object in the server or a
-Net::StreamConnect object in the client, passing the name of the server/client,
-the Bridge to be used by the Codec and the stream on which the connection has
-been established. You then repeatedly call the Poll() method of these classes
-until their state is not IN_PROGRESS any more. If negotiation was successful,
-you can retrieve the codec to be used with GetCodec(), and then go on sending
-and receiving messages happily with your peer.
+Net::StreamConnect object in the client, passing the name of the server/client
+and the streams on which the connection has been established. You then
+repeatedly call the Poll() method of these classes until their state is not
+IN_PROGRESS any more. If negotiation was successful, you can retrieve the
+codec to be used with GetCodec(), providing the Bridge instance, and then go on
+sending and receiving messages happily with your peer.
 
 If negotation failed, GetState() will return FAILURE, and you may abort the
 connection and alert the user.
@@ -130,8 +130,8 @@ The code should be pretty straightforward to understand if you have read the
 
 In the above client + server a class called DebugBridge is used. This class is
 not part of Atlas-C++, but rather one that we made ourselves. It is passed to
-the negotiation classes (StreamConnect and StreamAccept) which then pass it on
-to the codec returned by GetCodec().
+the negotiation classes (StreamConnect and StreamAccept) and then passed to the
+codec when calling GetCodec().
 
 DebugBridge simply prints out everything it receives onto cout. The source
 code should be quite easily understandable.

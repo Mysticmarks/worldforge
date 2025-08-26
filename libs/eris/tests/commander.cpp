@@ -9,6 +9,7 @@
 #include <Atlas/Objects/Encoder.h>
 
 #include <cstdio>
+#include <memory>
 
 #pragma warning(disable: 4068)  //unknown pragma
 
@@ -26,7 +27,7 @@ Commander::Commander(StubServer* stub, int fd) :
     m_server(stub),
     m_channel(fd)
 {
-    m_acceptor = new Atlas::Net::StreamAccept("Eris Stub Server", m_channel);
+    m_acceptor = std::make_unique<Atlas::Net::StreamAccept>("Eris Stub Server", m_channel, m_channel);
     m_acceptor->poll(false);
 }
 
@@ -78,11 +79,10 @@ void Commander::negotiate()
 
     case Atlas::Net::StreamAccept::SUCCEEDED:
         m_codec = m_acceptor->getCodec(*this);
-        m_encoder = new Atlas::Objects::ObjectsEncoder(*m_codec);
+        m_encoder = std::make_unique<Atlas::Objects::ObjectsEncoder>(*m_codec);
         m_codec->streamBegin();
 
-        delete m_acceptor;
-        m_acceptor = nullptr;
+        m_acceptor.reset();
         break;
 
     default:

@@ -8,6 +8,7 @@
 #include <Atlas/Objects/Root.h>
 
 #include <deque>
+#include <memory>
 
 class StubServer;
 
@@ -32,9 +33,9 @@ private:
     StubServer* m_server;
     tcp_socket_stream m_channel;
     
-    Atlas::Codec* m_codec;
-    Atlas::Net::StreamAccept* m_acceptor;
-    Atlas::Objects::ObjectsEncoder* m_encoder;
+    std::unique_ptr<Atlas::Codec> m_codec;
+    std::unique_ptr<Atlas::Net::StreamAccept> m_acceptor;
+    std::unique_ptr<Atlas::Objects::ObjectsEncoder> m_encoder;
     
     typedef std::deque<Atlas::Objects::Root> RootDeque;
     RootDeque m_objDeque;

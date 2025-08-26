@@ -1,6 +1,7 @@
 #include "controller.h"
 
 #include <cassert>
+#include <memory>
 
 #include <Atlas/Net/Stream.h>
 #include <Atlas/Codec.h>
@@ -28,7 +29,7 @@ Controller::Controller(const char* pipe) :
     assert(m_stream.is_open());
     
 // force synchrous negotation now
-    Atlas::Net::StreamConnect sc("eristest_oob", m_stream);
+    Atlas::Net::StreamConnect sc("eristest_oob", m_stream, m_stream);
     
     // spin (and block) while we negotiate
     do { sc.poll(); } while (sc.getState() == Atlas::Net::StreamConnect::IN_PROGRESS);
@@ -40,7 +41,7 @@ Controller::Controller(const char* pipe) :
     
     Atlas::Bridge* br = this;
     m_codec = sc.getCodec(*br);
-    m_encode = new Atlas::Objects::ObjectsEncoder(*m_codec);
+    m_encode = std::make_unique<Atlas::Objects::ObjectsEncoder>(*m_codec);
     m_codec->streamBegin();
 }
 
