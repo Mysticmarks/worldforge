@@ -1,7 +1,23 @@
 vertex_program PBR/Vp glsl {
     source PBR.vert
+
+    default_params {
+        param_named_auto worldViewProj worldviewproj_matrix
+        param_named_auto world world_matrix
+        param_named_auto cameraPos camera_position
+    }
 }
 
 fragment_program PBR/Fp glsl {
     source PBR.frag
+
+    default_params {
+        param_named AlbedoMap int 0
+        param_named MetallicMap int 1
+        param_named RoughnessMap int 2
+        param_named NormalMap int 3
+        param_named AOMap int 4
+        param_named_auto lightDir light_direction 0
+        param_named_auto lightColor light_diffuse_colour 0
+    }
 }
