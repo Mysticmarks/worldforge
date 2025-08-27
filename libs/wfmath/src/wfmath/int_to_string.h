@@ -27,20 +27,21 @@
 #define WFMATH_INT_TO_STRING_H
 
 #include <string>
+#include <cstdint>
 
 namespace WFMath {
 
-std::string IntToString(unsigned long);
+std::string IntToString(std::uint64_t);
 
-std::string IntToString(long);
+std::string IntToString(std::int64_t);
 
-inline std::string IntToString(unsigned int val) { return IntToString((unsigned long) val); }
+inline std::string IntToString(unsigned int val) { return IntToString(static_cast<std::uint64_t>(val)); }
 
-inline std::string IntToString(int val) { return IntToString((long) val); }
+inline std::string IntToString(int val) { return IntToString(static_cast<std::int64_t>(val)); }
 
-inline std::string IntToString(unsigned short val) { return IntToString((unsigned long) val); }
+inline std::string IntToString(unsigned short val) { return IntToString(static_cast<std::uint64_t>(val)); }
 
-inline std::string IntToString(short val) { return IntToString((long) val); }
+inline std::string IntToString(short val) { return IntToString(static_cast<std::int64_t>(val)); }
 
 } // namespace WFMath
 
