@@ -33,6 +33,7 @@
 #include "wfmath/int_to_string.h"
 #include "wfmath/randgen.h"
 
+#include <cstdint>
 #include <climits>
 #include <cstdlib>
 
@@ -43,13 +44,14 @@ using namespace WFMath;
 static void TestConvert()
 {
   for(unsigned i = 0; i < 100; ++i) {
-    unsigned long val = MTRand::instance.randInt();
-    assert(strtoul(IntToString(val).c_str(), 0, 0) == val);
+    std::uint64_t val = (static_cast<std::uint64_t>(MTRand::instance.randInt()) << 32)
+                       | MTRand::instance.randInt();
+    assert(strtoull(IntToString(val).c_str(), nullptr, 0) == val);
     // This assignment changes the value, but we just want a
     // random number, so we don't care. Large unsigned ints will
     // provide us negative numbers for testing.
-    long val2 = (long) val;
-    assert(atol(IntToString(val2).c_str()) == val2);
+    std::int64_t val2 = static_cast<std::int64_t>(val);
+    assert(atoll(IntToString(val2).c_str()) == val2);
   }
 }
 
