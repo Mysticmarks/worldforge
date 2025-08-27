@@ -5,8 +5,20 @@ project(Worldforge)
 option(PREBUILT_DIR "Directory for prebuilt artifacts" "${CMAKE_SOURCE_DIR}/prebuilt")
 set(CMAKE_INSTALL_PREFIX "${PREBUILT_DIR}" CACHE PATH "Install path prefix" FORCE)
 
-if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
-    message(FATAL_ERROR "Worldforge requires a 64-bit build.")
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    message(STATUS "Configuring 64-bit build")
+    set(WF_ARCH_FLAG "-m64")
+elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    message(STATUS "Configuring 32-bit build")
+    set(WF_ARCH_FLAG "-m32")
+else()
+    message(WARNING "Unknown pointer size (${CMAKE_SIZEOF_VOID_P}); architecture flags not set")
+    set(WF_ARCH_FLAG "")
+endif()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(${WF_ARCH_FLAG})
+    add_link_options(${WF_ARCH_FLAG})
 endif()
 
 # Meta data
