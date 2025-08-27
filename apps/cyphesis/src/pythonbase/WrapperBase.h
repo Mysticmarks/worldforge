@@ -22,6 +22,7 @@
 #include "common/log.h"
 #include "pycxx/CXX/Extensions.hxx"
 #include <functional>
+#include <cstdint>
 
 template<typename TValue, typename TPythonClass, typename TClassInstance=Py::PythonClassInstance>
 class WrapperBase : public Py::PythonClass<TPythonClass, TClassInstance> {
@@ -154,7 +155,7 @@ protected:
 		auto* self = reinterpret_cast<PyObject*>( o );
 
 #ifdef PYCXX_DEBUG
-		std::cout << "extension_object_new() => self=0x" << std::hex << reinterpret_cast< unsigned long >( self ) << std::dec << std::endl;
+                std::cout << "extension_object_new() => self=0x" << std::hex << reinterpret_cast< std::uintptr_t >( self ) << std::dec << std::endl;
 #endif
 		return self;
 	}
