@@ -447,23 +447,58 @@ inline void RotBox<dim>::fromAtlas(const AtlasInType& a) {
 				const Atlas::Message::Element& shapeVectorElem(shape_I->second);
 				Vector<dim> shapeVector;
 				shapeVector.fromAtlas(shapeVectorElem);
-				m_corner0 = shapePoint;
-				m_size = shapeVector;
-				m_orient = RotMatrix<dim>().identity(); //TODO: parse rotation matrix (is it needed?)
-				return;
-			}
-		}
-	}
-	throw _AtlasBadParse();
+                                m_corner0 = shapePoint;
+                                m_size = shapeVector;
+                                shape_I = shapeElement.find("rotation");
+                                if (shape_I != shapeElement.end()) {
+                                        const Atlas::Message::Element& rotElem(shape_I->second);
+                                        if (!rotElem.isList()) {
+                                                throw _AtlasBadParse();
+                                        }
+                                        const Atlas::Message::ListType& outer(rotElem.asList());
+                                        if (outer.size() != (unsigned)dim) {
+                                                throw _AtlasBadParse();
+                                        }
+                                        CoordType vals[dim][dim];
+                                        for (int i = 0; i < dim; ++i) {
+                                                if (!outer[i].isList()) {
+                                                        throw _AtlasBadParse();
+                                                }
+                                                const Atlas::Message::ListType& row(outer[i].asList());
+                                                if (row.size() != (unsigned)dim) {
+                                                        throw _AtlasBadParse();
+                                                }
+                                                for (int j = 0; j < dim; ++j) {
+                                                        vals[i][j] = static_cast<CoordType>(row[j].asNum());
+                                                }
+                                        }
+                                        if (!m_orient.setVals(vals)) {
+                                                throw _AtlasBadParse();
+                                        }
+                                } else {
+                                        m_orient = RotMatrix<dim>().identity();
+                                }
+                                return;
+                        }
+                }
+        }
+        throw _AtlasBadParse();
 }
 
 template<int dim>
 inline AtlasOutType RotBox<dim>::toAtlas() const {
-	Atlas::Message::MapType map;
-	map.insert(Atlas::Message::MapType::value_type("point", m_corner0.toAtlas()));
-	map.insert(Atlas::Message::MapType::value_type("size", m_size.toAtlas()));
-	//TODO: also add the rotmatrix
-	return map;
+        Atlas::Message::MapType map;
+        map.insert(Atlas::Message::MapType::value_type("point", m_corner0.toAtlas()));
+        map.insert(Atlas::Message::MapType::value_type("size", m_size.toAtlas()));
+        Atlas::Message::ListType matrix(dim);
+        for (int i = 0; i < dim; ++i) {
+                Atlas::Message::ListType row(dim);
+                for (int j = 0; j < dim; ++j)
+                        row[j] = m_orient.elem(i, j);
+                matrix[i] = row;
+        }
+        map.insert(Atlas::Message::MapType::value_type("rotation", matrix));
+        return map;
 }
 
 template<int dim>

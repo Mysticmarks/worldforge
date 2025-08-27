@@ -75,7 +75,9 @@ int main()
   line2.addCorner(1, WFMath::Point<3>(10, 0, 5));
   atlas_test(line2);
   
-  RotBox<2> rotbox(Point<2>(1, 2), Vector<2>(10, 20), RotMatrix<2>().identity());
+  RotMatrix<2> rot;
+  rot.rotation(numeric_constants<CoordType>::pi() / 4);
+  RotBox<2> rotbox(Point<2>(1, 2), Vector<2>(10, 20), rot);
   atlas_test(rotbox);
 
   return 0;
