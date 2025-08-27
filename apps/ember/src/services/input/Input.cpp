@@ -40,6 +40,7 @@
 
 #include <SDL3/SDL.h>
 
+#include <cstdint>
 #include <sstream>
 #include <spdlog/spdlog.h>
 
@@ -163,13 +164,14 @@ std::string Input::createWindow(unsigned int width, unsigned int height, bool fu
 #ifdef __APPLE__
 	//On OSX we'll tell Ogre to use the current OpenGL context; thus we don't need to return the window id
 #elif defined(_WIN32)
-	HWND hwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(mMainVideoSurface), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
-	if (hwnd) {
-		handle = std::to_string((unsigned long long)hwnd);
-	}
+        HWND hwnd = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties(mMainVideoSurface), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL));
+        if (hwnd) {
+                auto hwndValue = reinterpret_cast<std::uintptr_t>(hwnd);
+                handle = std::to_string(hwndValue);
+        }
 #else
-	auto xwindow = (unsigned long)SDL_GetNumberProperty(SDL_GetWindowProperties(mMainVideoSurface), SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0);
-	handle = std::to_string(xwindow);
+        auto xwindow = static_cast<std::uintptr_t>(SDL_GetNumberProperty(SDL_GetWindowProperties(mMainVideoSurface), SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0));
+        handle = std::to_string(xwindow);
 #endif
 
 
