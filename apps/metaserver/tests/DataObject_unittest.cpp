@@ -33,6 +33,7 @@
 #include <iostream>
 #include <algorithm>
 #include <vector>
+#include <list>
 
 class DataObject_unittest : public CppUnit::TestFixture {
 CPPUNIT_TEST_SUITE(DataObject_unittest);
@@ -46,6 +47,7 @@ CPPUNIT_TEST_SUITE(DataObject_unittest);
                 CPPUNIT_TEST(test_ClientSession);
                 CPPUNIT_TEST(test_ExpireServerSessions);
                 CPPUNIT_TEST(test_ExpireHandshakes);
+                CPPUNIT_TEST(test_ServerSessionSorting);
 
 
         CPPUNIT_TEST_SUITE_END();
@@ -295,6 +297,36 @@ public:
                 CPPUNIT_ASSERT(expired.size() == 2);
                 CPPUNIT_ASSERT(std::find(expired.begin(), expired.end(), 1u) != expired.end());
                 CPPUNIT_ASSERT(msdo->handshakeExists(1) == false);
+        }
+
+        void test_ServerSessionSorting() {
+                // Setup server sessions with a sortable attribute
+                msdo->addServerSession("serverA");
+                msdo->addServerAttribute("serverA", "region", "eu");
+                msdo->addServerSession("serverB");
+                msdo->addServerAttribute("serverB", "region", "us");
+                msdo->addServerSession("serverC");
+                msdo->addServerAttribute("serverC", "region", "asia");
+
+                // Setup two client sessions, one with a sort filter
+                msdo->addClientAttribute("client1", "dummy", "1");
+                msdo->addClientAttribute("client2", "dummy", "1");
+                msdo->addClientFilter("client2", "sortby", "region");
+
+                msdo->createServerSessionListresp("client1");
+                msdo->createServerSessionListresp("client2");
+
+                std::list<std::string> list1 = msdo->getServerSessionList(0, 10, "client1");
+                std::list<std::string> list2 = msdo->getServerSessionList(0, 10, "client2");
+
+                std::vector<std::string> v1(list1.begin(), list1.end());
+                std::vector<std::string> v2(list2.begin(), list2.end());
+
+                std::vector<std::string> expected1 = {"serverA", "serverB", "serverC"};
+                std::vector<std::string> expected2 = {"serverC", "serverA", "serverB"};
+
+                CPPUNIT_ASSERT(v1 == expected1);
+                CPPUNIT_ASSERT(v2 == expected2);
         }
 
 };
