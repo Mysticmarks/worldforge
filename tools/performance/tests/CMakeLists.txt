@@ -1,0 +1,5 @@
+include_directories(${CMAKE_SOURCE_DIR})
+add_executable(ProfilerCLI ../ProfilerCLI.cpp ../../../apps/ember/src/framework/Profiler.cpp)
+add_executable(ProfilerCLITest ProfilerCLITest.cpp ../../../apps/ember/src/framework/Profiler.cpp)
+add_dependencies(ProfilerCLITest ProfilerCLI)
+add_test(NAME ProfilerCLITest COMMAND ProfilerCLITest)
