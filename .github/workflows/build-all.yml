@@ -130,6 +130,13 @@ jobs:
                 shell: bash
                 run: ctest --preset conan-release --output-on-failure
 
+            -   name: Upload prebuilt
+                uses: actions/upload-artifact@v4.6.1
+                with:
+                    name: prebuilt
+                    path: ${{ github.workspace }}/prebuilt
+                    retention-days: 30
+
     package:
         name: Package on *NIX and Windows
         needs: build-test
