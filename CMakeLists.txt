@@ -147,6 +147,8 @@ endmacro()
 add_subdirectory(external)
 add_subdirectory(libs)
 add_subdirectory(apps)
+add_subdirectory(tools/nanite/tests)
+add_subdirectory(tools/performance/tests)
 
 # Packaging
 
