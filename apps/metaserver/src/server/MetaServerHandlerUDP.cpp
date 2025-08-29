@@ -88,12 +88,12 @@ MetaServerHandlerUDP::handle_receive(const boost::system::error_code& error,
 			/**
 			 *  Define an empty MSP ( the buffer is internally created )
 			 */
-			MetaServerPacket rsp;
+                        auto rsp = std::make_shared<MetaServerPacket>();
 
 			/**
 			 * The logic for what happens is inside the metaserver class
 			 */
-			m_msRef.processMetaserverPacket(msp, rsp);
+                        m_msRef.processMetaserverPacket(msp, *rsp);
 
 			/**
 			 * Send back response, only if it's not NULL and has some data
@@ -101,13 +101,14 @@ MetaServerHandlerUDP::handle_receive(const boost::system::error_code& error,
 			 * TODO: find out if MSP goes out of scope ( or buffer thereto )
 			 */
 
-			if (rsp.getSize() > 0 && rsp.getPacketType() != NMT_NULL) {
-				spdlog::info("UDP: Outgoing Packet [{}][{}][{}]", rsp.getAddress(), NMT_PRETTY[rsp.getPacketType()], rsp.getSize());
-				m_Socket.async_send_to(boost::asio::buffer(rsp.getBuffer(), rsp.getSize()), m_remoteEndpoint,
-									   [rsp](const boost::system::error_code& send_error, std::size_t bytes_sent) {
-										   handle_send(rsp, send_error, bytes_sent);
-									   });
-			}
+                        if (rsp->getSize() > 0 && rsp->getPacketType() != NMT_NULL) {
+                                spdlog::info("UDP: Outgoing Packet [{}][{}][{}]", rsp->getAddress(), NMT_PRETTY[rsp->getPacketType()], rsp->getSize());
+                                m_Socket.async_send_to(
+                                                boost::asio::buffer(rsp->getBuffer(), rsp->getSize()), m_remoteEndpoint,
+                                                [rsp](const boost::system::error_code& send_error, std::size_t bytes_sent) {
+                                                        handle_send(*rsp, send_error, bytes_sent);
+                                                });
+                        }
 
 			/**
 			 *	Back to async read

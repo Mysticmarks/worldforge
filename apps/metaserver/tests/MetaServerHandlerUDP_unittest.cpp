@@ -44,8 +44,9 @@
 
 class MetaServerHandlerUDP_unittest : public CppUnit::TestCase {
 CPPUNIT_TEST_SUITE(MetaServerHandlerUDP_unittest);
-		CPPUNIT_TEST(testConstructor);
-	CPPUNIT_TEST_SUITE_END();
+                CPPUNIT_TEST(testConstructor);
+                CPPUNIT_TEST(testResponseLifetime);
+        CPPUNIT_TEST_SUITE_END();
 public:
 	MetaServerHandlerUDP_unittest() {
 		ms = NULL;
@@ -69,9 +70,29 @@ public:
 		delete ms_udp;
 	}
 
-	void testConstructor() {
-		CPPUNIT_ASSERT(ms_udp);
-	}
+        void testConstructor() {
+                CPPUNIT_ASSERT(ms_udp);
+        }
+
+        void testResponseLifetime() {
+                using boost::asio::ip::udp;
+                udp::socket client(io, udp::endpoint(udp::v4(), 0));
+                udp::endpoint server(boost::asio::ip::make_address(host), 50000);
+
+                MetaServerPacket req;
+                req.setPacketType(NMT_SERVERKEEPALIVE);
+
+                client.send_to(boost::asio::buffer(req.getBuffer(), req.getSize()), server);
+                io.poll();
+
+                std::array<char, MAX_PACKET_BYTES> reply{};
+                udp::endpoint sender;
+                auto len = client.receive_from(boost::asio::buffer(reply), sender);
+                io.poll();
+
+                MetaServerPacket rsp(reply, len);
+                CPPUNIT_ASSERT_EQUAL(NMT_HANDSHAKE, rsp.getPacketType());
+        }
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(MetaServerHandlerUDP_unittest);
@@ -123,8 +144,9 @@ MetaServer::MetaServer()
 
 MetaServer::~MetaServer() {}
 
-void MetaServer::processMetaserverPacket(MetaServerPacket&, MetaServerPacket&) {
-
+void MetaServer::processMetaserverPacket(MetaServerPacket&, MetaServerPacket& rsp) {
+        rsp.setPacketType(NMT_HANDSHAKE);
+        rsp.addPacketData(0);
 }
 
 DataObject::DataObject() {
