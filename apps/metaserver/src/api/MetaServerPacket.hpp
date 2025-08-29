@@ -134,7 +134,7 @@ public:
 
 	uint32_t getIntData(unsigned int offset) const;
 
-	std::array<char, MAX_PACKET_BYTES> getBuffer() const { return m_packetPayload; }
+        const std::array<char, MAX_PACKET_BYTES>& getBuffer() const { return m_packetPayload; }
 
 	void setBuffer(std::array<char, MAX_PACKET_BYTES>& pl, std::size_t bytes = 0) {
 		m_packetPayload = pl;
