@@ -12,6 +12,7 @@
 
 #include <map>
 #include <string>
+#include <memory>
 
 namespace Mercator {
 
@@ -71,9 +72,8 @@ public:
 	/// STL vector of plant species in this forest.
 	typedef std::vector<Species> PlantSpecies;
 private:
-	//TODO: store as value, not pointer
-	/// Area of terrain affected by the presence of this forest.
-	Area* m_area;
+        /// Area of terrain affected by the presence of this forest.
+        std::unique_ptr<Area> m_area;
 
 	/// List of species in this forest.
 	PlantSpecies m_species;
@@ -89,10 +89,10 @@ public:
 
 	~Forest();
 
-	/// \brief Accessor for polygonal area.
-	Area* getArea() const {
-		return m_area;
-	}
+        /// \brief Accessor for polygonal area.
+        Area* getArea() const {
+                return m_area.get();
+        }
 
 	/// Accessor for list of species in this forest.
 	PlantSpecies& species() {
@@ -105,7 +105,7 @@ public:
 		return m_plants;
 	}
 
-	void setArea(Area* a);
+        void setArea(std::unique_ptr<Area> a);
 
 	void populate();
 };

@@ -46,17 +46,17 @@ void PropertyCore<EntityT>::apply(EntityT&) {
 }
 
 template<typename EntityT>
-void PropertyCore<EntityT>::add(const std::string& s,
-								Atlas::Message::MapType& ent) const {
-	get(ent[s]);
+void PropertyCore<EntityT>::add(const std::string& key,
+                                                                Atlas::Message::MapType& map) const {
+        get(map[key]);
 }
 
 template<typename EntityT>
-void PropertyCore<EntityT>::add(const std::string& s,
-								const Atlas::Objects::Entity::RootEntity& ent) const {
-	Atlas::Message::Element val;
-	get(val);
-	ent->setAttr(s, val);
+void PropertyCore<EntityT>::add(const std::string& key,
+                                                                const Atlas::Objects::Entity::RootEntity& ent) const {
+        Atlas::Message::Element val;
+        get(val);
+        ent->setAttr(key, val);
 }
 
 template<typename EntityT>
@@ -92,19 +92,16 @@ int Property<T, EntityT>::get(Atlas::Message::Element& e) const {
 	return 0;
 }
 
-// The following two are obsolete.
 template<typename T, typename EntityT>
-void Property<T, EntityT>::add(const std::string& s,
-							   Atlas::Message::MapType& ent) const {
-	get(ent[s]);
+void Property<T, EntityT>::add(const std::string& key,
+                                                           Atlas::Message::MapType& map) const {
+        PropertyCore<EntityT>::add(key, map);
 }
 
 template<typename T, typename EntityT>
-void Property<T, EntityT>::add(const std::string& s,
-							   const Atlas::Objects::Entity::RootEntity& ent) const {
-	Atlas::Message::Element val;
-	get(val);
-	ent->setAttr(s, val);
+void Property<T, EntityT>::add(const std::string& key,
+                                                           const Atlas::Objects::Entity::RootEntity& ent) const {
+        PropertyCore<EntityT>::add(key, ent);
 }
 
 template<typename T, typename EntityT>

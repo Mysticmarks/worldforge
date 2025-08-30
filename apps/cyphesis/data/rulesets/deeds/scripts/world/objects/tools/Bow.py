@@ -32,8 +32,9 @@ def shoot_in_direction(direction, instance, res):
 
         mode_data = {"mode": "projectile", "$eid": instance.actor.id, "extra": {"damage": 20}}
 
-        # TODO: match with animation in client
         res.append(instance.actor.start_action("bow/releasing", 1))
+        res.append(Operation("sight", Operation("activity", Entity(action="shoot"), from_=instance.tool.id),
+                             from_=instance.tool.id))
         res.append(Operation("move", Entity(arrows[0].id,
                                             location=new_loc,
                                             velocity=direction * 60,
@@ -72,8 +73,9 @@ class DrawBow(StoppableTask):
         self.is_ready = False
 
     def setup(self, task_id):
-        # TODO: match with animation in client
         self.start_action("bow/drawing")
+        self.usage.tool.send_world(Operation("sight", Operation("activity", Entity(action="draw"), from_=self.usage.tool.id),
+                                     from_=self.usage.tool.id))
 
     def tick(self):
         (valid, err) = self.usage.is_valid()
@@ -81,10 +83,8 @@ class DrawBow(StoppableTask):
             return self.irrelevant(err)
 
         if not self.is_ready:
-            # TODO When updating usages, or progress, the enveloping system should take care of checking that the Task (and thus the TaskProperty) has changed. No need for "actor.update_task()"
             self.usages = [{"name": "release", "params": {"direction": {"type": "direction"}}}] + self.usages
             self.is_ready = True
-            return self.actor.update_task()
 
     def release_usage(self, args):
         res = Oplist()

@@ -675,14 +675,13 @@ void Interactive::exec(const std::string& cmd, const std::string& arg) {
 			cmap->setAttr("hostname", args[0]);
 			cmap->setAttr("port", strtol(args[1].c_str(), nullptr, 10));
 
-			Connect m;
-			m->setArgs1(cmap);
-			// No serialno yet
-			// FIXME add serialno once Juncture context can handle this
+                        Connect m;
+                        m->setArgs1(cmap);
+                        m->setSerialno(newSerialNo());
 
-			command_context->setFromContext(m);
+                        command_context->setFromContext(m);
 
-			send(m);
+                        send(m);
 		}
 	} else if (cmd == "add_agent") {
 		std::string agent_type("creator");
@@ -757,14 +756,13 @@ void Interactive::exec(const std::string& cmd, const std::string& arg) {
 			reply_expected = false;
 		}
 	} else if (cmd == "flush") {
-		if (arg.empty()) {
-			// FIXME usage
-			std::cout << "Please specify the type to flush" << std::endl;
-			reply_expected = false;
-		} else {
-			runTask(std::make_shared<Flusher>(command_context), arg);
-			reply_expected = false;
-		}
+                if (arg.empty()) {
+                        std::cout << "usage: flush <type>" << std::endl;
+                        reply_expected = false;
+                } else {
+                        runTask(std::make_shared<Flusher>(command_context), arg);
+                        reply_expected = false;
+                }
 	} else if (cmd == "cancel") {
 		if (endTask() != 0) {
 			std::cout << "No task currently running" << std::endl;
