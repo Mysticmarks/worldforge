@@ -18,6 +18,7 @@
 #include "services/metaserver/MetaserverService.h"
 #include "services/sound/SoundService.h"
 #include "services/scripting/ScriptingService.h"
+#include "services/serversettings/ServerSettings.h"
 #include "services/input/Input.h"
 
 #include "framework/ShutdownException.h"
@@ -438,7 +439,17 @@ void Application::initializeServices() {
 	// Initialize Ember services
 	logger->info("Initializing Ember services");
 
-	mServices = std::make_unique<EmberServices>(*mSession, mConfigService);
+        auto scriptingService = std::make_unique<ScriptingService>();
+        auto soundService = std::make_unique<SoundService>(mConfigService);
+        auto serverService = std::make_unique<ServerService>(*mSession);
+        auto metaserverService = std::make_unique<MetaserverService>(*mSession, mConfigService);
+        auto serverSettingsService = std::make_unique<ServerSettings>();
+        mServices = std::make_unique<EmberServices>(mConfigService,
+                                                   std::move(scriptingService),
+                                                   std::move(soundService),
+                                                   std::move(serverService),
+                                                   std::move(metaserverService),
+                                                   std::move(serverSettingsService));
 
 	mInput.setMainLoopController(&mMainLoopController);
 
