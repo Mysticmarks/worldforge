@@ -32,6 +32,8 @@
 #include <cstring>
 #include <memory>
 #include <sstream>
+#include <string>
+#include <fmt/format.h>
 
 using Atlas::Message::Element;
 using Atlas::Message::MapType;
@@ -146,16 +148,40 @@ int DatabasePostgres::connect(const std::string& context, std::string& error_msg
 }
 
 int DatabasePostgres::initConnection() {
-	std::string error_message;
+        std::string error_message;
 
-	if (connect(::instance, error_message) != 0) {
-		spdlog::error("Connection to database failed: {}", error_message);
-		return -1;
-	}
+        if (connect(::instance, error_message) != 0) {
+                spdlog::error("Connection to database failed: {}", error_message);
+                return -1;
+        }
 
-	PQsetNoticeProcessor(m_connection, databaseNotice, nullptr);
+        PQsetNoticeProcessor(m_connection, databaseNotice, nullptr);
 
-	return 0;
+        bool cleanup = false;
+        readConfigItem(::instance, "dbcleanup", cleanup);
+        if (cleanup) {
+                if (cleanupDatabase() != 0) {
+                        spdlog::error("Database cleanup requested but failed");
+                        return -1;
+                }
+                spdlog::info("Database schema dropped for clean test run");
+        }
+
+        return 0;
+}
+
+int DatabasePostgres::cleanupDatabase() {
+        assert(m_connection != nullptr);
+
+        allTables.clear();
+        // Drop and recreate the public schema to ensure a completely clean state.
+        if (runCommandQuery("DROP SCHEMA IF EXISTS public CASCADE") != 0) {
+                return -1;
+        }
+        if (runCommandQuery("CREATE SCHEMA public") != 0) {
+                return -1;
+        }
+        return 0;
 }
 
 void DatabasePostgres::shutdownConnection() {
