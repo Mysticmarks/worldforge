@@ -24,11 +24,14 @@ public:
 	bool checkIntersect(const Segment&) const override;
 
 private:
-	/// helper to shader a single area into the surface
-	static void shadeArea(Surface& s, const Area& ar) ;
+        /// helper to shader a single area into the surface
+        static void shadeArea(Surface& s, const Area& ar) ;
 
-	/// The layer number.
-	int m_layer;
+        /// helper to remove a hole from the surface
+        static void shadeHole(Surface& s, const Area& ar);
+
+        /// The layer number.
+        int m_layer;
 };
 
 }

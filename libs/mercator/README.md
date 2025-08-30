@@ -40,6 +40,7 @@ be flattened, or a crater could be applied.
 ### Shading
 * generate shading information based on height and gradient
 * new types of shaders can be added quite easily
+* polygonal areas may be marked as holes to carve out unshaded regions
 * used on the client side
 
 ### Collision

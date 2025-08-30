@@ -111,9 +111,9 @@ static void contribute(Surface& s,
 }
 
 static void span(Surface& s,
-				 WFMath::CoordType z,
-				 WFMath::CoordType xStart,
-				 WFMath::CoordType xEnd) {
+                                 WFMath::CoordType z,
+                                 WFMath::CoordType xStart,
+                                 WFMath::CoordType xEnd) {
 	assert(xStart <= xEnd);
 
 	// quantize and accumulate into the buffer data
@@ -133,6 +133,44 @@ static void span(Surface& s,
 
 		contribute(s, ixEnd, row, ROW_HEIGHT * (xEnd - ixEnd + 0.5f));
 	}
+}
+
+static void remove(Surface& s,
+                                  unsigned int x, unsigned int z,
+                                  WFMath::CoordType amount) {
+        unsigned int sz = s.getSize() - 1;
+        if ((x == 0) || (x == sz))
+                amount *= 2;
+
+        if ((z == 0) || (z == sz))
+                amount *= 2;
+
+        ColorT val = s(x, z, 0);
+        int res = static_cast<int>(val) - I_ROUND(amount * 255);
+        if (res < 0) res = 0;
+        s(x, z, 0) = static_cast<ColorT>(res);
+}
+
+static void spanHole(Surface& s,
+                                  WFMath::CoordType z,
+                                  WFMath::CoordType xStart,
+                                  WFMath::CoordType xEnd) {
+        assert(xStart <= xEnd);
+
+        unsigned int row = I_ROUND(z),
+                        ixStart = I_ROUND(xStart),
+                        ixEnd = I_ROUND(xEnd);
+
+        if (ixStart == ixEnd) {
+                remove(s, ixStart, row, ROW_HEIGHT * (xEnd - xStart));
+        } else {
+                remove(s, ixStart, row, ROW_HEIGHT * (ixStart - xStart + 0.5f));
+
+                for (unsigned int i = ixStart + 1; i < ixEnd; ++i)
+                        remove(s, i, row, ROW_HEIGHT);
+
+                remove(s, ixEnd, row, ROW_HEIGHT * (xEnd - ixEnd + 0.5f));
+        }
 }
 
 static void scanConvert(const WFMath::Polygon<2>& inPoly, Surface& sf) {
@@ -190,6 +228,52 @@ static void scanConvert(const WFMath::Polygon<2>& inPoly, Surface& sf) {
 	} // of active edges loop
 }
 
+static void scanConvertHole(const WFMath::Polygon<2>& inPoly, Surface& sf) {
+        if (!inPoly.isValid()) return;
+
+        std::list<Edge> pending;
+        std::vector<Edge> active;
+
+        Point2 lastPt = inPoly.getCorner(inPoly.numCorners() - 1);
+        for (std::size_t p = 0; p < inPoly.numCorners(); ++p) {
+                Point2 curPt = inPoly.getCorner(p);
+
+                if (curPt.y() != lastPt.y())
+                        pending.emplace_back(lastPt, curPt);
+
+                lastPt = curPt;
+        }
+
+        if (pending.empty()) return;
+
+        pending.sort();
+        active.push_back(pending.front());
+        pending.pop_front();
+
+        WFMath::CoordType z = std::floor(active.front().start().y()) + ROW_HEIGHT * 0.5f;
+
+        while(!pending.empty() || !active.empty()) {
+                while (!pending.empty() && (pending.front().start().y() <= z)) {
+                        active.push_back(pending.front());
+                        pending.pop_front();
+                }
+
+                std::sort(active.begin(), active.end(), EdgeAtZ(z));
+
+                for (unsigned int i = 0; i < active.size();) {
+                        if (active[i].end().y() <= z)
+                                active.erase(active.begin() + i);
+                        else
+                                ++i;
+                }
+
+                for (unsigned int i = 1; i < active.size(); i += 2)
+                        spanHole(sf, z, active[i - 1].xValueAtZ(z), active[i].xValueAtZ(z));
+
+                z += ROW_HEIGHT;
+        }
+}
+
 AreaShader::AreaShader(int layer) :
 		Shader(false /* no color */, true),
 		m_layer(layer) {
@@ -214,11 +298,12 @@ void AreaShader::shade(Surface& s) const {
 
 	for (; it != itend; ++it) {
 		// apply to surface in turn
-		if (it->second.area->isHole()) {
-			//TODO: shadeHole
-		} else
-			shadeArea(s, *it->second.area);
-	} // of areas in layer
+                if (it->second.area->isHole()) {
+                        shadeHole(s, *it->second.area);
+                } else {
+                        shadeArea(s, *it->second.area);
+                }
+        } // of areas in layer
 }
 
 void AreaShader::shadeArea(Surface& s, const Area& ar) {
@@ -228,8 +313,19 @@ void AreaShader::shadeArea(Surface& s, const Area& ar) {
 	if (clipped.numCorners() == 0) return;
 
 	Point2 segOrigin = s.m_segment.getRect().lowCorner();
-	clipped.shift(Point2(0, 0) - segOrigin);
-	scanConvert(clipped, s);
+        clipped.shift(Point2(0, 0) - segOrigin);
+        scanConvert(clipped, s);
+}
+
+void AreaShader::shadeHole(Surface& s, const Area& ar) {
+        WFMath::Polygon<2> clipped = ar.clipToSegment(s.m_segment);
+        assert(clipped.isValid());
+
+        if (clipped.numCorners() == 0) return;
+
+        Point2 segOrigin = s.m_segment.getRect().lowCorner();
+        clipped.shift(Point2(0, 0) - segOrigin);
+        scanConvertHole(clipped, s);
 }
 
 } // of namespace
