@@ -121,8 +121,7 @@ endif ()
 
 add_subdirectory(external)
 add_subdirectory(src)
-#TODO: enable again once we've sorted the monorepo
-#add_subdirectory(tests)
+add_subdirectory(tests)
 
 file(GLOB MODELDEFINITIONS_FILES data/dural/*.modeldef)
 foreach (FILE ${MODELDEFINITIONS_FILES})
