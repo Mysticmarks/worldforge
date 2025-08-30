@@ -119,7 +119,7 @@ static int users_list(Storage& ab, struct dbsys* system,
 }
 
 static int users_del(Storage& ab, struct dbsys* system,
-					 int argc, char** argv) {
+                                         int argc, char** argv) {
 	if (argc != 2) {
 		std::cout << "usage: " << system->sys_name
 				  << " <username>" << std::endl;
@@ -149,8 +149,22 @@ static int users_del(Storage& ab, struct dbsys* system,
 	return 0;
 }
 
+static int verify_account(const std::string& id) {
+        std::string cmd = fmt::format("SELECT username FROM accounts WHERE username='{}'", id);
+        DatabaseResult res = Database::instance().runSimpleSelectQuery(cmd);
+        if (res.size() == 0) {
+                std::cout << "User account " << id << " not found" << std::endl;
+                return 1;
+        }
+        if (res.size() != 1) {
+                std::cout << "ERROR: Multiple accounts match " << id << std::endl;
+                return 1;
+        }
+        return 0;
+}
+
 static int users_mod(Storage& ab, struct dbsys* system,
-					 int argc, char** argv) {
+                                         int argc, char** argv) {
 	int opt;
 	char* type = 0, * password = 0;
 
@@ -176,49 +190,43 @@ static int users_mod(Storage& ab, struct dbsys* system,
 				  << std::endl;
 		return 1;
 	}
-	std::string id = argv[optind];
-	std::string cmd = fmt::format("SELECT username, type FROM accounts "
-								  "WHERE username='{}'", id);
-	DatabaseResult res = Database::instance().runSimpleSelectQuery(cmd);
-	if (res.size() == 0) {
-		std::cout << "User account " << id << " not found"
-				  << std::endl;
-		return 1;
-	}
-	if (res.size() != 1) {
-		std::cout << "ERROR: Multiple accounts match " << id
-				  << std::endl;
-		return 1;
-	}
-	if (type != 0) {
-		std::string new_type = type;
-		if (new_type != "admin" && new_type != "player" &&
-			new_type != "disabled") {
-			std::cout << "ERROR: Account type must be one of "
-						 "\"player\", \"admin\" or \"disabled\""
-					  << std::endl;
-		}
-		// FIXME Verify the account exists.
-		cmd = fmt::format("UPDATE accounts SET type = '{}' WHERE "
-						  "username = '{}'", new_type, id);
-		if (Database::instance().runCommandQuery(cmd) != 0) {
-			std::cout << "User mod type fail" << std::endl;
-			return 1;
-		}
-		std::cout << "Account type updated."
-				  << std::endl;
-	}
-	if (password != 0) {
-		std::string new_pass;
-		encrypt_password(password, new_pass);
-		cmd = fmt::format("UPDATE accounts SET password = '{}' WHERE "
-						  "username = '{}'", new_pass, id);
-		if (Database::instance().runCommandQuery(cmd) != 0) {
-			std::cout << "User mod password fail" << std::endl;
-			return 1;
-		}
-		std::cout << "Account password updated."
-				  << std::endl;
+        std::string id = argv[optind];
+        if (verify_account(id) != 0) {
+                return 1;
+        }
+        std::string cmd;
+        if (type != 0) {
+                std::string new_type = type;
+                if (new_type != "admin" && new_type != "player" &&
+                        new_type != "disabled") {
+                        std::cout << "ERROR: Account type must be one of "
+                                                 "\"player\", \"admin\" or \"disabled\""
+                                          << std::endl;
+                }
+                if (verify_account(id) != 0) {
+                        return 1;
+                }
+                cmd = fmt::format("UPDATE accounts SET type = '{}' WHERE username = '{}'", new_type, id);
+                if (Database::instance().runCommandQuery(cmd) != 0) {
+                        std::cout << "User mod type fail" << std::endl;
+                        return 1;
+                }
+                std::cout << "Account type updated."
+                                  << std::endl;
+        }
+        if (password != 0) {
+                std::string new_pass;
+                encrypt_password(password, new_pass);
+                if (verify_account(id) != 0) {
+                        return 1;
+                }
+                cmd = fmt::format("UPDATE accounts SET password = '{}' WHERE username = '{}'", new_pass, id);
+                if (Database::instance().runCommandQuery(cmd) != 0) {
+                        std::cout << "User mod password fail" << std::endl;
+                        return 1;
+                }
+                std::cout << "Account password updated."
+                                  << std::endl;
 	}
 
 	return 0;

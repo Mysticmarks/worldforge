@@ -586,6 +586,7 @@ wf_add_test(tools/FlusherTest.cpp ../src/tools/Flusher.cpp
 wf_add_test(tools/OperationMonitorTest.cpp ../src/tools/OperationMonitor.cpp
         ../src/common/ClientTask.cpp)
 wf_add_test(tools/EntityExporterTest.cpp ../src/tools/EntityExporterBase.cpp)
+wf_add_test(tools/CydbTest.cpp)
 
 
 # PYTHON_TESTS
