@@ -68,6 +68,17 @@ if (TARGET cppunit::cppunit)
     add_test(NAME TestFramework COMMAND TestFramework)
     add_dependencies(check TestFramework)
 
+    add_executable(TestConsoleBackend
+            TestConsoleBackend.cpp
+            $<TARGET_OBJECTS:ember-framework>
+            $<TARGET_OBJECTS:ember-tinyxml>)
+    target_compile_definitions(TestConsoleBackend PUBLIC -DLOG_TASKS)
+    target_link_libraries(TestConsoleBackend
+            cppunit::cppunit
+            mojoal)
+    add_test(NAME TestConsoleBackend COMMAND TestConsoleBackend)
+    add_dependencies(check TestConsoleBackend)
+
     #    add_executable(TestTerrain TestTerrain.cpp)
     #    target_compile_definitions(TestTerrain PUBLIC -DLOG_TASKS)
     #    target_link_libraries(TestTerrain ${CPPUNIT_LIBRARIES} ${WF_LIBRARIES} emberogre terrain caelum pagedgeometry entitymapping lua services framework)
