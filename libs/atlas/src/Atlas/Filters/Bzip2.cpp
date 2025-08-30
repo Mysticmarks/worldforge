@@ -7,6 +7,7 @@
 #if defined(HAVE_BZLIB_H) && defined(HAVE_LIBBZ2)
 
 #include <Atlas/Filters/Bzip2.h>
+#include <stdexcept>
 
 #ifndef ASSERT
 
@@ -52,19 +53,19 @@ std::string Bzip2::encode(const std::string& data) {
 	outgoing.next_in = const_cast<char*>(data.data());
 	outgoing.avail_in = (unsigned int)data.size();
 
-	do {
-		outgoing.next_out = buf.data();
-		outgoing.avail_out = sizeof(buf);
+        int status;
+        do {
+                outgoing.next_out = buf.data();
+                outgoing.avail_out = sizeof(buf);
 
-		int status = BZ2_bzCompress(&outgoing, BZ_FLUSH);
+                status = BZ2_bzCompress(&outgoing, BZ_FLUSH);
 
-		ASSERT(status != BZ_SEQUENCE_ERROR);
+                if (status != BZ_RUN_OK && status != BZ_FINISH_OK && status != BZ_STREAM_END) {
+                        throw std::runtime_error("BZ2_bzCompress failed");
+                }
 
-		if (status != BZ_SEQUENCE_ERROR) {
-			out_string.append((char*)buf.data(), sizeof(buf) - outgoing.avail_out);
-		}
-		// FIXME do something else in case of error?
-	} while (outgoing.avail_out == 0);
+                out_string.append((char*)buf.data(), sizeof(buf) - outgoing.avail_out);
+        } while (outgoing.avail_out == 0);
 
 	return out_string;
 }
@@ -77,19 +78,20 @@ std::string Bzip2::decode(const std::string& data) {
 	incoming.next_in = const_cast<char*>(data.data());
 	incoming.avail_in = (unsigned int)data.size();
 
-	do {
-		incoming.next_out = buf.data();
-		incoming.avail_out = sizeof(buf);
+        int status;
+        do {
+                incoming.next_out = buf.data();
+                incoming.avail_out = sizeof(buf);
 
-		int status = BZ2_bzDecompress(&incoming);
+                status = BZ2_bzDecompress(&incoming);
 
-		ASSERT(status == BZ_OK);
+                if (status != BZ_OK && status != BZ_STREAM_END) {
+                        throw std::runtime_error("BZ2_bzDecompress failed");
+                }
 
-		if (status != BZ_SEQUENCE_ERROR) {
-			out_string.append((char*)buf.data(), sizeof(buf) - incoming.avail_out);
-		}
+                out_string.append((char*)buf.data(), sizeof(buf) - incoming.avail_out);
 
-	} while (incoming.avail_out == 0);
+        } while (status != BZ_STREAM_END && incoming.avail_out == 0);
 
 	return out_string;
 }

@@ -135,6 +135,7 @@ endmacro()
 
 wf_add_test(tests/Message/ElementTest.cpp)
 wf_add_test(tests/Codecs/codecs.cpp)
+wf_add_test(tests/Filters/bzip2.cpp)
 wf_add_test(tests/Objects/custom_ops.cpp)
 wf_add_test(tests/Objects/objects1.cpp tests/Objects/loadDefaults.cpp)
 wf_add_test(tests/Objects/objects2.cpp tests/Objects/DebugBridge.h tests/Objects/loadDefaults.cpp)
