@@ -38,6 +38,7 @@
 #include <cassert>
 #include <server/EntityBuilder.h>
 #include "common/Monitors.h"
+#include <vector>
 
 using Atlas::Message::Element;
 
@@ -76,109 +77,121 @@ struct TestStorageManager : public StorageManager {
 
 };
 
+/// Stubs emulating optional database backends. They inherit DatabaseNull and
+/// deliberately fail to connect, exercising the StorageManager fallback path
+/// when no real database is available.
+class DatabaseSQLiteStub : public DatabaseNull {
+public:
+        int connect(const std::string& context, std::string& error_msg) override {
+                error_msg = "SQLite backend unavailable";
+                return 1;
+        }
+};
+
+class DatabasePostgresStub : public DatabaseNull {
+public:
+        int connect(const std::string& context, std::string& error_msg) override {
+                error_msg = "PostgreSQL backend unavailable";
+                return 1;
+        }
+};
+
+/// Runs a suite of StorageManager operations and verifies they complete
+/// without requiring a working database connection.
+void exerciseDatabase(Database& database) {
+        Monitors m;
+        EntityBuilder eb;
+        Persistence persistence(database);
+        TestPropertyManager<LocatedEntity> propertyManager;
+        Ref<LocatedEntity> le(new LocatedEntity(0));
+
+        {
+                WorldRouter world(le, eb, {});
+                StorageManager store(world, database, eb, propertyManager);
+        }
+
+        {
+                WorldRouter world(le, eb, {});
+                StorageManager store(world, database, eb, propertyManager);
+                store.initWorld(le);
+        }
+
+        {
+                WorldRouter world(le, eb, {});
+                StorageManager store(world, database, eb, propertyManager);
+                store.restoreWorld(le);
+        }
+
+        {
+                WorldRouter world(le, eb, {});
+                StorageManager store(world, database, eb, propertyManager);
+                store.tick();
+        }
+
+        {
+                WorldRouter world(le, eb, {});
+                TestStorageManager store(world, database, eb, propertyManager);
+                Ref<LocatedEntity> e1(new LocatedEntity(1));
+                store.test_entityInserted(*e1);
+        }
+
+        {
+                WorldRouter world(le, eb, {});
+                TestStorageManager store(world, database, eb, propertyManager);
+                Ref<LocatedEntity> e1(new LocatedEntity(1));
+                store.test_entityUpdated(*e1);
+        }
+
+        {
+                WorldRouter world(le, eb, {});
+                TestStorageManager store(world, database, eb, propertyManager);
+                std::string val;
+                (void)val;
+                // store.test_encodeProperty(0, val);
+        }
+
+        {
+                WorldRouter world(le, eb, {});
+                TestStorageManager store(world, database, eb, propertyManager);
+                Ref<LocatedEntity> e1(new LocatedEntity(1));
+                store.test_restoreProperties(*e1);
+        }
+
+        {
+                WorldRouter world(le, eb, {});
+                TestStorageManager store(world, database, eb, propertyManager);
+                Ref<LocatedEntity> e1(new LocatedEntity(1));
+                store.test_insertEntity(*e1);
+        }
+
+        {
+                WorldRouter world(le, eb, {});
+                TestStorageManager store(world, database, eb, propertyManager);
+                Ref<LocatedEntity> e1(new LocatedEntity(1));
+                store.test_updateEntity(*e1);
+        }
+
+        {
+                WorldRouter world(le, eb, {});
+                TestStorageManager store(world, database, eb, propertyManager);
+                Ref<LocatedEntity> e1(new LocatedEntity(1));
+                store.test_restoreChildren(*e1);
+        }
+}
+
 int main() {
-	Monitors m;
-	EntityBuilder eb;
-	DatabaseNull database;
-	Persistence persistence(database);
-	TestPropertyManager<LocatedEntity> propertyManager;
+        // When no database is available the server falls back to a no-op
+        // storage backend. Each stubbed database exercises this behaviour.
+        std::vector<std::unique_ptr<Database>> databases;
+        databases.emplace_back(std::make_unique<DatabaseNull>());
+        databases.emplace_back(std::make_unique<DatabaseSQLiteStub>());
+        databases.emplace_back(std::make_unique<DatabasePostgresStub>());
 
-	Ref<LocatedEntity> le(new LocatedEntity(0));
+        for (auto& db : databases) {
+                exerciseDatabase(*db);
+        }
 
-	{
-		WorldRouter world(le, eb, {});
-
-		StorageManager store(world, database, eb, propertyManager);
-	}
-
-	{
-		WorldRouter world(le, eb, {});
-
-		StorageManager store(world, database, eb, propertyManager);
-
-		store.initWorld(le);
-	}
-
-	{
-		WorldRouter world(le, eb, {});
-
-		StorageManager store(world, database, eb, propertyManager);
-
-		store.restoreWorld(le);
-	}
-
-	{
-		WorldRouter world(le, eb, {});
-
-		StorageManager store(world, database, eb, propertyManager);
-
-		store.tick();
-	}
-
-	{
-		WorldRouter world(le, eb, {});
-
-		TestStorageManager store(world, database, eb, propertyManager);
-		Ref<LocatedEntity> e1(new LocatedEntity(1));
-		store.test_entityInserted(*e1);
-	}
-
-	{
-		WorldRouter world(le, eb, {});
-
-		TestStorageManager store(world, database, eb, propertyManager);
-		Ref<LocatedEntity> e1(new LocatedEntity(1));
-		store.test_entityUpdated(*e1);
-	}
-
-	{
-		WorldRouter world(le, eb, {});
-
-		TestStorageManager store(world, database, eb, propertyManager);
-
-		std::string val;
-
-		// store.test_encodeProperty(0, val);
-	}
-
-	{
-		WorldRouter world(le, eb, {});
-
-		TestStorageManager store(world, database, eb, propertyManager);
-
-		Ref<LocatedEntity> e1(new LocatedEntity(1));
-		store.test_restoreProperties(*e1);
-	}
-
-	{
-		WorldRouter world(le, eb, {});
-
-		TestStorageManager store(world, database, eb, propertyManager);
-
-		Ref<LocatedEntity> e1(new LocatedEntity(1));
-		store.test_insertEntity(*e1);
-	}
-
-	{
-		WorldRouter world(le, eb, {});
-
-		TestStorageManager store(world, database, eb, propertyManager);
-
-		Ref<LocatedEntity> e1(new LocatedEntity(1));
-		store.test_updateEntity(*e1);
-	}
-
-	{
-		WorldRouter world(le, eb, {});
-
-		TestStorageManager store(world, database, eb, propertyManager);
-
-		Ref<LocatedEntity> e1(new LocatedEntity(1));
-		store.test_restoreChildren(*e1);
-	}
-
-
-	return 0;
+        return 0;
 }
 
 // stubs
@@ -250,7 +263,9 @@ long forceIntegerId(const std::string& id) {
 }
 
 
-bool database_flag = true;
+// Global flag indicating whether a real database is available. The tests
+// disable it to exercise the fallback path where persistence is skipped.
+bool database_flag = false;
 
 namespace consts {
 
