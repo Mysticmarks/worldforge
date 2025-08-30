@@ -9,6 +9,7 @@
 #include <Atlas/Message/Element.h>
 
 #include <Atlas/Debug.h>
+#include <Atlas/Exception.h>
 
 #include <iostream>
 
@@ -164,11 +165,9 @@ void DecoderBase::listEnd() {
 			m_lists.top().emplace_back(std::move(list));
 		}
 			break;
-		case STATE_STREAM:
-			std::cerr << "DecoderBase::listEnd: Error" << std::endl;
-			m_lists.pop();
-			// XXX - report error?
-			break;
+                case STATE_STREAM:
+                        m_lists.pop();
+                        throw Atlas::Exception("DecoderBase::listEnd encountered unexpected STATE_STREAM");
 	}
 }
 
