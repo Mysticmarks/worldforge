@@ -85,11 +85,12 @@ WidgetPluginCallback ServerWidget::registerWidget(GUIManager& guiManager) {
 }
 
 ServerWidget::ServerWidget(GUIManager& guiManager, Eris::Account& account) :
-		mWidget(guiManager.createWidget()),
-		mAccount(account),
-		mCharacterList(nullptr),
-		mCreateChar(nullptr),
-		mUseCreator(nullptr) {
+                mWidget(guiManager.createWidget()),
+                mAccount(account),
+                mCharacterList(nullptr),
+                mCreateChar(nullptr),
+                mUseCreator(nullptr),
+                mServerSettings() {
 
 	buildWidget();
 
@@ -247,10 +248,10 @@ void ServerWidget::showServerInfo(Eris::Connection& connection) {
 		CEGUI::Window* passwordBox = mWidget->getMainWindow()->getChild("InfoPanel/LoginPanel/PasswordEdit");
 		std::string savedUser;
 		std::string savedPass;
-		if (fetchCredentials(connection, savedUser, savedPass)) {
-			nameBox->setText(savedUser);
-			passwordBox->setText(savedPass);
-		}
+                if (fetchCredentials(connection, savedUser, savedPass)) {
+                        nameBox->setText(savedUser);
+                        passwordBox->setText(savedPass);
+                }
 
 		//Check if the protocol version from the server is newer than the one we support, and warn if that's the case.
 		if (sInfo.protocol_version > Ember::protocolVersion) {
@@ -264,20 +265,19 @@ void ServerWidget::showServerInfo(Eris::Connection& connection) {
 }
 
 bool ServerWidget::fetchCredentials(Eris::Connection& connection, std::string& user, std::string& pass) {
-	logger->debug("Fetching saved credentials.");
+        logger->debug("Fetching saved credentials.");
 
 	Eris::ServerInfo sInfo;
 	connection.getServerInfo(sInfo);
 
-	ServerSettingsCredentials serverCredentials(sInfo);
-	auto& serverSettings = ServerSettings::getSingleton();
-	if (serverSettings.findItem(serverCredentials, "username")) {
-		user = static_cast<std::string>(serverSettings.getItem(serverCredentials, "username"));
-	}
-	if (serverSettings.findItem(serverCredentials, "password")) {
-		pass = static_cast<std::string>(serverSettings.getItem(serverCredentials, "password"));
-	}
-	return !pass.empty() && !user.empty();
+        ServerSettingsCredentials serverCredentials(sInfo);
+        if (mServerSettings.findItem(serverCredentials, "username")) {
+                user = static_cast<std::string>(mServerSettings.getItem(serverCredentials, "username"));
+        }
+        if (mServerSettings.findItem(serverCredentials, "password")) {
+                pass = static_cast<std::string>(mServerSettings.getItem(serverCredentials, "password"));
+        }
+        return !pass.empty() && !user.empty();
 }
 
 bool ServerWidget::saveCredentials() {
@@ -297,11 +297,10 @@ bool ServerWidget::saveCredentials() {
 			// fetch info from widgets
 			const CEGUI::String& name = nameBox->getText();
 			const CEGUI::String& password = passwordBox->getText();
-			ServerSettingsCredentials serverCredentials(sInfo);
-			auto& serverSettings = ServerSettings::getSingleton();
-			serverSettings.setItem(serverCredentials, "username", name.c_str());
-			serverSettings.setItem(serverCredentials, "password", password.c_str());
-			serverSettings.writeToDisk();
+        ServerSettingsCredentials serverCredentials(sInfo);
+        mServerSettings.setItem(serverCredentials, "username", name.c_str());
+        mServerSettings.setItem(serverCredentials, "password", password.c_str());
+        mServerSettings.writeToDisk();
 			return true;
 		}
 		return false;

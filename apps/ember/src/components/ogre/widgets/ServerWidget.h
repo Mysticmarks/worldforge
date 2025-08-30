@@ -29,6 +29,7 @@
 #include "services/server/AvatarTransferInfo.h"
 #include "framework/AutoCloseConnection.h"
 #include "services/server/ServerServiceSignals.h"
+#include "services/serversettings/ServerSettings.h"
 
 #include <Eris/Connection.h>
 #include <Eris/Avatar.h>
@@ -104,9 +105,11 @@ private:
 	 */
 	std::string mPreviewTypeName;
 
-	std::vector<AutoCloseConnection> mConnections;
+        std::vector<AutoCloseConnection> mConnections;
 
-	std::unique_ptr<Ember::AdminEntityCreator> mAdminEntityCreator;
+        std::unique_ptr<Ember::AdminEntityCreator> mAdminEntityCreator;
+
+        ServerSettings mServerSettings;
 
 	void gotAvatar(Eris::Avatar* avatar);
 
@@ -125,7 +128,7 @@ private:
 	bool EntityDestroyedOkButton_Click(const CEGUI::EventArgs& args);
 
 
-	static bool fetchCredentials(Eris::Connection& connection, std::string& user, std::string& pass);
+        bool fetchCredentials(Eris::Connection& connection, std::string& user, std::string& pass);
 
 	bool saveCredentials();
 

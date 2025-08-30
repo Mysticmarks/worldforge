@@ -28,6 +28,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include "services/serversettings/ServerSettings.h"
 
 namespace Ember {
 class EmberEntity;
@@ -169,7 +170,12 @@ protected:
 	/**
 	 * @brief A counter used for providing unique names for each slot window.
 	 */
-	int mSlotsCounter;
+        int mSlotsCounter;
+
+        /**
+         * @brief Local server settings instance used for persistence.
+         */
+        ServerSettings mServerSettings;
 };
 
 }

@@ -86,3 +86,15 @@ if (TARGET cppunit::cppunit)
     #    add_test(NAME TestTerrain COMMAND TestTerrain)
 
 endif ()
+
+find_package(Catch2 3 REQUIRED)
+
+add_executable(ServerSettingsTest
+        ServerSettingsTest.cpp
+        ../src/services/serversettings/ServerSettings.cpp
+        ../src/services/serversettings/ServerSettingsCredentials.cpp
+        ../src/services/config/ConfigService.cpp)
+target_include_directories(ServerSettingsTest PRIVATE ../src)
+target_link_libraries(ServerSettingsTest Catch2::Catch2WithMain varconf)
+add_test(NAME ServerSettingsTest COMMAND ServerSettingsTest)
+add_dependencies(check ServerSettingsTest)

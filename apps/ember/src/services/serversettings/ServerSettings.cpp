@@ -27,15 +27,12 @@
 namespace Ember {
 
 ServerSettings::ServerSettings() :
-		Service("Server settings"),
-		mConfig(std::make_unique<varconf::Config>()) {
-	readFromDisk();
+                mConfig(std::make_unique<varconf::Config>()) {
+        readFromDisk();
 
 }
 
-ServerSettings::~ServerSettings() {
-	writeToDisk();
-}
+ServerSettings::~ServerSettings() { writeToDisk(); }
 
 std::string ServerSettings::getSectionForServerCredentials(const ServerSettingsCredentials& credentials) const {
 	//This should be expanded to a more complex way of assuring that the section returned is correct for the server credentials.
