@@ -74,49 +74,22 @@ void Steering::setAwareness(Awareness* awareness) {
 
 
 int Steering::queryDestination(const EntityLocation<MemEntity>& destination, std::chrono::milliseconds currentServerTimestamp) {
-//    if (mAwareness) {
-//
-//        auto currentAvatarPos = getCurrentAvatarPosition(currentServerTimestamp);
-//
-//        WFMath::Point<3> finalPosition = WFMath::Point<3>::ZERO();
-//        if (destination.m_pos.isValid()) {
-//            finalPosition = destination.m_pos;
-//        }
-//        //TODO: handle other entities as destinations
-//        if (destination.m_parent) {
-//            updatePosition(currentServerTimestamp, mAvatar.getIntId(), currentAvatarPos);
-//        }
-//        std::vector<WFMath::Point<3>> path;
-//        auto pathFindResult = mAwareness->findPath(currentAvatarPos, finalPosition, mDestinationRadius, path);
-//        return pathFindResult;
-//
-//
-////
-////        float distanceAvatarDestination = WFMath::Distance(currentAvatarPos, finalPosition);
-////
-////        float finalRadius = radius;
-////
-////        //Check if the destination is too far away. If so we should adjust it closer, and increase the radius.
-////        //This depends on the AI updating the destination at regular intervals.
-////        if (distanceAvatarDestination > (mAwareness->getTileSizeInMeters() * 10)) {
-////            WFMath::Vector<3> vector = finalPosition - currentAvatarPos;
-////
-////            finalPosition = currentAvatarPos + (vector.normalize() * mAwareness->getTileSizeInMeters() * 10);
-////            finalRadius = (radius * 10.f);
-////        }
-////
-////        //Only update if destination or radius has changed, or if the current tile of the avatar isn't known.
-////        if (mViewDestination != finalPosition || mDestinationRadius != finalRadius
-////            || !mAwareness->isPositionAware(currentAvatarPos.x(), currentAvatarPos.z())) {
-////            mViewDestination = finalPosition;
-////            mDestinationRadius = finalRadius;
-////            mUpdateNeeded = true;
-////
-////            setAwarenessArea();
-////            mAvatarPositionLastUpdate = currentAvatarPos;
-////        }
-//    }
-	return -10;
+        if (!mAwareness) {
+                return -7;
+        }
+
+        auto currentAvatarPos = getCurrentAvatarPosition(currentServerTimestamp);
+        if (!currentAvatarPos.isValid()) {
+                return -8;
+        }
+
+        auto resolved = resolvePosition(currentServerTimestamp, destination);
+        if (!resolved.position.isValid()) {
+                return -9;
+        }
+
+        std::vector<WFMath::Point<3>> path;
+        return mAwareness->findPath(currentAvatarPos, resolved.position, 0.f, path);
 }
 
 void Steering::setDestination(SteeringDestination destination, std::chrono::milliseconds currentServerTimestamp) {
@@ -383,11 +356,24 @@ SteeringResult Steering::update(std::chrono::milliseconds currentTimestamp) {
 		}
 	} else if (mAwareness) {
 
-		auto currentEntityPos = getCurrentAvatarPosition(currentTimestamp);
+                auto currentEntityPos = getCurrentAvatarPosition(currentTimestamp);
 
-		if (mUpdateNeeded) {
-			updatePath(currentTimestamp, currentEntityPos);
-		}
+                // If our destination is another entity it might have moved since the last
+                // path calculation. In that case we should refresh the path and awareness
+                // corridor to account for the new position.
+                if (mSteeringDestination.location.m_parent && !mSteeringDestination.location.m_pos.isValid()) {
+                        auto resolved = resolvePosition(currentTimestamp, mSteeringDestination.location);
+                        if (resolved.position.isValid()) {
+                                if (mPath.empty() || WFMath::Distance(resolved.position, mPath.back()) > 0.1) {
+                                        setAwarenessArea(currentTimestamp);
+                                        mUpdateNeeded = true;
+                                }
+                        }
+                }
+
+                if (mUpdateNeeded) {
+                        updatePath(currentTimestamp, currentEntityPos);
+                }
 		if (!mPath.empty()) {
 			//First check if we've arrived at our actual destination.
 			if (isAtCurrentDestination(currentTimestamp)) {

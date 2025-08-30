@@ -93,8 +93,10 @@ struct SteeringIntegration : public Cyphesis::TestBase {
 		ADD_TEST(SteeringIntegration::test_steering);
 		ADD_TEST(SteeringIntegration::test_resolveDestination);
 		ADD_TEST(SteeringIntegration::test_distance);
-		ADD_TEST(SteeringIntegration::test_navigation);
-	}
+                ADD_TEST(SteeringIntegration::test_navigation);
+                ADD_TEST(SteeringIntegration::test_query_destination_static);
+                ADD_TEST(SteeringIntegration::test_path_refresh_on_entity_move);
+        }
 
 	void setup() {
 
@@ -633,11 +635,93 @@ struct SteeringIntegration : public Cyphesis::TestBase {
 		awareness.addEntity(*avatarEntity, *smallObstacleEntity, false);
 		steering.setDestination({{EntityLocation<MemEntity>(worldEntity, {20, 0, 0})}, Steering::MeasureType::CENTER, Steering::MeasureType::CENTER, desiredDistance}, 0ms);
 		rebuildAllTilesFn();
-		result = steering.updatePath(0ms);
-		ASSERT_EQUAL(1, result); //Should be one vert since it's a straight line
+                result = steering.updatePath(0ms);
+                ASSERT_EQUAL(1, result); //Should be one vert since it's a straight line
 
 
-	}
+        }
+
+        void test_query_destination_static() {
+                Ref<MemEntity> worldEntity(new MemEntityExt(0));
+                Ref<MemEntity> avatarEntity(new MemEntityExt(1));
+                avatarEntity->requirePropertyClassFixed<PositionProperty<MemEntity>>().data() = {0, 0, 0};
+                avatarEntity->requirePropertyClassFixed<BBoxProperty<MemEntity>>().data() = {{-1, 0, -1}, {1, 1, 1}};
+
+                worldEntity->addChild(*avatarEntity);
+
+                Steering steering(*avatarEntity);
+
+                WFMath::AxisBox<3> extent = {{-64, -64, -64}, {64, 64, 64}};
+                static int tileSize = 64;
+                struct : public IHeightProvider {
+                        void blitHeights(int xMin, int xMax, int yMin, int yMax, std::vector<float>& heights) const override {
+                                heights.resize(tileSize * tileSize, 0);
+                        }
+                } heightProvider;
+
+                Awareness awareness(worldEntity->getIdAsInt(), 1, 2, 0.5, heightProvider, extent, tileSize);
+                steering.setAwareness(&awareness);
+                awareness.addEntity(*avatarEntity, *avatarEntity, true);
+
+                auto rebuildAllTilesFn = [&]() {
+                        while (awareness.rebuildDirtyTile() != 0) {
+                        }
+                };
+
+                steering.setDestination({{EntityLocation<MemEntity>(worldEntity, {10, 0, 0})}, Steering::MeasureType::CENTER, Steering::MeasureType::CENTER, 0.5}, 0ms);
+                rebuildAllTilesFn();
+                auto result = steering.queryDestination(EntityLocation<MemEntity>(worldEntity, {10, 0, 0}), 0ms);
+                ASSERT_EQUAL(1, result);
+        }
+
+        void test_path_refresh_on_entity_move() {
+                Ref<MemEntity> worldEntity(new MemEntityExt(0));
+                Ref<MemEntity> avatarEntity(new MemEntityExt(1));
+                avatarEntity->requirePropertyClassFixed<PositionProperty<MemEntity>>().data() = {0, 0, 0};
+                avatarEntity->requirePropertyClassFixed<BBoxProperty<MemEntity>>().data() = {{-1, 0, -1}, {1, 1, 1}};
+
+                Ref<MemEntity> destEntity(new MemEntityExt(2));
+                destEntity->requirePropertyClassFixed<PositionProperty<MemEntity>>().data() = {10, 0, 0};
+                destEntity->requirePropertyClassFixed<BBoxProperty<MemEntity>>().data() = {{-1, 0, -1}, {1, 1, 1}};
+
+                worldEntity->addChild(*avatarEntity);
+                worldEntity->addChild(*destEntity);
+
+                Steering steering(*avatarEntity);
+
+                WFMath::AxisBox<3> extent = {{-64, -64, -64}, {64, 64, 64}};
+                static int tileSize2 = 64;
+                struct : public IHeightProvider {
+                        void blitHeights(int xMin, int xMax, int yMin, int yMax, std::vector<float>& heights) const override {
+                                heights.resize(tileSize2 * tileSize2, 0);
+                        }
+                } heightProvider2;
+
+                Awareness awareness(worldEntity->getIdAsInt(), 1, 2, 0.5, heightProvider2, extent, tileSize2);
+                steering.setAwareness(&awareness);
+                awareness.addEntity(*avatarEntity, *avatarEntity, true);
+                awareness.addEntity(*avatarEntity, *destEntity, true);
+
+                auto rebuildAllTilesFn = [&]() {
+                        while (awareness.rebuildDirtyTile() != 0) {
+                        }
+                };
+
+                steering.setDestination({{EntityLocation<MemEntity>(destEntity)}, Steering::MeasureType::EDGE, Steering::MeasureType::EDGE, 0.5}, 0ms);
+                steering.startSteering();
+                rebuildAllTilesFn();
+                steering.update(0ms);
+                ASSERT_EQUAL(to2D(destEntity->requirePropertyClassFixed<PositionProperty<MemEntity>>().data()), to2D(steering.getPath()[0]));
+
+                destEntity->requirePropertyClassFixed<PositionProperty<MemEntity>>().data().x() = 15;
+                destEntity->m_lastUpdated++;
+                awareness.updateEntity(*avatarEntity, *destEntity, nullptr);
+
+                steering.update(0ms);
+                rebuildAllTilesFn();
+                steering.update(0ms);
+                ASSERT_EQUAL(to2D(destEntity->requirePropertyClassFixed<PositionProperty<MemEntity>>().data()), to2D(steering.getPath()[0]));
+        }
 
 };
 
