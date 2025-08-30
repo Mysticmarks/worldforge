@@ -37,6 +37,10 @@ ConsoleAdapter::ConsoleAdapter(CEGUI::Editbox* inputBox)
 
 ConsoleAdapter::~ConsoleAdapter() = default;
 
+void ConsoleAdapter::reportInvalidPrefix(ConsoleBackend& backend, const std::string& prefix) {
+        backend.pushMessage("No commands match prefix: " + prefix);
+}
+
 bool ConsoleAdapter::consoleInputBox_KeyDown(const CEGUI::EventArgs& args) {
 	const auto& keyargs = dynamic_cast<const CEGUI::KeyEventArgs&>(args);
 	if (keyargs.scancode == CEGUI::Key::Return || keyargs.scancode == CEGUI::Key::NumpadEnter) {
@@ -118,11 +122,11 @@ bool ConsoleAdapter::consoleInputBox_KeyUp(const CEGUI::EventArgs& args) {
 				mTabPressed = true;
 				mSelected = 0;
 
-				const std::set<std::string> commands(mBackend->getPrefixes(sCommand));
+                                const std::set<std::string> commands(mBackend->getPrefixes(sCommand));
 
-				if (commands.empty()) {
-					// TODO: Error reporting?
-				} else {
+                                if (commands.empty()) {
+                                        reportInvalidPrefix(*mBackend, sCommand);
+                                } else {
 					// if any command starts with the current prefix
 					if (commands.size() == 1) {
 						mInputBox->setText(std::string("/") + *(commands.begin()) + ' ');
