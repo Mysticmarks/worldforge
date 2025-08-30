@@ -24,19 +24,24 @@
 #include "server/ServerService.h"
 #include "scripting/ScriptingService.h"
 #include "serversettings/ServerSettings.h"
+#include <utility>
 
 namespace Ember {
 
 
-EmberServices::~EmberServices() = default;
+EmberServices::EmberServices(ConfigService& inConfigService,
+                             std::unique_ptr<ScriptingService> inScriptingService,
+                             std::unique_ptr<SoundService> inSoundService,
+                             std::unique_ptr<ServerService> inServerService,
+                             std::unique_ptr<MetaserverService> inMetaserverService,
+                             std::unique_ptr<ServerSettings> inServerSettingsService)
+        : configService(inConfigService),
+          scriptingService(std::move(inScriptingService)),
+          soundService(std::move(inSoundService)),
+          serverService(std::move(inServerService)),
+          metaserverService(std::move(inMetaserverService)),
+          serverSettingsService(std::move(inServerSettingsService)) {}
 
-EmberServices::EmberServices(Session& session, ConfigService& inConfigService)
-		: configService(inConfigService),
-		  scriptingService(std::make_unique<ScriptingService>()),
-		  soundService(std::make_unique<SoundService>(configService)),
-		  serverService(std::make_unique<ServerService>(session)),
-		  metaserverService(std::make_unique<MetaserverService>(session, configService)),
-		  serverSettingsService(std::make_unique<ServerSettings>()) {
-}
+EmberServices::~EmberServices() = default;
 
 }

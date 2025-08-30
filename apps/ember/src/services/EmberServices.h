@@ -23,7 +23,6 @@
 #include <memory>
 
 namespace Ember {
-struct Session;
 
 // some forward declarations before we start
 class ConfigService;
@@ -40,38 +39,39 @@ class ServerSettings;
 
 
 /**
- * This is a singleton class that is used to access instances of all the
- * different Ember services.
+ * Aggregates instances of the various Ember services.
  *
- * There's a getServiceName() method for each service. <p>
+ * Service instances are supplied externally, allowing for dependency injection
+ * and improved testability.
  *
- * TODO: Should this class also create the instances of the services,
- * or should it have set methods for them?  <p>
- *
- * Example: <p>
- * <code>
- *
- *   EmberServices.getInstance()->getLoggingService()->log( ... );  <br/>
- *   ... = EmberServices.getInstance()->getMetaServerService()->getMetaServerList();
- *
- * </code>
- *
- * @author Hans Häggström
+ * Example usage:
+ * @code
+ *   auto services = EmberServices(config,
+ *                                 std::make_unique<ScriptingService>(),
+ *                                 std::make_unique<SoundService>(config),
+ *                                 std::make_unique<ServerService>(session),
+ *                                 std::make_unique<MetaserverService>(session, config),
+ *                                 std::make_unique<ServerSettings>());
+ * @endcode
  */
 struct EmberServices {
 
+        EmberServices(ConfigService& configService,
+                     std::unique_ptr<ScriptingService> scriptingService,
+                     std::unique_ptr<SoundService> soundService,
+                     std::unique_ptr<ServerService> serverService,
+                     std::unique_ptr<MetaserverService> metaserverService,
+                     std::unique_ptr<ServerSettings> serverSettingsService);
 
-	explicit EmberServices(Session& session, ConfigService& configService);
+        ~EmberServices();
 
-	~EmberServices();
+        ConfigService& configService;
 
-	ConfigService& configService;
-
-	std::unique_ptr<ScriptingService> scriptingService;
-	std::unique_ptr<SoundService> soundService;
-	std::unique_ptr<ServerService> serverService;
-	std::unique_ptr<MetaserverService> metaserverService;
-	std::unique_ptr<ServerSettings> serverSettingsService;
+        std::unique_ptr<ScriptingService> scriptingService;
+        std::unique_ptr<SoundService> soundService;
+        std::unique_ptr<ServerService> serverService;
+        std::unique_ptr<MetaserverService> metaserverService;
+        std::unique_ptr<ServerSettings> serverSettingsService;
 
 };
 }
