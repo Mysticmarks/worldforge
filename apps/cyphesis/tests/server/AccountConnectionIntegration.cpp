@@ -223,15 +223,78 @@ void AccountConnectionintegration::test_account_creation() {
 		ASSERT_TRUE(!test_sent_ops.empty());
 		ASSERT_EQUAL(test_sent_ops.size(), 1u);
 
-		const Operation& error_reply = test_sent_ops.front();
-		ASSERT_EQUAL(error_reply->getClassNo(),
-					 Atlas::Objects::Operation::ERROR_NO);
+                const Operation& error_reply = test_sent_ops.front();
+                ASSERT_EQUAL(error_reply->getClassNo(),
+                                         Atlas::Objects::Operation::ERROR_NO);
 
+                // Character creation
+                test_sent_ops.clear();
+                Create char_op;
+                Anonymous char_arg;
+                char_arg->setParent("character");
+                char_arg->setAttr("spawn_name", "test_char");
+                char_op->setArgs1(char_arg);
+                m_connection->externalOperation(char_op, *m_connection);
+                m_connection->dispatch(1);
 
-		// TODO Character creation etc?
-		// TODO Lobby interaction?
-		// TODO Logout ?
-	}
+                ASSERT_TRUE(!test_sent_ops.empty());
+                const Operation& char_reply = test_sent_ops.front();
+                ASSERT_EQUAL(char_reply->getClassNo(),
+                                         Atlas::Objects::Operation::INFO_NO);
+                ASSERT_EQUAL(m_connection->objects().size(), 2u);
+
+                // Invalid character creation should fail
+                test_sent_ops.clear();
+                Create bad_char_op;
+                Anonymous bad_char_arg;
+                bad_char_arg->setAttr("invalid", "1");
+                bad_char_op->setArgs1(bad_char_arg);
+                m_connection->externalOperation(bad_char_op, *m_connection);
+                m_connection->dispatch(1);
+                ASSERT_TRUE(!test_sent_ops.empty());
+                ASSERT_EQUAL(test_sent_ops.front()->getClassNo(),
+                                         Atlas::Objects::Operation::ERROR_NO);
+
+                // Lobby interaction via Look
+                test_sent_ops.clear();
+                Look look_op;
+                look_op->setFrom(account_id);
+                m_connection->externalOperation(look_op, *m_connection);
+                m_connection->dispatch(1);
+                ASSERT_TRUE(!test_sent_ops.empty());
+                ASSERT_EQUAL(test_sent_ops.front()->getClassNo(),
+                                         Atlas::Objects::Operation::SIGHT_NO);
+
+                // Invalid lobby interaction should error
+                test_sent_ops.clear();
+                Look bad_look;
+                bad_look->setFrom("no_such_account");
+                m_connection->externalOperation(bad_look, *m_connection);
+                m_connection->dispatch(1);
+                ASSERT_TRUE(!test_sent_ops.empty());
+                ASSERT_EQUAL(test_sent_ops.front()->getClassNo(),
+                                         Atlas::Objects::Operation::ERROR_NO);
+
+                // Logout sequence
+                test_sent_ops.clear();
+                Logout logout_op;
+                logout_op->setFrom(account_id);
+                m_connection->externalOperation(logout_op, *m_connection);
+                m_connection->dispatch(1);
+                ASSERT_TRUE(!test_sent_ops.empty());
+                ASSERT_EQUAL(test_sent_ops.front()->getClassNo(),
+                                         Atlas::Objects::Operation::INFO_NO);
+                ASSERT_TRUE(m_connection->objects().empty());
+                ASSERT_TRUE(m_server->getLobby().getAccounts().empty());
+
+                // Second logout should fail
+                test_sent_ops.clear();
+                m_connection->externalOperation(logout_op, *m_connection);
+                m_connection->dispatch(1);
+                ASSERT_TRUE(!test_sent_ops.empty());
+                ASSERT_EQUAL(test_sent_ops.front()->getClassNo(),
+                                         Atlas::Objects::Operation::ERROR_NO);
+        }
 }
 
 int main() {
