@@ -15,6 +15,7 @@
 
 #include <iostream>
 #include <cassert>
+#include <memory>
 
 typedef WFMath::Point<2> Point2;
 
@@ -57,12 +58,12 @@ int main() {
 
 	// Test getArea()
 	{
-		Mercator::Forest mf;
+                Mercator::Forest mf;
 
-		Mercator::Area* a = mf.getArea();
+                Mercator::Area* a = mf.getArea();
 
-		assert(a == 0);
-	}
+                assert(a == 0);
+        }
 
 	// Test species()
 	{
@@ -88,18 +89,18 @@ int main() {
 		assert(plants.empty());
 		assert(species.empty());
 
-		Mercator::Area ar(1, false);
-		WFMath::Polygon<2> p;
+                auto ar = std::make_unique<Mercator::Area>(1, false);
+                WFMath::Polygon<2> p;
 
-		p.addCorner(p.numCorners(), Point2(5, 8));
-		p.addCorner(p.numCorners(), Point2(40, -1));
-		p.addCorner(p.numCorners(), Point2(45, 16));
-		p.addCorner(p.numCorners(), Point2(30, 28));
-		p.addCorner(p.numCorners(), Point2(-2, 26));
-		p.addCorner(p.numCorners(), Point2(1, 5));
+                p.addCorner(p.numCorners(), Point2(5, 8));
+                p.addCorner(p.numCorners(), Point2(40, -1));
+                p.addCorner(p.numCorners(), Point2(45, 16));
+                p.addCorner(p.numCorners(), Point2(30, 28));
+                p.addCorner(p.numCorners(), Point2(-2, 26));
+                p.addCorner(p.numCorners(), Point2(1, 5));
 
-		ar.setShape(p);
-		forest.setArea(&ar);
+                ar->setShape(p);
+                forest.setArea(std::move(ar));
 
 		forest.populate();
 		// Forest has no species, so even when populated it is empty
@@ -118,9 +119,9 @@ int main() {
 		// Forest should now contain some plants
 		assert(!plants.empty());
 
-		dumpPlants(plants);
+                dumpPlants(plants);
 
-		int plant_count = countPlants(plants);
+                int plant_count = countPlants(plants);
 
 		{
 			Mercator::Species oak;
@@ -137,8 +138,34 @@ int main() {
 
 		dumpPlants(plants);
 
-		std::cout << countPlants(plants) << "," << plant_count
-				  << std::endl;
+                std::cout << countPlants(plants) << "," << plant_count
+                                  << std::endl;
 
-	}
+        }
+
+        // Area lifetime management
+        {
+                struct TrackingArea : public Mercator::Area {
+                        int* counter;
+                        TrackingArea(int layer, bool hole, int* c)
+                                        : Area(layer, hole), counter(c) {}
+                        ~TrackingArea() override { ++(*counter); }
+                };
+                int destructionCount = 0;
+
+                {
+                        Mercator::Forest forest;
+                        forest.setArea(std::make_unique<TrackingArea>(1, false, &destructionCount));
+                        assert(destructionCount == 0);
+                }
+                assert(destructionCount == 1);
+
+                destructionCount = 0;
+                {
+                        Mercator::Forest forest;
+                        forest.setArea(std::make_unique<TrackingArea>(1, false, &destructionCount));
+                        forest.setArea(std::make_unique<TrackingArea>(2, true, &destructionCount));
+                        assert(destructionCount == 1);
+                }
+        }
 }

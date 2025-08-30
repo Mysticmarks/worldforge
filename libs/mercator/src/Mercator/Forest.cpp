@@ -18,9 +18,9 @@ namespace Mercator {
 
 /// \brief Construct a new forest with the given seed.
 Forest::Forest(unsigned long seed) :
-		m_area(nullptr),
-		m_seed(seed),
-		m_randCache(seed, std::make_unique<ZeroSpiralOrdering>()) {
+                m_area(),
+                m_seed(seed),
+                m_randCache(seed, std::make_unique<ZeroSpiralOrdering>()) {
 }
 
 /// \brief Destruct a forest.
@@ -30,8 +30,8 @@ Forest::Forest(unsigned long seed) :
 Forest::~Forest() = default;
 
 /// \brief Assign an area to this forest.
-void Forest::setArea(Area* area) {
-	m_area = area;
+void Forest::setArea(std::unique_ptr<Area> area) {
+        m_area = std::move(area);
 }
 
 static const float plant_chance = 0.04f;
