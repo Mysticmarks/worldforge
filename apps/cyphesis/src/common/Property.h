@@ -116,12 +116,16 @@ public:
 	/// \brief Read the value of the property from an Atlas Message
 	virtual void set(const Atlas::Message::Element& val) = 0;
 
-	/// \brief Add the value as an attribute to an Atlas map
-	//TODO: remove this as it's not used
-	virtual void add(const std::string& key, Atlas::Message::MapType& map) const;
+        /// \brief Serialize the property value into an Atlas map.
+        ///
+        /// The current value of the property is retrieved and written to
+        /// @p map using @p key as the attribute name.
+        virtual void add(const std::string& key, Atlas::Message::MapType& map) const;
 
-	/// \brief Add the value as an attribute to an Atlas entity
-	virtual void add(const std::string& key, const Atlas::Objects::Entity::RootEntity& ent) const;
+        /// \brief Serialize the property value into an Atlas entity.
+        ///
+        /// The value is added to @p ent under the attribute name @p key.
+        virtual void add(const std::string& key, const Atlas::Objects::Entity::RootEntity& ent) const;
 
 	/// \brief Handle an operation
 	HandlerResult operation(EntityT&,
@@ -211,15 +215,17 @@ public:
 
 	T& data() { return this->m_data; }
 
-	int get(Atlas::Message::Element& val) const override;
+        int get(Atlas::Message::Element& val) const override;
 
-	void set(const Atlas::Message::Element&) override;
+        void set(const Atlas::Message::Element&) override;
 
-	void add(const std::string& key, Atlas::Message::MapType& map) const override;
+        /// \copydoc PropertyCore::add
+        void add(const std::string& key, Atlas::Message::MapType& map) const override;
 
-	void add(const std::string& key, const Atlas::Objects::Entity::RootEntity& ent) const override;
+        /// \copydoc PropertyCore::add
+        void add(const std::string& key, const Atlas::Objects::Entity::RootEntity& ent) const override;
 
-	Property* copy() const override;
+        Property* copy() const override;
 };
 
 /// \brief Entity property that can store any Atlas value
