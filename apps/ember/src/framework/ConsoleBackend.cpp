@@ -124,12 +124,16 @@ void ConsoleBackend::runCommand(const std::string& command, bool addToHistory) {
 	char c = command.c_str()[0];
 
 	// Check to see if command is a command, or a speech string
-	if ((c != '/' && c != '+' && c != '-')) {
-		// Its a speech string, so SAY it
-		// FIXME /say is not always available!
-		runCommand(std::string("/say ") + command, addToHistory);
-		return;
-	}
+        if ((c != '/' && c != '+' && c != '-')) {
+                // It's a speech string; attempt to relay through '/say'
+                if (mRegisteredCommands.find("say") != mRegisteredCommands.end()) {
+                        runCommand(std::string("/say ") + command, addToHistory);
+                } else {
+                        pushMessage("Cannot send speech: '/say' command not available.", "warning");
+                        logger->warn("'/say' command is not registered; speech not sent: {}", command);
+                }
+                return;
+        }
 
 	// If command has a leading /, remove it
 	std::string command_string = (c == '/') ? command.substr(1) : command;
@@ -161,18 +165,23 @@ void ConsoleBackend::runCommand(const std::string& command, bool addToHistory) {
 void ConsoleBackend::runCommand(const std::string& command, const std::string& args) {
 	std::ostringstream temp;
 
-	// This commands prints all currently registered commands to the Log File
-	if (command == LIST_CONSOLE_COMMANDS) {
-		for (const auto& registeredCommand: mRegisteredCommands) {
-			// TODO - should we check to see if I->second is valid?
-			temp << registeredCommand.first << " : " << registeredCommand.second.Description << std::endl;
-		}
-	}
+        // This commands prints all currently registered commands to the Log File
+        if (command == LIST_CONSOLE_COMMANDS) {
+                for (const auto& registeredCommand: mRegisteredCommands) {
+                        const auto& entry = registeredCommand.second;
+                        if (!entry.Object && entry.Description.empty()) {
+                                logger->error("Invalid command entry encountered: {}", registeredCommand.first);
+                                pushMessage(std::string("Invalid command entry: ") + registeredCommand.first, "error");
+                                return;
+                        }
+                        temp << registeredCommand.first << " : " << entry.Description << std::endl;
+                }
+        }
 
-	logger->debug(temp.str());
-	temp << std::ends;
+        logger->debug(temp.str());
+        temp << std::ends;
 
-	pushMessage(temp.str());
+        pushMessage(temp.str());
 }
 
 const std::set<std::string>& ConsoleBackend::getPrefixes(const std::string& prefix) const {
