@@ -68,7 +68,12 @@ def main() -> int:
 
     # Start cyphesis server
     server = subprocess.Popen(
-        [str(cyphesis), f"--cyphesis:tcpport={port}", f"--cyphesis:vardir={tmpdir}"],
+        [
+            str(cyphesis),
+            f"--cyphesis:tcpport={port}",
+            f"--cyphesis:vardir={tmpdir}",
+            "--cyphesis:dbcleanup=true",
+        ],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -93,6 +98,29 @@ def main() -> int:
             time.sleep(0.5)
     if not started:
         raise RuntimeError("cyphesis did not start in time")
+
+    # Ensure the database has been cleaned before running tests.
+    try:
+        import psycopg
+        conn = psycopg.connect("dbname=cyphesis")
+    except Exception:
+        try:
+            import psycopg2 as psycopg
+            conn = psycopg.connect(dbname="cyphesis")
+        except Exception:
+            conn = None
+    if conn is not None:
+        try:
+            with conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT COUNT(*) FROM entities")
+                    count = cur.fetchone()[0]
+                    if count != 1:
+                        raise RuntimeError("database not clean")
+        finally:
+            conn.close()
+    else:
+        print("Database check skipped")
 
     # Launch ember client and attempt connection
     client = subprocess.Popen(

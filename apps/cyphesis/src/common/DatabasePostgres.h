@@ -33,12 +33,14 @@ protected:
 
 	QueryQue pendingQueries;
 	PGconn* m_connection;
-	TableSet allTables;
+        TableSet allTables;
 
 
-	bool tuplesOk();
+        bool tuplesOk();
 
-	int commandOk();
+        int commandOk();
+
+        int cleanupDatabase();
 
 public:
 	static const unsigned int MAINTAIN_VACUUM = 0x0100;
