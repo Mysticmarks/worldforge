@@ -134,6 +134,7 @@ macro(wf_add_benchmark TEST_FILE)
 endmacro()
 
 wf_add_test(tests/Message/ElementTest.cpp)
+wf_add_test(tests/Message/DecoderBaseTest.cpp)
 wf_add_test(tests/Codecs/codecs.cpp)
 wf_add_test(tests/Filters/bzip2.cpp)
 wf_add_test(tests/Objects/custom_ops.cpp)
