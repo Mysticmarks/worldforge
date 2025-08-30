@@ -86,7 +86,19 @@ void test_point(const Point<dim>& p)
   //Two invalid points are never equal
   assert(invalid_point_1 != invalid_point_2);
 
-  // FIXME more tests
+  Vector<dim> zero_vec;
+  zero_vec.zero();
+  Point<dim> shifted = p;
+  shifted += zero_vec;
+  assert(shifted.isEqualTo(p));
+
+  if constexpr (dim >= 2) {
+    RotMatrix<dim> full_rot;
+    full_rot.rotation(0, 1, numeric_constants<CoordType>::pi() * 2);
+    Point<dim> rotated = p;
+    rotated.rotate(full_rot, Point<dim>::ZERO());
+    assert(rotated.isEqualTo(p));
+  }
 }
 
 int main()
