@@ -167,6 +167,68 @@ void test_contains()
 
 }
 
+/**
+ * Test behavior with a concave polygon.
+ */
+void test_concave_polygon()
+{
+  Polygon<2> p;
+
+  p.addCorner(0, Point<2>(0, 0));
+  p.addCorner(1, Point<2>(2, 0));
+  p.addCorner(2, Point<2>(2, 2));
+  p.addCorner(3, Point<2>(1, 2));
+  p.addCorner(4, Point<2>(1, 1));
+  p.addCorner(5, Point<2>(0, 1));
+  p.isValid();
+
+  assert(Intersect(p, Point<2>(0.5, 0.5), false));
+  assert(!Intersect(p, Point<2>(1.5, 1.5), false));
+}
+
+/**
+ * Test behavior with a self-intersecting polygon.
+ */
+void test_self_intersection()
+{
+  Polygon<2> p;
+
+  p.addCorner(0, Point<2>(0, 0));
+  p.addCorner(1, Point<2>(2, 2));
+  p.addCorner(2, Point<2>(0, 2));
+  p.addCorner(3, Point<2>(2, 0));
+  p.isValid();
+
+  assert(Intersect(p, Point<2>(0.5, 0.5), false));
+  assert(Intersect(p, Point<2>(1.5, 1.5), false));
+}
+
+/**
+ * Test rotation and translation of polygons.
+ */
+void test_transformations()
+{
+  Polygon<2> p;
+
+  p.addCorner(0, Point<2>(0, 0));
+  p.addCorner(1, Point<2>(2, 0));
+  p.addCorner(2, Point<2>(2, 2));
+  p.addCorner(3, Point<2>(0, 2));
+  p.isValid();
+
+  Polygon<2> shifted = p;
+  shifted.shift(Vector<2>(3, 4));
+  assert(Intersect(shifted, Point<2>(3.5, 4.5), false));
+  assert(!Intersect(shifted, Point<2>(0.5, 0.5), false));
+
+  Polygon<2> rotated = p;
+  RotMatrix<2> rot;
+  rot.rotation(0, 1, numeric_constants<CoordType>::pi() / 2);
+  rotated.rotatePoint(rot, Point<2>(0, 0));
+  assert(Intersect(rotated, Point<2>(-0.5, 0.5), false));
+  assert(!Intersect(rotated, Point<2>(0.5, 0.5), false));
+}
+
 int main()
 {
   bool succ;
@@ -196,6 +258,10 @@ int main()
   test_intersect();
 
   test_contains();
+
+  test_concave_polygon();
+  test_self_intersection();
+  test_transformations();
 
   return 0;
 }
