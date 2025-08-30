@@ -76,6 +76,8 @@ on GitHub Actions. Select a successful run and expand **Artifacts** to find the
 
 Runs on the `master` branch also publish a `prebuilt.tar.gz` and accompanying
 `manifest.sha256` file on the [Releases](https://github.com/worldforge/worldforge/releases) page.
+Each CI build verifies that the `prebuilt/` directory contains files and logs the
+archive size and SHA256 checksum for traceability.
 Verify downloads with:
 
 ```bash

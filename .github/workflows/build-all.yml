@@ -134,6 +134,10 @@ jobs:
                 shell: bash
                 run: |
                     set -e
+                    if [ -z "$(find "${{ github.workspace }}/prebuilt" -type f)" ]; then
+                        echo "prebuilt directory is empty"
+                        exit 1
+                    fi
                     ls -R "${{ github.workspace }}/prebuilt"
                     for bin in cyphesis ember; do
                         if [ ! -x "${{ github.workspace }}/prebuilt/bin/$bin" ]; then
@@ -145,13 +149,22 @@ jobs:
             -   name: Generate checksum manifest
                 shell: bash
                 run: |
-                    find "${{ github.workspace }}/prebuilt" -type f -exec sha256sum {} + | sort > "${{ github.workspace }}/prebuilt/manifest.sha256"
+                    find "${{ github.workspace }}/prebuilt" -type f -exec sha256sum {} + | sort | tee "${{ github.workspace }}/prebuilt/manifest.sha256"
 
             -   name: Create prebuilt archive
                 if: github.ref == 'refs/heads/master'
                 shell: bash
                 run: |
                     tar -czf "${{ github.workspace }}/prebuilt.tar.gz" -C "${{ github.workspace }}/prebuilt" .
+
+            -   name: Log prebuilt artifact details
+                shell: bash
+                run: |
+                    echo "Checksum manifest:" && cat "${{ github.workspace }}/prebuilt/manifest.sha256"
+                    if [ -f "${{ github.workspace }}/prebuilt.tar.gz" ]; then
+                        echo "prebuilt.tar.gz size (bytes): $(wc -c < "${{ github.workspace }}/prebuilt.tar.gz")"
+                        echo "prebuilt.tar.gz sha256:" && sha256sum "${{ github.workspace }}/prebuilt.tar.gz"
+                    fi
 
             -   name: Upload prebuilt
                 uses: actions/upload-artifact@v4.6.1
