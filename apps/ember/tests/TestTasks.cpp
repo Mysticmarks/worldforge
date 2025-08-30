@@ -21,6 +21,7 @@
 #include <thread>
 #include <chrono>
 #include <condition_variable>
+#include <stdexcept>
 
 namespace Ember {
 
@@ -97,42 +98,54 @@ struct TimeTask : public Tasks::ITask {
 
 class CounterTaskBackgroundException : public CounterTask {
 public:
-	CounterTaskBackgroundException(int& counter) : CounterTask(counter) {
-	}
+        CounterTaskBackgroundException(int& counter) : CounterTask(counter) {
+        }
 
-	virtual void executeTaskInBackgroundThread(Tasks::TaskExecutionContext& context) {
-		throw Ember::Exception();
-	}
+        virtual void executeTaskInBackgroundThread(Tasks::TaskExecutionContext& context) {
+                throw Ember::Exception("CounterTaskBackgroundException");
+        }
+};
+
+class CounterTaskBackgroundStdException : public CounterTask {
+public:
+        CounterTaskBackgroundStdException(int& counter) : CounterTask(counter) {
+        }
+
+        virtual void executeTaskInBackgroundThread(Tasks::TaskExecutionContext& context) {
+                throw std::runtime_error("std::exception message");
+        }
 };
 
 class SimpleListener : public Tasks::ITaskExecutionListener {
 public:
 
-	bool started;
-	bool ended;
-	bool error;
-	WFMath::TimeStamp startedTime;
-	WFMath::TimeStamp endedTime;
-	WFMath::TimeStamp errorTime;
+        bool started;
+        bool ended;
+        bool error;
+        WFMath::TimeStamp startedTime;
+        WFMath::TimeStamp endedTime;
+        WFMath::TimeStamp errorTime;
+        std::string errorMessage;
 
-	SimpleListener() : started(false), ended(false), error(false) {
+        SimpleListener() : started(false), ended(false), error(false) {
 
-	}
+        }
 
-	virtual void executionStarted() {
-		startedTime = WFMath::TimeStamp::now();
-		started = true;
-	}
+        virtual void executionStarted() {
+                startedTime = WFMath::TimeStamp::now();
+                started = true;
+        }
 
-	virtual void executionEnded() {
-		endedTime = WFMath::TimeStamp::now();
-		ended = true;
-	}
+        virtual void executionEnded() {
+                endedTime = WFMath::TimeStamp::now();
+                ended = true;
+        }
 
-	virtual void executionError(const Ember::Exception& exception) {
-		errorTime = WFMath::TimeStamp::now();
-		error = true;
-	}
+        virtual void executionError(const Ember::Exception& exception) {
+                errorTime = WFMath::TimeStamp::now();
+                error = true;
+                errorMessage = exception.what();
+        }
 };
 
 class TaskTestCase : public CppUnit::TestFixture {
@@ -143,7 +156,8 @@ class TaskTestCase : public CppUnit::TestFixture {
 	CPPUNIT_TEST(testSimpleTaskRunTwoTasks);
 	CPPUNIT_TEST(testSimpleTaskRunTwoTasksTwoExecs);
 	CPPUNIT_TEST(testListener);
-	CPPUNIT_TEST(testBackgroundException);
+        CPPUNIT_TEST(testBackgroundException);
+        CPPUNIT_TEST(testBackgroundExceptionMessage);
 	CPPUNIT_TEST(testTaskOrder);
 	CPPUNIT_TEST(testSubTaskOrder);
 
@@ -220,17 +234,30 @@ public:
 		CPPUNIT_ASSERT(listener.ended);
 	}
 
-	void testBackgroundException() {
-		SimpleListener listener;
-		int counter = 0;
-		{
-			Eris::EventService es(io_service);
-			Tasks::TaskQueue taskQueue(1, es);
-			taskQueue.enqueueTask(std::make_unique<CounterTaskBackgroundException>(counter), &listener);
-		}
-		CPPUNIT_ASSERT(counter == 1);
-		CPPUNIT_ASSERT(listener.error);
-	}
+        void testBackgroundException() {
+                SimpleListener listener;
+                int counter = 0;
+                {
+                        Eris::EventService es(io_service);
+                        Tasks::TaskQueue taskQueue(1, es);
+                        taskQueue.enqueueTask(std::make_unique<CounterTaskBackgroundException>(counter), &listener);
+                }
+                CPPUNIT_ASSERT(counter == 1);
+                CPPUNIT_ASSERT(listener.error);
+                CPPUNIT_ASSERT_EQUAL(std::string("CounterTaskBackgroundException"), listener.errorMessage);
+        }
+
+        void testBackgroundExceptionMessage() {
+                SimpleListener listener;
+                int counter = 0;
+                {
+                        Eris::EventService es(io_service);
+                        Tasks::TaskQueue taskQueue(1, es);
+                        taskQueue.enqueueTask(std::make_unique<CounterTaskBackgroundStdException>(counter), &listener);
+                }
+                CPPUNIT_ASSERT(listener.error);
+                CPPUNIT_ASSERT_EQUAL(std::string("std::exception message"), listener.errorMessage);
+        }
 
 	void testTaskOrder() {
 		SimpleListener listener1;
