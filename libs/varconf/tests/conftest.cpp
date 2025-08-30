@@ -4,13 +4,13 @@
 
 #include <sigc++/slot.h>
 
+#include <catch2/catch_test_macros.hpp>
+
 #include <iostream>
 #include <string>
 #include <sstream>
 #include <filesystem>
 #include <chrono>
-
-#include <cassert>
 
 struct TempDir {
         std::filesystem::path path;
@@ -30,7 +30,7 @@ void callback(const std::string& section,
 }
 
 void error(const char* message) {
-	std::cerr << message;
+        std::cerr << message;
 }
 
 int main(int argc, char** argv) {
@@ -87,46 +87,81 @@ int main(int argc, char** argv) {
                 assert(file_conf.find("general", "setting"));
                 assert(file_conf.find("general", "emptyrightbeforeeof"));
         }
-        assert(!std::filesystem::exists(conf_file));
 
-        std::cout << "\nFile configuration data:\n"
-                          << "--------------------------\n"
-                          << config;
+        SECTION("Parse configuration stream") {
+                std::cout << "\nEnter sample configuration data to test parseStream() method.\n";
 
-	std::cout << "\nUSER configuration data:\n"
-			  << "--------------------------\n";
+                std::stringstream ss;
+                ss << "[general]" << std::endl;
+                ss << "setting = true" << std::endl;
+                ss << "emptyrightbeforeeof = ";
 
-	config.writeToStream(std::cout, varconf::USER);
+                try {
+                        config.parseStream(ss, varconf::USER);
+                }
+                catch (const varconf::ParseError& p) {
+                        std::cout << "\nError while parsing from input stream.\n";
+                        std::cout << p.what();
+                }
 
-	std::cout << "\nINSTANCE configuration data:\n"
-			  << "--------------------------\n";
+                REQUIRE(config.find("general", "setting"));
+                REQUIRE(config.find("general", "emptyrightbeforeeof"));
+        }
 
-	config.writeToStream(std::cout, varconf::INSTANCE);
+        SECTION("Write configuration to file and read back") {
+                std::filesystem::path conf_file;
+                {
+                        TempDir tmp;
+                        conf_file = tmp.path / "conf2.cfg";
+                        config.writeToFile(conf_file.string());
+                        REQUIRE(std::filesystem::exists(conf_file));
 
-	std::cout << "\nGLOBAL configuration data:\n"
-			  << "--------------------------\n";
+                        varconf::Config file_conf;
+                        REQUIRE(file_conf.readFromFile(conf_file.string()));
+                        REQUIRE(file_conf.find("general", "setting"));
+                        REQUIRE(file_conf.find("general", "emptyrightbeforeeof"));
+                }
+                REQUIRE(!std::filesystem::exists(conf_file));
+        }
 
-	config.writeToStream(std::cout, varconf::GLOBAL);
+        SECTION("Output configuration data") {
+                std::cout << "\nFile configuration data:\n"
+                                  << "--------------------------\n"
+                                  << config;
 
-	std::cout << "\nGLOBAL & USER configuration data:\n"
-			  << "--------------------------\n";
+                std::cout << "\nUSER configuration data:\n"
+                                  << "--------------------------\n";
 
-	config.writeToStream(std::cout, (varconf::Scope) (varconf::GLOBAL | varconf::USER));
+                config.writeToStream(std::cout, varconf::USER);
 
-	std::cout << "\nINSTANCE & USER configuration data:\n"
-			  << "--------------------------\n";
+                std::cout << "\nINSTANCE configuration data:\n"
+                                  << "--------------------------\n";
 
-	config.writeToStream(std::cout, (varconf::Scope) (varconf::INSTANCE | varconf::USER));
+                config.writeToStream(std::cout, varconf::INSTANCE);
 
-	std::cout << "\nINSTANCE & GLOBAL configuration data:\n"
-			  << "--------------------------\n";
+                std::cout << "\nGLOBAL configuration data:\n"
+                                  << "--------------------------\n";
 
-	config.writeToStream(std::cout, (varconf::Scope) (varconf::GLOBAL | varconf::INSTANCE));
+                config.writeToStream(std::cout, varconf::GLOBAL);
 
-	std::cout << "\nINSTANCE, USER & GLOBAL configuration data:\n"
-			  << "--------------------------\n";
+                std::cout << "\nGLOBAL & USER configuration data:\n"
+                                  << "--------------------------\n";
 
-	config.writeToStream(std::cout, (varconf::Scope) (varconf::GLOBAL | varconf::INSTANCE | varconf::USER));
+                config.writeToStream(std::cout, (varconf::Scope) (varconf::GLOBAL | varconf::USER));
 
-	return 0;
+                std::cout << "\nINSTANCE & USER configuration data:\n"
+                                  << "--------------------------\n";
+
+                config.writeToStream(std::cout, (varconf::Scope) (varconf::INSTANCE | varconf::USER));
+
+                std::cout << "\nINSTANCE & GLOBAL configuration data:\n"
+                                  << "--------------------------\n";
+
+                config.writeToStream(std::cout, (varconf::Scope) (varconf::GLOBAL | varconf::INSTANCE));
+
+                std::cout << "\nINSTANCE, USER & GLOBAL configuration data:\n"
+                                  << "--------------------------\n";
+
+                config.writeToStream(std::cout, (varconf::Scope) (varconf::GLOBAL | varconf::INSTANCE | varconf::USER));
+        }
 }

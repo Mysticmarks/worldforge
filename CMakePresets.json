@@ -1,0 +1,25 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "coverage",
+      "inherits": "conan-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "WORLDFORGE_ENABLE_COVERAGE": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "coverage",
+      "inherits": "conan-debug"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "coverage",
+      "inherits": "conan-debug"
+    }
+  ]
+}
