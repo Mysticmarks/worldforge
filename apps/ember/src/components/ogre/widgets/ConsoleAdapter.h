@@ -24,6 +24,7 @@
 #define EMBEROGRE_GUICONSOLEADAPTER_H
 
 #include <sigc++/signal.h>
+#include <string>
 
 namespace CEGUI {
 class Editbox;
@@ -41,9 +42,15 @@ namespace Ember::OgreView::Gui {
 */
 class ConsoleAdapter {
 public:
-	explicit ConsoleAdapter(CEGUI::Editbox* inputBox);
+        explicit ConsoleAdapter(CEGUI::Editbox* inputBox);
 
-	~ConsoleAdapter();
+        ~ConsoleAdapter();
+
+        /**
+        Emit a user-visible message indicating that no commands matched the
+        supplied prefix.
+        */
+        static void reportInvalidPrefix(ConsoleBackend& backend, const std::string& prefix);
 
 	/**
 	Emitted when a command has executed.
