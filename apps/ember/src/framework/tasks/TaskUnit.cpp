@@ -20,6 +20,8 @@
 #include "ITask.h"
 #include "ITaskExecutionListener.h"
 
+#include "framework/Log.h"
+
 #define LOG_TASKS
 
 
@@ -62,16 +64,17 @@ void TaskUnit::executeInBackgroundThread(TaskExecutionContext& context) {
 		if (mListener) {
 			mListener->executionEnded();
 		}
-	} catch (const std::exception&) {
-		if (mListener) {
-			//TODO: wrap the original error somehow
-			mListener->executionError(Exception("Error when executing task."));
-		}
-	} catch (...) {
-		if (mListener) {
-			mListener->executionError(Exception("Error when executing task."));
-		}
-	}
+        } catch (const std::exception& e) {
+                logger->error("Error when executing task in background thread: {}", e.what());
+                if (mListener) {
+                        mListener->executionError(Exception(e.what()));
+                }
+        } catch (...) {
+                logger->error("Unknown error when executing task in background thread.");
+                if (mListener) {
+                        mListener->executionError(Exception("Error when executing task."));
+                }
+        }
 
 }
 
