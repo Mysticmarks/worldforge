@@ -89,6 +89,11 @@ jobs:
                 shell: bash
                 run: ctest --preset $PROFILE_CONAN --output-on-failure
 
+            -   name: End-to-end client session
+                shell: bash
+                run: |
+                    python apps/tests/e2e/minimal_session.py
+
             -   name: Generate coverage report
                 if: runner.os == 'Linux'
                 shell: bash
