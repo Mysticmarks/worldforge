@@ -586,6 +586,10 @@ wf_add_test(tools/FlusherTest.cpp ../src/tools/Flusher.cpp
 wf_add_test(tools/OperationMonitorTest.cpp ../src/tools/OperationMonitor.cpp
         ../src/common/ClientTask.cpp)
 wf_add_test(tools/EntityExporterTest.cpp ../src/tools/EntityExporterBase.cpp)
+wf_add_test(tools/AccountContextTest.cpp
+        ../src/tools/AccountContext.cpp
+        ../src/tools/AvatarContext.cpp
+        ../src/tools/JunctureContext.cpp)
 
 
 # PYTHON_TESTS
