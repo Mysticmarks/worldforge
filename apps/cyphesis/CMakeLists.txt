@@ -155,7 +155,12 @@ else (RSYNC_CMD)
     )
 endif (RSYNC_CMD)
 
-##TODO: check for binreloc?
+option(CYPHESIS_USE_BINRELOC "Enable binreloc for relocatable installs" ${UNIX})
+if (CYPHESIS_USE_BINRELOC)
+    message(STATUS "binreloc enabled")
+else ()
+    message(STATUS "binreloc disabled")
+endif ()
 
 #We'll use xmllint for validating schemas of some of our xml files.
 find_program(XMLLINT xmllint)

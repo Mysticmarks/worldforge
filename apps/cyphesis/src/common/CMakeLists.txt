@@ -55,10 +55,14 @@ target_link_libraries(cyphesis-common PUBLIC
         external-libxdg-basedir
         spdlog::spdlog
         external-saf
-        external-binreloc
         external-bytesize
         Microsoft.GSL::GSL
 )
+
+if (CYPHESIS_USE_BINRELOC)
+    target_link_libraries(cyphesis-common PUBLIC external-binreloc)
+    target_compile_definitions(cyphesis-common PUBLIC CYPHESIS_USE_BINRELOC)
+endif ()
 
 target_compile_features(cyphesis-common PUBLIC cxx_std_20)
 
