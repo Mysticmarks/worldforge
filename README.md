@@ -68,11 +68,21 @@ If you only want to build the server or the client you can supply these options 
 
 ### Prebuilt CI artifacts
 
-Our continuous integration builds precompiled binaries and packages them as
-`prebuilt/` artifacts. You can download these from the
+Our continuous integration builds precompiled binaries in the `prebuilt/` directory.
+For each successful run you can download these from the
 [build-all workflow](https://github.com/worldforge/worldforge/actions/workflows/build-all.yml)
-on GitHub Actions. Select a successful run and expand **Artifacts** to find
-the `prebuilt` archive.
+on GitHub Actions. Select a successful run and expand **Artifacts** to find the
+`prebuilt` archive and its `prebuilt-manifest` checksum file.
+
+Runs on the `master` branch also publish a `prebuilt.tar.gz` and accompanying
+`manifest.sha256` file on the [Releases](https://github.com/worldforge/worldforge/releases) page.
+Verify downloads with:
+
+```bash
+sha256sum -c manifest.sha256
+tar -xzf prebuilt.tar.gz
+./prebuilt/bin/cyphesis --help
+```
 
 Artifacts are published only for workflow runs where all tests pass.
 

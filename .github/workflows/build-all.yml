@@ -130,12 +130,52 @@ jobs:
                 shell: bash
                 run: ctest --preset conan-release --output-on-failure
 
+            -   name: Verify prebuilt binaries
+                shell: bash
+                run: |
+                    set -e
+                    ls -R "${{ github.workspace }}/prebuilt"
+                    for bin in cyphesis ember; do
+                        if [ ! -x "${{ github.workspace }}/prebuilt/bin/$bin" ]; then
+                            echo "Missing required binary: $bin"
+                            exit 1
+                        fi
+                    done
+
+            -   name: Generate checksum manifest
+                shell: bash
+                run: |
+                    find "${{ github.workspace }}/prebuilt" -type f -exec sha256sum {} + | sort > "${{ github.workspace }}/prebuilt/manifest.sha256"
+
+            -   name: Create prebuilt archive
+                if: github.ref == 'refs/heads/master'
+                shell: bash
+                run: |
+                    tar -czf "${{ github.workspace }}/prebuilt.tar.gz" -C "${{ github.workspace }}/prebuilt" .
+
             -   name: Upload prebuilt
                 uses: actions/upload-artifact@v4.6.1
                 with:
                     name: prebuilt
                     path: ${{ github.workspace }}/prebuilt
                     retention-days: 30
+
+            -   name: Upload manifest
+                uses: actions/upload-artifact@v4.6.1
+                with:
+                    name: prebuilt-manifest
+                    path: ${{ github.workspace }}/prebuilt/manifest.sha256
+                    retention-days: 30
+
+            -   name: Publish prebuilt release
+                if: github.ref == 'refs/heads/master' && success()
+                uses: softprops/action-gh-release@v2
+                with:
+                    tag_name: prebuilt-${{ github.run_number }}
+                    name: Prebuilt ${{ github.run_number }}
+                    files: |
+                        ${{ github.workspace }}/prebuilt.tar.gz
+                        ${{ github.workspace }}/prebuilt/manifest.sha256
 
     package:
         name: Package on *NIX and Windows
