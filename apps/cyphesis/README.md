@@ -125,6 +125,12 @@ the Python specific allocator. For example if you want to profile memory usage.
 This can be enabled by setting the environment variable "PYTHONMALLOC" to something (doesn't matter what).
 Upon startup Cyphesis will then use malloc, and write a line about this to the log.
 
+## Binreloc support
+
+Cyphesis can use the [binreloc](http://autopackage.org/docs/binreloc/) library to locate its data files relative to the executable at runtime.
+This makes it possible to move the installation without recompiling. Binreloc is enabled by default on Unix-like systems but can be disabled by
+passing `-DCYPHESIS_USE_BINRELOC=OFF` to CMake. When disabled, compiled-in paths are used instead.
+
 ## Performance measuring through Remotery
 
 Performance tracking through [Remotery](https://github.com/Celtoys/Remotery) is built in,
