@@ -93,7 +93,7 @@ jobs:
 
             -   name: Test
                 shell: bash
-                run: ctest --preset $PROFILE_CONAN --output-on-failure
+                run: CTEST_OUTPUT_ON_FAILURE=1 cmake --build --preset $PROFILE_CONAN --target check
 
             -   name: End-to-end client session
                 shell: bash

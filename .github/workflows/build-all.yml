@@ -128,7 +128,7 @@ jobs:
 
             -   name: Test
                 shell: bash
-                run: ctest --preset conan-release --output-on-failure
+                run: CTEST_OUTPUT_ON_FAILURE=1 cmake --build --preset conan-release --target check
 
             -   name: Verify prebuilt binaries
                 shell: bash
