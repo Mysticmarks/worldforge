@@ -33,22 +33,58 @@
 #include <Atlas/Objects/SmartPtr.h>
 #include <Atlas/Objects/Operation.h>
 #include <Atlas/Objects/Entity.h>
+#include <Atlas/Codecs/Bach.h>
+#include <Atlas/Exception.h>
 
 #include <iostream>
+#include <sstream>
+
+// Helper bridge used when encoding objects to the Bach codec.
+struct NullBridge : Atlas::Bridge {
+    void streamBegin() override {}
+    void streamMessage() override {}
+    void streamEnd() override {}
+    void mapMapItem(std::string) override {}
+    void mapListItem(std::string) override {}
+    void mapIntItem(std::string, std::int64_t) override {}
+    void mapFloatItem(std::string, double) override {}
+    void mapStringItem(std::string, std::string) override {}
+    void mapNoneItem(std::string) override {}
+    void mapEnd() override {}
+    void listMapItem() override {}
+    void listListItem() override {}
+    void listIntItem(std::int64_t) override {}
+    void listFloatItem(double) override {}
+    void listStringItem(std::string) override {}
+    void listNoneItem() override {}
+    void listEnd() override {}
+};
+
+static std::string encodeToBach(const Atlas::Objects::Root& obj)
+{
+    std::stringstream in;
+    std::stringstream out;
+    NullBridge bridge;
+    Atlas::Codecs::Bach codec(in, out, bridge);
+    Atlas::Objects::ObjectsEncoder encoder(codec);
+    encoder.streamObjectsMessage(obj);
+    out << std::flush;
+    return out.str();
+}
 
 
 class TestConnection : public Eris::Connection {
   public:
     TestConnection(boost::asio::io_context& io_service,
-    		Eris::EventService& eventService, 
-    		const std::string &cnm, 
-    		const std::string& host,
-    		short port) 
+                Eris::EventService& eventService,
+                const std::string &cnm,
+                const std::string& host,
+                short port)
     : Eris::Connection(io_service,
-    		eventService, 
-    		cnm, 
-    		host
-    		, port) {
+                eventService,
+                cnm,
+                host
+                , port), failureCalled(false) {
     }
 
     void testSetStatus(Status sc) { setStatus(sc); }
@@ -57,9 +93,30 @@ class TestConnection : public Eris::Connection {
 
     std::size_t queuedOps() const { return m_opDeque.size(); }
 
-    void testHandleFailure(const std::string& msg) { handleFailure(msg); }
+    void testHandleFailure(const std::string& msg) { Eris::Connection::handleFailure(msg); }
 
     int lockValue() const { return m_lock; }
+
+    void feedBuffer(const std::string& data)
+    {
+        std::stringstream in(data);
+        std::stringstream out;
+        Atlas::Codecs::Bach codec(in, out, *m_decoder);
+        try {
+            codec.poll();
+        } catch (const Atlas::Exception& e) {
+            handleFailure(e.what());
+        }
+    }
+
+    bool failureCalled;
+
+  protected:
+    void handleFailure(const std::string& msg) override
+    {
+        failureCalled = true;
+        Eris::Connection::handleFailure(msg);
+    }
 };
 
 int main()
@@ -195,7 +252,42 @@ int main()
         assert(first > 1001);
     }
 
-    // FIXME Not testing all the code paths through gotData()
+    // Test gotData with a valid packet
+    {
+        boost::asio::io_context io_service;
+        Eris::EventService event_service(io_service);
+        TestConnection c(io_service, event_service, " name", "localhost", 6767);
+
+        Atlas::Objects::Operation::Login login;
+        auto encoded = encodeToBach(login);
+        c.feedBuffer(encoded);
+        assert(c.queuedOps() == 1);
+        c.testDispatch();
+        assert(c.queuedOps() == 0);
+        assert(!c.failureCalled);
+    }
+
+    // Test gotData with malformed data triggers failure
+    {
+        boost::asio::io_context io_service;
+        Eris::EventService event_service(io_service);
+        TestConnection c(io_service, event_service, " name", "localhost", 6767);
+
+        c.feedBuffer("{malformed");
+        assert(c.failureCalled);
+        assert(c.queuedOps() == 0);
+    }
+
+    // Test gotData with empty buffer
+    {
+        boost::asio::io_context io_service;
+        Eris::EventService event_service(io_service);
+        TestConnection c(io_service, event_service, " name", "localhost", 6767);
+
+        c.feedBuffer("");
+        assert(c.queuedOps() == 0);
+        assert(!c.failureCalled);
+    }
 
     // Test send()
     {
