@@ -20,8 +20,6 @@
 #ifndef EMBER_SERVICES_SERVERSETTINGS_H_
 #define EMBER_SERVICES_SERVERSETTINGS_H_
 
-#include "framework/Service.h"
-#include "framework/Singleton.h"
 #include <varconf/variable.h>
 #include <filesystem>
 #include <string>
@@ -36,19 +34,18 @@ namespace Ember {
 class ServerSettingsCredentials;
 
 /**
- * TODO: this should not be a service, instead make it into a simple class, perhaps stateless
  * @author Erik Ogenvik <erik@ogenvik.org>
  * @brief Stores server settings.
  *
- * This service stores settings for each server. It provides a simple interface for querying for existing settings as well as adding new ones.
- * While the settings will be stored to disk when the service shuts down, users are encouraged to call writeToDisk() as soon as any new settings has been added, to guarantee that no settings gets lost in the case of a crash.
+ * This class stores settings for each server. It provides a simple interface for querying for existing settings as well as adding new ones.
+ * While the settings will be stored to disk when the instance is destroyed, users are encouraged to call writeToDisk() as soon as any new settings has been added, to guarantee that no settings gets lost in the case of a crash.
  *
- * In order to query about the settings for a specific server an instance of ServerSettingsCredentials. This allows the service to manage server verification and lookup.
+ * In order to query about the settings for a specific server an instance of ServerSettingsCredentials. This allows the class to manage server verification and lookup.
  *
  * All server settings are stored in one file, by default "serversettings.conf", to be found in the Ember home config directory. Each server is represented by one section in this config file.
  * The mapping between servers and sections is handled by the getSectionForServerCredentials(...) method. This method currently only uses the host name to map servers to config file section, but it might be extended with more complex authentication methods for making sure that the right server is matched to the correct section.
  */
-class ServerSettings : public Service, public Singleton<ServerSettings> {
+class ServerSettings {
 public:
 	/**
 	 * @brief Ctor.
@@ -58,7 +55,7 @@ public:
 	/**
 	 * @brief Dtor.
 	 */
-	~ServerSettings() override;
+        ~ServerSettings();
 
 	/**
 	 * @brief Checks for the existence of a specific key.

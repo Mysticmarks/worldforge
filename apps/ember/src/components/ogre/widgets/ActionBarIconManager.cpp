@@ -36,9 +36,10 @@
 namespace Ember::OgreView::Gui {
 
 ActionBarIconManager::ActionBarIconManager(GUIManager& guiManager)
-		: mGuiManager(guiManager),
-		  mIconsCounter(0),
-		  mSlotsCounter(0) {
+                : mGuiManager(guiManager),
+                  mIconsCounter(0),
+                  mSlotsCounter(0),
+                  mServerSettings() {
 }
 
 ActionBarIconManager::~ActionBarIconManager() = default;
@@ -91,13 +92,12 @@ std::string ActionBarIconManager::getSavedValue(const AvatarIdType& avatarId, co
 	std::string accountIdKey = avatarId.avatarId;
 	accountIdKey.append(key);
 
-	ServerSettingsCredentials serverCredentials(sInfo);
-	auto& serverSettings = ServerSettings::getSingleton();
+        ServerSettingsCredentials serverCredentials(sInfo);
 
-	if (serverSettings.findItem(serverCredentials, accountIdKey)) {
-		return static_cast<std::string>(serverSettings.getItem(serverCredentials, accountIdKey));
-	}
-	return "null";
+        if (mServerSettings.findItem(serverCredentials, accountIdKey)) {
+                return static_cast<std::string>(mServerSettings.getItem(serverCredentials, accountIdKey));
+        }
+        return "null";
 }
 
 void ActionBarIconManager::saveValue(const AvatarIdType& avatarId, const std::string& key, const std::string& value) {
@@ -105,11 +105,10 @@ void ActionBarIconManager::saveValue(const AvatarIdType& avatarId, const std::st
 	std::string accountIdKey = avatarId.avatarId;
 	accountIdKey.append(key);
 
-	ServerSettingsCredentials serverCredentials(sInfo);
-	auto& serverSettings = ServerSettings::getSingleton();
+        ServerSettingsCredentials serverCredentials(sInfo);
 
-	serverSettings.setItem(serverCredentials, accountIdKey, value);
-	serverSettings.writeToDisk();
+        mServerSettings.setItem(serverCredentials, accountIdKey, value);
+        mServerSettings.writeToDisk();
 }
 
 void ActionBarIconManager::eraseValue(const AvatarIdType& avatarId, const std::string& key) {
@@ -117,12 +116,11 @@ void ActionBarIconManager::eraseValue(const AvatarIdType& avatarId, const std::s
 	std::string accountIdKey = avatarId.avatarId;
 	accountIdKey.append(key);
 
-	ServerSettingsCredentials serverCredentials(sInfo);
-	auto& serverSettings = ServerSettings::getSingleton();
+        ServerSettingsCredentials serverCredentials(sInfo);
 
-	if (serverSettings.findItem(serverCredentials, accountIdKey)) {
-		serverSettings.eraseItem(serverCredentials, accountIdKey);
-	}
+        if (mServerSettings.findItem(serverCredentials, accountIdKey)) {
+                mServerSettings.eraseItem(serverCredentials, accountIdKey);
+        }
 }
 
 void ActionBarIconManager::destroyIcon(ActionBarIcon* icon) {

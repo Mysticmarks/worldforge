@@ -26,9 +26,12 @@ template<>
 void registerLua<ServerSettings>(sol::table& space) {
 
 
-	auto serverSettings = space.new_usertype<ServerSettings>("ServerSettings", sol::no_constructor);
-	serverSettings["getSingleton"] = &ServerSettings::getSingleton;
-	serverSettings["getItem"] = &ServerSettings::getItem;
+        auto serverSettings = space.new_usertype<ServerSettings>("ServerSettings", sol::constructors<ServerSettings()>());
+        serverSettings["getItem"] = &ServerSettings::getItem;
+        serverSettings["findItem"] = &ServerSettings::findItem;
+        serverSettings["setItem"] = &ServerSettings::setItem;
+        serverSettings["eraseItem"] = &ServerSettings::eraseItem;
+        serverSettings["writeToDisk"] = &ServerSettings::writeToDisk;
 
 	space.new_usertype<ServerSettingsCredentials>("ServerSettingsCredentials",
 												  sol::constructors<ServerSettingsCredentials(const std::string&, const std::string&)>()
