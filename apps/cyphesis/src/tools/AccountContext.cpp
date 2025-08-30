@@ -47,37 +47,44 @@ bool AccountContext::accept(const RootOperation& op) const {
 }
 
 int AccountContext::dispatch(const RootOperation& op) {
-	cy_debug_print("Dispatching with account context to see if it matches");
+        cy_debug_print("Dispatching with account context to see if it matches");
 
-	if (op->getClassNo() == Atlas::Objects::Operation::INFO_NO &&
-		!op->getArgs().empty()) {
-		std::cout << "Dispatching info" << std::endl;
-		const Root& ent = op->getArgs().front();
-		if (ent->hasAttrFlag(Atlas::Objects::ID_FLAG) &&
-			ent->hasAttrFlag(Atlas::Objects::PARENT_FLAG)) {
-			const std::string& type = ent->getParent();
-			if (type == "juncture") {
-				std::cout << "created juncture" << std::endl;
-				m_client.addCurrentContext(shared_ptr<ObjectContext>(
-						new JunctureContext(m_client, ent->getId())));
-			} else {
-				std::cout << "created avatar" << std::endl;
-				m_client.addCurrentContext(shared_ptr<ObjectContext>(
-						new AvatarContext(m_client, ent->getId())));
-
-			}
-		} else {
-			// FIXME Report an error?
-		}
-	} else if (op->getClassNo() == Atlas::Objects::Operation::SIGHT_NO &&
-			   !op->getArgs().empty()) {
-		std::cout << "Sight(" << std::endl;
-		m_client.output(op->getArgs().front());
-		std::cout << ")" << std::endl;
-	}
-	assert(m_refNo != 0L);
-	m_refNo = 0L;
-	return 0;
+        if (op->getClassNo() == Atlas::Objects::Operation::INFO_NO) {
+                bool context_established = false;
+                if (!op->getArgs().empty()) {
+                        std::cout << "Dispatching info" << std::endl;
+                        const Root& ent = op->getArgs().front();
+                        if (ent->hasAttrFlag(Atlas::Objects::ID_FLAG) &&
+                                ent->hasAttrFlag(Atlas::Objects::PARENT_FLAG)) {
+                                const std::string& type = ent->getParent();
+                                if (type == "juncture") {
+                                        std::cout << "created juncture" << std::endl;
+                                        m_client.addCurrentContext(shared_ptr<ObjectContext>(
+                                                        new JunctureContext(m_client, ent->getId())));
+                                        context_established = true;
+                                } else if (type == "avatar") {
+                                        std::cout << "created avatar" << std::endl;
+                                        m_client.addCurrentContext(shared_ptr<ObjectContext>(
+                                                        new AvatarContext(m_client, ent->getId())));
+                                        context_established = true;
+                                }
+                        }
+                }
+                if (!context_established) {
+                        std::cerr << "Error: No avatar or juncture context established" << std::endl;
+                        assert(m_refNo != 0L);
+                        m_refNo = 0L;
+                        return -1;
+                }
+        } else if (op->getClassNo() == Atlas::Objects::Operation::SIGHT_NO &&
+                           !op->getArgs().empty()) {
+                std::cout << "Sight(" << std::endl;
+                m_client.output(op->getArgs().front());
+                std::cout << ")" << std::endl;
+        }
+        assert(m_refNo != 0L);
+        m_refNo = 0L;
+        return 0;
 }
 
 std::string AccountContext::repr() const {
