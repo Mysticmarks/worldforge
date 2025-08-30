@@ -59,7 +59,8 @@ if (TARGET cppunit::cppunit)
             TestFramework.cpp
             $<TARGET_OBJECTS:ember-framework>
             $<TARGET_OBJECTS:ember-tinyxml>)
-    target_compile_definitions(TestFramework PUBLIC -DLOG_TASKS -DSRCDIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    target_compile_definitions(TestFramework PUBLIC -DLOG_TASKS)
+    configure_file(atlas.xml atlas.xml COPYONLY)
     target_link_libraries(TestFramework
             cppunit::cppunit
             mojoal

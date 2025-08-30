@@ -42,9 +42,10 @@ int main(int argc, char** argv) {
 	config.setParameterLookup('f', "foo", true);
 	config.setParameterLookup('b', "bar", false);
 
-	config.getCmdline(argc, argv);
-	config.getEnv("TEST_");
-	assert(config.readFromFile(std::string(SRCDIR) + "/conf.cfg"));
+        config.getCmdline(argc, argv);
+        config.getEnv("TEST_");
+        std::filesystem::path exePath = std::filesystem::absolute(argv[0]).parent_path();
+        assert(config.readFromFile((exePath / "conf.cfg").string()));
 	config.setItem("tcp", "port", 6700, varconf::GLOBAL);
 	config.setItem("tcp", "v6port", 6700, varconf::USER);
 	config.setItem("console", "colours", "plenty", varconf::INSTANCE);

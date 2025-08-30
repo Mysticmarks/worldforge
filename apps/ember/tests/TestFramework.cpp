@@ -16,8 +16,10 @@
 
 #include <boost/date_time.hpp>
 #include <Atlas/Objects/Factories.h>
+#include <filesystem>
 
 Atlas::Objects::Factories factories;
+static std::filesystem::path g_dataPath;
 
 namespace Ember {
 
@@ -30,7 +32,7 @@ class FrameworkTestCase : public CppUnit::TestFixture {
 public:
 	void testTinyXmlCodec() {
 		TiXmlDocument xmlDoc;
-		bool result = xmlDoc.LoadFile(std::string(SRCDIR) + "/atlas.xml", TIXML_DEFAULT_ENCODING);
+                bool result = xmlDoc.LoadFile((g_dataPath / "atlas.xml").string().c_str(), TIXML_DEFAULT_ENCODING);
 		CPPUNIT_ASSERT(result);
 
 		std::map <std::string, Atlas::Objects::Root> messages;
@@ -76,7 +78,8 @@ public:
 CPPUNIT_TEST_SUITE_REGISTRATION( Ember::FrameworkTestCase);
 
 int main(int argc, char** argv) {
-	CppUnit::TextUi::TestRunner runner;
+        g_dataPath = std::filesystem::absolute(argv[0]).parent_path();
+        CppUnit::TextUi::TestRunner runner;
 	CppUnit::TestFactoryRegistry& registry = CppUnit::TestFactoryRegistry::getRegistry();
 	runner.addTest(registry.makeTest());
 

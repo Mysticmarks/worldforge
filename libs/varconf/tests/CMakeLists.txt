@@ -1,2 +1,2 @@
 wf_add_test(conftest.cpp)
-add_compile_definitions(SRCDIR="${PROJECT_SOURCE_DIR}/tests")
+configure_file(conf.cfg conf.cfg COPYONLY)
