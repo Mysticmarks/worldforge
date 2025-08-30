@@ -52,8 +52,6 @@ void test_polygon(const Polygon<dim>& p)
   test_general(p);
   test_shape(p);
 
-  // FIXME more tests
-
   // Just check that these compile
   Point<dim> point;
   point.setToOrigin();
@@ -229,6 +227,39 @@ void test_transformations()
   assert(!Intersect(rotated, Point<2>(0.5, 0.5), false));
 }
 
+/**
+ * Test behavior of an outer polygon with an inner "hole" polygon.
+ */
+void test_polygon_with_hole()
+{
+  Polygon<2> outer;
+  outer.addCorner(0, Point<2>(0, 0));
+  outer.addCorner(1, Point<2>(5, 0));
+  outer.addCorner(2, Point<2>(5, -5));
+  outer.addCorner(3, Point<2>(0, -5));
+  outer.isValid();
+
+  Polygon<2> hole;
+  hole.addCorner(0, Point<2>(1, -1));
+  hole.addCorner(1, Point<2>(4, -1));
+  hole.addCorner(2, Point<2>(4, -4));
+  hole.addCorner(3, Point<2>(1, -4));
+  hole.isValid();
+
+  assert(Contains(outer, hole, false));
+
+  Point<2> outsideHole(0.5f, -0.5f);
+  assert(Intersect(outer, outsideHole, false));
+  assert(!Intersect(hole, outsideHole, false));
+
+  Point<2> insideHole(2.f, -2.f);
+  assert(Intersect(outer, insideHole, false));
+  assert(Intersect(hole, insideHole, false));
+
+  bool compositeContains = Intersect(outer, insideHole, false) && !Intersect(hole, insideHole, false);
+  assert(!compositeContains);
+}
+
 int main()
 {
   bool succ;
@@ -262,6 +293,7 @@ int main()
   test_concave_polygon();
   test_self_intersection();
   test_transformations();
+  test_polygon_with_hole();
 
   return 0;
 }

@@ -168,7 +168,17 @@ void test_shape(const Point<dim>& p1, const Point<dim>& p2)
   assert(Contains(rbox, rbox, false));
   assert(!Contains(rbox, rbox, true));
 
-  // FIXME more tests
+  // Rotated box with no rotation should behave like an axis-aligned box
+  RotBox<dim> aligned(p1, p2 - p1, RotMatrix<dim>().identity());
+  assert(Intersect(aligned, box, true));
+  assert(Contains(aligned, box, false));
+  assert(Contains(box, aligned, false));
+
+  // Degenerate segment represented by a single point
+  Segment<dim> degenerate(p1, p1);
+  assert(Intersect(degenerate, p1, false));
+  assert(Contains(box, degenerate, false));
+  assert(Contains(ball, degenerate, false));
 }
 
 int main()

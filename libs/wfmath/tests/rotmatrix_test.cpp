@@ -103,7 +103,18 @@ void test_rotmatrix(const RotMatrix<dim>& m)
     for(int j = 0; j < dim; ++j)
       assert(Equal(conv_ident.elem(i, j), (i == j) ? 1 : 0));
 
-  // FIXME much more
+  RotMatrix<dim> full_rot;
+  full_rot.rotation(0, 1, numeric_constants<CoordType>::pi() * 2);
+  for(int i = 0; i < dim; ++i)
+    for(int j = 0; j < dim; ++j)
+      assert(Equal(full_rot.elem(i, j), ident.elem(i, j)));
+
+  RotMatrix<dim> half_rot;
+  half_rot.rotation(0, 1, numeric_constants<CoordType>::pi());
+  RotMatrix<dim> composed = Prod(half_rot, half_rot);
+  for(int i = 0; i < dim; ++i)
+    for(int j = 0; j < dim; ++j)
+      assert(Equal(composed.elem(i, j), ident.elem(i, j)));
 }
 
 int main()
@@ -117,8 +128,6 @@ int main()
 
   test_rotmatrix(m2);
   test_rotmatrix(m3);
-
-  // FIXME toEuler(), fromEuler()
 
   return 0;
 }
