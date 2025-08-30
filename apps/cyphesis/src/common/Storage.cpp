@@ -25,6 +25,7 @@
 #include "Shaker.h"
 
 #include <iostream>
+#include <fmt/format.h>
 
 static constexpr auto debug_flag = false;
 
@@ -44,23 +45,25 @@ Storage::Storage(Database& database) : m_connection(database) {
 	}
 
 
-	if (m_connection.registerEntityTable() != 0) {
-		throw std::runtime_error("Failed to create Entity in database.");
-	}
+        auto ensureTable = [&](const std::string& name, auto&& createFn) {
+                auto res = m_connection.runSimpleSelectQuery(fmt::format("SELECT 1 FROM {} LIMIT 1", name));
+                if (res.error()) {
+                        spdlog::warn("Table '{}' missing. Attempting to create.", name);
+                        if (createFn() != 0) {
+                                throw std::runtime_error(fmt::format("Failed to create {} table in database.", name));
+                        }
+                }
+        };
 
-	if (m_connection.registerPropertyTable() != 0) {
-		throw std::runtime_error("Failed to create Property in database.");
-	}
+        ensureTable("entities", [&]() { return m_connection.registerEntityTable(); });
+        ensureTable("properties", [&]() { return m_connection.registerPropertyTable(); });
+        ensureTable("thoughts", [&]() { return m_connection.registerThoughtsTable(); });
 
-	if (m_connection.registerThoughtsTable() != 0) {
-		throw std::runtime_error("Failed to create Thought in database.");
-	}
-
-	Atlas::Message::MapType tableDesc;
-	tableDesc["username"] = "                                                                                ";
-	tableDesc["password"] = "                                                                                ";
-	tableDesc["type"] = "          ";
-	m_connection.registerSimpleTable("accounts", tableDesc);
+        Atlas::Message::MapType tableDesc;
+        tableDesc["username"] = "                                                                                ";
+        tableDesc["password"] = "                                                                                ";
+        tableDesc["type"] = "          ";
+        ensureTable("accounts", [&]() { return m_connection.registerSimpleTable("accounts", tableDesc); });
 
 	if (m_connection.registerEntityIdGenerator() != 0) {
 		throw std::runtime_error("Failed to register Id generator in database.");

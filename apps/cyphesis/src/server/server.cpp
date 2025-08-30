@@ -63,6 +63,7 @@
 #include "AccountProperty.h"
 #include "Remotery.h"
 #include "common/Storage.h"
+#include "common/DatabaseNull.h"
 #include "common/net/SquallHandler.h"
 #include "SquallAssetsGenerator.h"
 #include "AssetsHandler.h"
@@ -173,6 +174,14 @@ struct SQLiteServerDatabase : public ServerDatabase {
 		m_vacuumTask->cancel();
 	}
 
+};
+
+struct NullServerDatabase : public ServerDatabase {
+        DatabaseNull m_db;
+
+        Database& database() override { return m_db; }
+
+        void stopVacuum() override {}
 };
 
 std::unique_ptr<ServerDatabase> createDatabase(io_context& io_context) {
@@ -394,16 +403,26 @@ int run() {
 	boost::asio::thread_pool squallThreadPool{1};
 
 
-	try {
-		auto& atlasFactories = AtlasFactories::factories;
+        try {
+                auto& atlasFactories = AtlasFactories::factories;
 
-		// Initialise the persistence subsystem.
-		auto serverDatabase = createDatabase(*io_context);
-		auto& database = serverDatabase->database();
+                std::unique_ptr<ServerDatabase> serverDatabase;
+                try {
+                        serverDatabase = createDatabase(*io_context);
+                        auto& db = serverDatabase->database();
+                        //Creating a "Storage" object makes sure all database tables are setup correctly.
+                        Storage storage(db);
+                        Persistence persistence(db);
+                } catch (const std::exception& e) {
+                        spdlog::error("{}", e.what());
+                        spdlog::warn("Database initialization failed. Falling back to in-memory storage.");
+                        serverDatabase = std::make_unique<NullServerDatabase>();
+                        auto& db = serverDatabase->database();
+                        Storage storage(db);
+                        Persistence persistence(db);
+                }
 
-		//Creating a "Storage" object makes sure all database tables are setup correctly.
-		Storage storage(database);
-		Persistence persistence(database);
+                auto& database = serverDatabase->database();
 
 		// If the restricted flag is set in the config file, then we
 		// don't allow connecting users to create accounts. Accounts must
