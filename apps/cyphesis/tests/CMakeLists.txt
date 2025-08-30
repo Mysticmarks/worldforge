@@ -173,6 +173,7 @@ wf_add_test(common/AtlasFileLoaderTest.cpp ../src/common/AtlasFileLoader.cpp)
 wf_add_test(server/BaseWorldTest.cpp ../src/rules/simulation/BaseWorld.cpp)
 wf_add_test(common/idTest.cpp ../src/common/id.cpp)
 wf_add_test(common/StorageTest.cpp ../src/common/Storage.cpp)
+wf_add_test(common/MissingTableCreationTest.cpp)
 wf_add_test(common/debugTest.cpp ../src/common/debug.cpp)
 wf_add_test(common/globalsTest.cpp ../src/common/globals.cpp)
 target_compile_definitions(globalsTest PUBLIC -DBINDIR="${CMAKE_INSTALL_FULL_BINDIR}" -DDATADIR="${CMAKE_INSTALL_FULL_DATADIR}" -DSYSCONFDIR="${CMAKE_INSTALL_FULL_SYSCONFDIR}" -DLOCALSTATEDIR="${CMAKE_INSTALL_FULL_LOCALSTATEDIR}")
@@ -496,6 +497,7 @@ wf_add_test(server/LobbyTest.cpp ../src/server/Lobby.cpp)
 
 wf_add_test(server/ServerRoutingTest.cpp ../src/server/ServerRouting.cpp)
 wf_add_test(server/StorageManagerTest.cpp ../src/server/StorageManager.cpp)
+wf_add_test(server/DatabaseFallbackTest.cpp)
 wf_add_test(server/HttpHandlingTest.cpp ../src/common/net/HttpHandling.cpp)
 
 # SERVER_COMM_TESTS
