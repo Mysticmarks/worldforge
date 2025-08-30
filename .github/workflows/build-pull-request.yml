@@ -13,6 +13,7 @@ env:
     PROFILE_CONAN: conan-debug
     CI: 1 #This will turn off a couple of warnings in the build
     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    COVERAGE_THRESHOLD: 70
 
 jobs:
     build:
@@ -31,6 +32,11 @@ jobs:
                 if: runner.os == 'Windows'
                 shell: bash
                 run: echo "PROFILE_CONAN=conan-default" >> $GITHUB_ENV
+
+            -   name: Use coverage preset
+                if: runner.os == 'Linux'
+                shell: bash
+                run: echo "PROFILE_CONAN=coverage" >> $GITHUB_ENV
 
             -   name: Use ccache
                 uses: hendrikmuhs/ccache-action@v1.2
@@ -79,7 +85,7 @@ jobs:
             -   name: Configure CMake
                 shell: bash
                 #The -DCMAKE_C_FLAGS="-s" will strip all executables, which we want because we want to provide a Snap package
-                run: cmake --preset $PROFILE_CONAN . -DBUILD_TESTING=ON -DWORLDFORGE_ENABLE_COVERAGE=ON -DCMAKE_INSTALL_PREFIX=~/install/usr -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_FLAGS="-s" -DATLAS_GENERATE_OBJECTS=OFF -DATLAS_DISABLE_BENCHMARKS=ON
+                run: cmake --preset $PROFILE_CONAN . -DBUILD_TESTING=ON -DCMAKE_INSTALL_PREFIX=~/install/usr -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_FLAGS="-s" -DATLAS_GENERATE_OBJECTS=OFF -DATLAS_DISABLE_BENCHMARKS=ON
 
             -   name: Build
                 shell: bash
@@ -97,15 +103,33 @@ jobs:
                     lcov --remove coverage.info '/usr/*' --output-file coverage.info
                     genhtml coverage.info --output-directory coverage-report
 
-            -   name: Upload coverage artifact
+            -   name: Check coverage threshold
                 if: runner.os == 'Linux'
+                shell: bash
+                run: |
+                    coverage=$(lcov --summary coverage.info | grep -Po 'lines\.*: \K[0-9.]+(?=%)')
+                    export coverage
+                    python - <<'PY'
+import os, sys
+cov=float(os.environ['coverage'])
+thr=float(os.environ['COVERAGE_THRESHOLD'])
+print(f"Total coverage: {cov}%")
+if cov < thr:
+    print(f"Coverage {cov}% is below threshold {thr}%")
+    sys.exit(1)
+else:
+    print(f"Coverage {cov}% meets threshold {thr}%")
+PY
+
+            -   name: Upload coverage artifact
+                if: runner.os == 'Linux' && always()
                 uses: actions/upload-artifact@v4.6.1
                 with:
                     name: coverage-report
                     path: coverage-report
 
             -   name: Upload coverage to Codecov
-                if: runner.os == 'Linux' && env.CODECOV_TOKEN != ''
+                if: runner.os == 'Linux' && env.CODECOV_TOKEN != '' && always()
                 uses: codecov/codecov-action@v4
                 with:
                     files: coverage.info
