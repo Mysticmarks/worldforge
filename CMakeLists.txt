@@ -44,14 +44,21 @@ find_package(Microsoft.GSL REQUIRED)
 find_package(Git QUIET)
 
 # Version setup. Figure out the version from 'git describe' if VERSION isn't set externally.
-execute_process(COMMAND ${GIT_EXECUTABLE} -C ${PROJECT_SOURCE_DIR} describe
-        OUTPUT_VARIABLE GIT_REPO_VERSION)
-string(REGEX REPLACE "\n$" "" GIT_REPO_VERSION "${GIT_REPO_VERSION}")
+execute_process(
+        COMMAND ${GIT_EXECUTABLE} -C ${PROJECT_SOURCE_DIR} describe
+        OUTPUT_VARIABLE GIT_REPO_VERSION
+        RESULT_VARIABLE GIT_DESCRIBE_RESULT)
+if (NOT GIT_DESCRIBE_RESULT EQUAL 0)
+    message(WARNING "Failed to determine Git repository version. Falling back to ${VERSION_FALLBACK}.")
+    unset(GIT_REPO_VERSION)
+else ()
+    string(REGEX REPLACE "\n$" "" GIT_REPO_VERSION "${GIT_REPO_VERSION}")
+endif ()
 if (NOT VERSION)
-    if (NOT GIT_REPO_VERSION)
-        set(VERSION "${VERSION_FALLBACK}")
-    else ()
+    if (GIT_DESCRIBE_RESULT EQUAL 0)
         set(VERSION "${GIT_REPO_VERSION}")
+    else ()
+        set(VERSION "${VERSION_FALLBACK}")
     endif ()
 endif ()
 
