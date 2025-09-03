@@ -156,6 +156,7 @@ wf_add_test(modules/RefTest.cpp)
 
 wf_add_test(common/OperationsDispatcherTest.cpp)
 wf_add_test(common/logTest.cpp ../src/common/log.cpp)
+wf_add_test(common/PythonLogGuardTest.cpp)
 #wf_add_test(common/InheritanceTest.cpp ../src/common/Inheritance.cpp ../src/common/custom.cpp)
 wf_add_test(rules/simulation/PropertyTest.cpp ../src/common/Property.cpp ../src/rules/simulation/EntityProperties.cpp ../src/common/type_utils.cpp ../src/common/PropertyUtil.cpp)
 wf_add_test(common/systemTest.cpp ../src/common/system.cpp)
