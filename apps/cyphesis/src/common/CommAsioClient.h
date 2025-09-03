@@ -34,6 +34,7 @@
 #include <memory>
 #include <sstream>
 #include <deque>
+#include <chrono>
 
 template<typename ProtocolT>
 class CommAsioClient : public Atlas::Objects::ObjectsDecoder,
@@ -67,9 +68,15 @@ public:
 	 * at suitable intervals.
 	 * @param autoFlush
 	 */
-	void setAutoFlush(bool autoFlush) {
-		mAutoFlush = autoFlush;
-	}
+        void setAutoFlush(bool autoFlush) {
+                mAutoFlush = autoFlush;
+        }
+
+        /**
+         * Sets the maximum number of operations that can be queued locally when
+         * the link is throttling incoming operations.
+         */
+        void setMaxThrottledOps(std::size_t limit) { m_maxThrottledOps = limit; }
 
 protected:
 	typename ProtocolT::socket mSocket;
@@ -116,7 +123,37 @@ protected:
 	 * By default it's off, meaning that it's up to calling code to make sure that the sockets are flushed at
 	 * suitable intervals.
 	 */
-	bool mAutoFlush;
+        bool mAutoFlush;
+
+        /**
+         * Queue of operations that couldn't immediately be processed by the link.
+         * These will be retried with exponential backoff when the link signals
+         * that it's temporarily unable to handle more operations.
+         */
+        DispatchQueue m_throttledOps;
+
+        /**
+         * Timer used to retry dispatching operations that were throttled.
+         */
+        boost::asio::steady_timer m_throttleTimer;
+
+        /**
+         * Maximum number of operations that may be queued locally while waiting
+         * for the link to accept more operations.
+         */
+        std::size_t m_maxThrottledOps;
+
+        /**
+         * Initial delay used for exponential backoff when retrying throttled
+         * operations.
+         */
+        std::chrono::milliseconds m_initialBackoff;
+
+        /**
+         * Current delay used for exponential backoff when retrying throttled
+         * operations.
+         */
+        std::chrono::milliseconds m_currentBackoff;
 
 	enum {
 		/**
@@ -147,11 +184,14 @@ protected:
 
 	void negotiate_read();
 
-	void negotiate_write();
+        void negotiate_write();
 
-	void externalOperation(Atlas::Objects::Operation::RootOperation);
+        void externalOperation(Atlas::Objects::Operation::RootOperation);
 
-	void objectArrived(Atlas::Objects::Root obj) override;
+        void objectArrived(Atlas::Objects::Root obj) override;
+
+        void drainThrottledOps();
+        void scheduleThrottleRetry();
 };
 
 #endif /* COMMASIOCLIENT_H_ */

@@ -7,6 +7,7 @@ if (TARGET cppunit::cppunit)
             ConvertTestCase.cpp
             ModelMountTestCase.cpp
             NestedEntityTestCase.cpp
+            AvatarMovementTestCase.cpp
             $<TARGET_OBJECTS:ember-ogre>
             $<TARGET_OBJECTS:ember-caelum>
             $<TARGET_OBJECTS:ember-meshtree>

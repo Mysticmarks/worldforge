@@ -47,11 +47,14 @@
 
 #include "terrain/ITerrainAdapter.h"
 
+#include <Eris/Entity.h>
 #include <Eris/Avatar.h>
 #include <Eris/Connection.h>
 #include <Eris/TypeInfo.h>
 #include <Eris/Task.h>
 #include <Eris/Response.h>
+
+#include <Atlas/Message/Element.h>
 
 #include <wfmath/atlasconv.h>
 
@@ -74,9 +77,27 @@ struct fmt::formatter<WFMath::Point<3>> : ostream_formatter {
 };
 namespace Ember::OgreView {
 
+float getSurfaceSpeedModifier(const Eris::Entity& entity) {
+        std::string surface("ground");
+        if (entity.hasProperty("surface")) {
+                auto surfaceElement = entity.valueOfProperty("surface");
+                if (surfaceElement.isString()) {
+                        surface = surfaceElement.asString();
+                }
+        }
+        auto speedKey = std::string("speed-") + surface;
+        if (entity.hasProperty(speedKey)) {
+                auto speedElement = entity.valueOfProperty(speedKey);
+                if (speedElement.isNum()) {
+                        return static_cast<float>(speedElement.asNum());
+                }
+        }
+        return 1.0f;
+}
+
 Avatar::Avatar(Eris::Avatar& erisAvatar,
-			   EmberEntity& erisAvatarEntity,
-			   Scene& scene,
+                           EmberEntity& erisAvatarEntity,
+                           Scene& scene,
 			   const Camera::CameraSettings& cameraSettings,
 			   Terrain::ITerrainAdapter& terrainAdapter) :
 		SetAttachedOrientation("setattachedorientation", this, "Sets the orientation of an item attached to the avatar: <attachpointname> <x> <y> <z> <degrees>"),
@@ -235,8 +256,9 @@ void Avatar::moveClientSide(const WFMath::Quaternion& orientation, const WFMath:
 
 			mClientSideAvatarOrientation = adjustedOrientation;
 		}
-		mCurrentMovement.rotate(mClientSideAvatarOrientation);
-		mClientSideAvatarPosition += mCurrentMovement * timeslice; //TODO: take speed-ground property into account
+                mCurrentMovement.rotate(mClientSideAvatarOrientation);
+                auto surfaceSpeed = getSurfaceSpeedModifier(mErisAvatarEntity);
+                mClientSideAvatarPosition += mCurrentMovement * timeslice * surfaceSpeed;
 
 		if (mErisAvatarEntity.getAttachment()) {
 			mErisAvatarEntity.getAttachment()->updatePosition();

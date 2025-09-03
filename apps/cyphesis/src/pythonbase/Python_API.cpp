@@ -246,6 +246,7 @@ void observe_python_directories(boost::asio::io_context& io_context, AssetsManag
 
 void init_python_api(std::vector<std::function<std::string()>> initFunctions, std::vector<std::string> scriptDirectories, bool log_stdout)
 {
+    python_log::install_python_log_formatter();
     //If we're using the system Python installation then everything should be setup for Python to use.
     //But if we're instead using something like a Conan version where Python is installed in a different place
     //we need to tell Python where to find its stuff. This is done through the PYTHONHOME environment variable.

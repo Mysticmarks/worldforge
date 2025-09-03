@@ -112,7 +112,10 @@ STRING_OPTION(mserver, "metaserver.worldforge.org", CYPHESIS, "metaserver",
 			  "Hostname to use as the metaserver")
 
 INT_OPTION(ai_clients, 1, CYPHESIS, "aiclients",
-		   "Number of AI clients to spawn.")
+                   "Number of AI clients to spawn.")
+
+INT_OPTION(io_threads, 0, CYPHESIS, "iothreads",
+                   "Number of threads running the I/O context (0 = hardware concurrency)")
 
 /**
  * Wraps either a Postgres server connection along with a vacuum socket, or a SQLite connection along with a vacuum task.
@@ -684,10 +687,14 @@ int run() {
 			IdleConnector storage_idle(*io_context);
 			storage_idle.idling.connect([&store]() { store.tick(); });
 
-			spdlog::info("Running and accepting connections");
-			logEvent(START, "- - - Standalone server startup");
+                        spdlog::info("Running and accepting connections");
+                        logEvent(START, "- - - Standalone server startup");
 
-			MainLoop::run(daemon_flag, *io_context, worldRouter.getOperationsHandler(), {softExitStart, softExitPoll, softExitTimeout, dispatchOperationsFn}, time);
+                        std::size_t ioThreadCount = io_threads > 0 ? static_cast<std::size_t>(io_threads) : std::thread::hardware_concurrency();
+                        if (ioThreadCount == 0) {
+                                ioThreadCount = 1;
+                        }
+                        MainLoop::run(daemon_flag, *io_context, worldRouter.getOperationsHandler(), {softExitStart, softExitPoll, softExitTimeout, dispatchOperationsFn}, time, ioThreadCount);
 			if (metaClient) {
 				metaClient->metaserverTerminate();
 			}

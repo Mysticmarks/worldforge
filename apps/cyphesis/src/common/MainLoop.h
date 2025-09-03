@@ -21,6 +21,7 @@
 
 #include <boost/asio/io_context.hpp>
 #include <chrono>
+#include <cstddef>
 
 struct OperationsHandler;
 
@@ -33,11 +34,12 @@ struct MainLoop {
 		std::function<void()> dispatchOperations;
 	};
 
-	static void run(bool daemon,
-					boost::asio::io_context& io_context,
-					OperationsHandler& operationsHandler,
-					const Callbacks& callbacks,
-					std::chrono::steady_clock::duration& time);
+        static void run(bool daemon,
+                                        boost::asio::io_context& io_context,
+                                        OperationsHandler& operationsHandler,
+                                        const Callbacks& callbacks,
+                                        std::chrono::steady_clock::duration& time,
+                                        std::size_t io_threads);
 
 
 };

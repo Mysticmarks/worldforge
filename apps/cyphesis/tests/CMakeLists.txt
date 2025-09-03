@@ -156,6 +156,7 @@ wf_add_test(modules/RefTest.cpp)
 
 wf_add_test(common/OperationsDispatcherTest.cpp)
 wf_add_test(common/logTest.cpp ../src/common/log.cpp)
+wf_add_test(common/PythonLogGuardTest.cpp)
 #wf_add_test(common/InheritanceTest.cpp ../src/common/Inheritance.cpp ../src/common/custom.cpp)
 wf_add_test(rules/simulation/PropertyTest.cpp ../src/common/Property.cpp ../src/rules/simulation/EntityProperties.cpp ../src/common/type_utils.cpp ../src/common/PropertyUtil.cpp)
 wf_add_test(common/systemTest.cpp ../src/common/system.cpp)
@@ -197,6 +198,7 @@ wf_add_test(rules/EntityKitTest.cpp)
 wf_add_test(common/LinkTest.cpp ../src/common/Link.cpp)
 wf_add_test(common/CommSocketTest.cpp)
 wf_add_test(common/FileSystemObserverIntegrationTest.cpp ../src/common/FileSystemObserver.cpp)
+wf_add_test(common/AssetsManagerIntegrationTest.cpp ../src/common/AssetsManager.cpp ../src/common/FileSystemObserver.cpp)
 
 # PHYSICS_TESTS
 wf_add_test(physics/BBoxTest.cpp ../src/physics/BBox.cpp ../src/common/const.cpp)

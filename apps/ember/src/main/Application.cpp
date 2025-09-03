@@ -244,9 +244,10 @@ Application::Application(Input& input,
                 mRayTracingState(std::make_unique<RayTracingState>()),
                 Quit("quit", this, "Quit Ember."),
                 ToggleErisPolling("toggle_erispolling", this, "Switch server polling on and off.") {
+        mIoServiceThread = std::thread([this]() { mSession->m_io_service.run(); });
 
-	// Change working directory
-	auto dirName = mConfigService.getHomeDirectory(BaseDirType_CONFIG);
+        // Change working directory
+        auto dirName = mConfigService.getHomeDirectory(BaseDirType_CONFIG);
 
 	if (!std::filesystem::is_directory(dirName)) {
 		logger->info("Creating home directory at {}", dirName.string());
@@ -304,9 +305,12 @@ Application::~Application() {
 	}
 
 	//Process all handlers again before shutting down.
-	mSession->m_event_service.processAllHandlers();
-	mSession->m_io_service.stop();
-	mSession->m_io_service.restart();
+        mSession->m_event_service.processAllHandlers();
+        mSession->m_io_service.stop();
+        if (mIoServiceThread.joinable()) {
+                mIoServiceThread.join();
+        }
+        mSession->m_io_service.restart();
 
         mOgreRoot.reset();
 
@@ -370,48 +374,24 @@ void Application::mainLoop() {
 				frameActionMask |= MainLoopController::FA_GRAPHICS;
 			}
 
-			frameActionMask |= MainLoopController::FA_SOUND;
+                        frameActionMask |= MainLoopController::FA_SOUND;
 
-			//Execute IO handlers for two milliseconds, if there are any.
-			auto end = std::chrono::steady_clock::now() + std::chrono::milliseconds(2);
-			while (std::chrono::steady_clock::now() < end) {
-				auto executedHandlers = mSession->m_io_service.poll_one();
-				if (executedHandlers == 0) {
-					break;
-				}
-			}
+                        //Process any pending handlers from Eris. These mainly deal with assets being loaded, so it's ok if they
+                        //are spread out over multiple frames.
+                        eventService.processOneHandler();
 
-			//Then process Eris handlers. These are things that mainly deal with assets being loaded, so it's ok if they are spread out over multiple frames.
-			eventService.processOneHandler();
+                        //If there's still time left this frame, process any outstanding main thread handlers.
+                        if (timeFrame.isTimeLeft()) {
+                                auto handlersRun = eventService.processOneHandler();
+                                while (handlersRun != 0 && timeFrame.isTimeLeft()) {
+                                        handlersRun = eventService.processOneHandler();
+                                }
+                        }
 
-			//If there's time left this frame, poll any outstanding io handlers.
-			if (timeFrame.isTimeLeft()) {
-				auto handlersRun = mSession->m_io_service.poll_one();
-				while (handlersRun != 0 && timeFrame.isTimeLeft()) {
-					handlersRun = mSession->m_io_service.poll_one();
-				}
-			}
-
-			//If there's still time left this frame, process any outstanding main thread handlers.
-			if (timeFrame.isTimeLeft()) {
-				auto handlersRun = eventService.processOneHandler();
-				while (handlersRun != 0 && timeFrame.isTimeLeft()) {
-					handlersRun = eventService.processOneHandler();
-				}
-			}
-
-			//And if there's yet still time left this frame, wait until time is up, and do io in the meantime.
-			if (timeFrame.isTimeLeft()) {
-				boost::asio::steady_timer deadlineTimer(mSession->m_io_service);
-				deadlineTimer.expires_at(std::chrono::steady_clock::now() + timeFrame.getRemainingTime());
-
-				deadlineTimer.async_wait([&](boost::system::error_code ec) {
-				});
-
-				while (timeFrame.isTimeLeft()) {
-					mSession->m_io_service.run_one();
-				}
-			}
+                        //Wait for the rest of the frame to maintain target fps.
+                        if (timeFrame.isTimeLeft()) {
+                                std::this_thread::sleep_until(timeFrame.mEndTime);
+                        }
 
 			mMainLoopController.EventFrameProcessed(timeFrame, frameActionMask);
 
