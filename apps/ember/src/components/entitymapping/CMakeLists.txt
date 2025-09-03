@@ -33,6 +33,7 @@ add_library(ember-entitymapping STATIC
         Matches/SingleAttributeMatch.cpp
         Matches/SingleAttributeMatch.h
 )
+wf_apply_warnings(ember-entitymapping)
 
 target_link_libraries(ember-entitymapping PUBLIC
         wfmath

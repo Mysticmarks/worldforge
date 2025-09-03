@@ -1,5 +1,6 @@
 #Use WIN32 to specify that on Windows it should be a non-console app.
 add_executable(ember WIN32)
+wf_apply_warnings(ember)
 target_compile_features(ember PUBLIC cxx_std_20)
 target_sources(ember PUBLIC
         Application.cpp
@@ -42,6 +43,7 @@ set(ember-libraries
 
 if (WF_USE_WIDGET_PLUGINS)
     add_library(ember-shared SHARED)
+    wf_apply_warnings(ember-shared)
     target_link_libraries(ember-shared
             ${ember-libraries}
     )

@@ -46,9 +46,11 @@ wf_add_test(ActiveMarker_UnitTest.cpp ../src/Eris/ActiveMarker.cpp)
 #        viewTest.cpp viewTest.h
 #        avatarTest.cpp avatarTest.h
 #        calendarTest.cpp calendarTest.h)
-if (NOT WIN32)
+    if (NOT WIN32)
     add_executable(metaQuery metaQuery.cpp)
+    wf_apply_warnings(metaQuery)
     target_link_libraries(metaQuery ${LIBNAME})
     add_executable(eris_connect connect.cpp)
+    wf_apply_warnings(eris_connect)
     target_link_libraries(eris_connect ${LIBNAME})
-endif ()
+    endif ()

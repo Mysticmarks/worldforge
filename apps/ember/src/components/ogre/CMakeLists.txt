@@ -163,11 +163,13 @@ add_library(ember-ogre STATIC
         FrameListener.cpp
         SquallArchive.cpp
 )
+wf_apply_warnings(ember-ogre)
 
 add_library(ember-ogre-support STATIC
         XMLHelper.cpp
         OgreInfo.cpp
 )
+wf_apply_warnings(ember-ogre-support)
 target_include_directories(ember-ogre-support PUBLIC .)
 target_link_libraries(ember-ogre-support PUBLIC
         ember-framework

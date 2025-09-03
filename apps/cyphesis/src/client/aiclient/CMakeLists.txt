@@ -2,6 +2,7 @@ add_library(cyphesis-cyaiclient
         PossessionClient.cpp
         PossessionAccount.cpp
 )
+wf_apply_warnings(cyphesis-cyaiclient)
 
 
 target_link_libraries(cyphesis-cyaiclient
@@ -25,6 +26,7 @@ target_link_libraries(cyphesis-cyaiclient
 
 add_executable(cyaiclient
         aiclient.cpp)
+wf_apply_warnings(cyaiclient)
 
 #If Python has been built statically (as with Conan) we need to enable exports so the dynamic loading works.
 if (PYTHON_IS_STATIC)

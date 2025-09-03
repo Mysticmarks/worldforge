@@ -5,6 +5,7 @@ add_library(cyphesis-comm
         CommMDNSPublisher.cpp
         IdleConnector.cpp
 )
+wf_apply_warnings(cyphesis-comm)
 
 target_link_libraries(cyphesis-comm PUBLIC
         cyphesis-common
@@ -61,6 +62,7 @@ set(server_files
 
 add_library(cyphesis-server
         ${server_files})
+wf_apply_warnings(cyphesis-server)
 
 target_link_libraries(cyphesis-server PUBLIC
         cyphesis-common
@@ -72,6 +74,7 @@ target_link_libraries(cyphesis-server PUBLIC
 add_executable(cyphesis
         server.cpp
 )
+wf_apply_warnings(cyphesis)
 
 #If Python has been built statically (as with Conan) we need to enable exports so the dynamic loading works.
 if (PYTHON_IS_STATIC)

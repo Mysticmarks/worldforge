@@ -86,6 +86,7 @@ add_library(ember-widgets STATIC
         ContainerView.cpp
         ${STATIC_WIDGETS}
 )
+wf_apply_warnings(ember-widgets)
 
 target_precompile_headers(ember-widgets
         REUSE_FROM
@@ -134,6 +135,7 @@ install(FILES ${LUA_FILES} DESTINATION ${CMAKE_INSTALL_FULL_DATADIR}/ember/scrip
 add_library(ember-BindingsAtlasAdapters STATIC
         adapters/atlas/bindings/lua/BindingsAtlasAdapters.cpp
 )
+wf_apply_warnings(ember-BindingsAtlasAdapters)
 
 target_link_libraries(ember-BindingsAtlasAdapters PUBLIC
         ember-framework
@@ -155,6 +157,7 @@ add_library(ember-BindingsRepresentations STATIC
         representations/LayoutHelper.cpp
         representations/bindings/lua/BindingsRepresentations.cpp
 )
+wf_apply_warnings(ember-BindingsRepresentations)
 
 target_link_libraries(ember-BindingsRepresentations PUBLIC
         ember-framework

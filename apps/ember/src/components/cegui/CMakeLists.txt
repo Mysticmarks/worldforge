@@ -5,6 +5,7 @@ add_library(ember-cegui STATIC
         SDLNativeClipboardProvider.cpp
         CEGUISetup.cpp
 )
+wf_apply_warnings(ember-cegui)
 
 target_link_libraries(ember-cegui PUBLIC
         ember-services
@@ -19,6 +20,7 @@ file(GLOB CEGUI_FILES bindings/lua/*.cpp)
 add_library(ember-BindingsCEGUI STATIC
         ${CEGUI_FILES}
 )
+wf_apply_warnings(ember-BindingsCEGUI)
 
 target_link_libraries(ember-BindingsCEGUI PUBLIC
         ember-framework

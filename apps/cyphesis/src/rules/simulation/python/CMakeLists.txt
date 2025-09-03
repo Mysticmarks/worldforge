@@ -8,6 +8,7 @@ add_library(cyphesis-rulessimulation_python
         CyPy_Domain.cpp
         CyPy_LocatedEntity.cpp
 )
+wf_apply_warnings(cyphesis-rulessimulation_python)
 
 target_link_libraries(cyphesis-rulessimulation_python PUBLIC
         cyphesis-rulessimulation

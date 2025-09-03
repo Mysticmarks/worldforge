@@ -37,6 +37,7 @@ add_library(cyphesis-common
         AtlasFactories.cpp
         PropertyUtil.cpp
 )
+wf_apply_warnings(cyphesis-common)
 
 target_link_libraries(cyphesis-common PUBLIC
         wfmath
@@ -86,6 +87,7 @@ if (CYPHESIS_USE_POSTGRES)
 endif (CYPHESIS_USE_POSTGRES)
 
 add_library(cyphesis-db ${db_files})
+wf_apply_warnings(cyphesis-db)
 
 if (CYPHESIS_USE_POSTGRES)
     target_link_libraries(cyphesis-db PUBLIC PostgreSQL::PostgreSQL)

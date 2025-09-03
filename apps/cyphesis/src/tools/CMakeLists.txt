@@ -14,6 +14,7 @@ add_executable(cycmd
         JunctureContext.cpp
         Interactive.cpp
 )
+wf_apply_warnings(cycmd)
 
 target_link_libraries(cycmd PUBLIC
         cyphesis-common
@@ -23,6 +24,7 @@ target_link_libraries(cycmd PUBLIC
 install(TARGETS cycmd DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})
 
 add_executable(cyconfig cyconfig.cpp)
+wf_apply_warnings(cyconfig)
 target_link_libraries(cyconfig PUBLIC
         cyphesis-common
 )
@@ -32,6 +34,7 @@ add_executable(cypasswd
         cypasswd.cpp
         DatabaseCreation.cpp
 )
+wf_apply_warnings(cypasswd)
 target_link_libraries(cypasswd PUBLIC
         cyphesis-db
         cyphesis-common
@@ -42,6 +45,7 @@ add_executable(cydb
         cydb.cpp
         DatabaseCreation.cpp
 )
+wf_apply_warnings(cydb)
 
 target_link_libraries(cydb
         readline::readline
@@ -51,6 +55,7 @@ target_link_libraries(cydb
 install(TARGETS cydb DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})
 
 add_executable(cypython cypython.cpp)
+wf_apply_warnings(cypython)
 target_link_libraries(cypython
         readline::readline
         cyphesis-common
@@ -64,6 +69,7 @@ add_executable(cyexport
         AgentCreationTask.cpp
         WaitForDeletionTask.cpp
 )
+wf_apply_warnings(cyexport)
 target_link_libraries(cyexport PUBLIC
         cyphesis-common
 )
@@ -77,6 +83,7 @@ add_executable(cyimport
         EntityTraversalTask.cpp
         WaitForDeletionTask.cpp
 )
+wf_apply_warnings(cyimport)
 target_link_libraries(cyimport
         cyphesis-common)
 install(TARGETS cyimport DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})

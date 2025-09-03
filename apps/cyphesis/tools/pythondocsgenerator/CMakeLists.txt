@@ -1,5 +1,6 @@
 add_executable(cyphesis-pythondocgenerator
         PythonDocGenerator.cpp)
+wf_apply_warnings(cyphesis-pythondocgenerator)
 
 target_link_options(cyphesis-pythondocgenerator PUBLIC "LINKER:-z,muldefs")
 

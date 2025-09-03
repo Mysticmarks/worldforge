@@ -137,7 +137,7 @@ if (NOT NO_LIBS_INSTALL)
     # The "atlas_convert" tool, only available on systems which provides unistd.h
     if (HAS_UNISTD)
         add_executable(atlas_convert atlas_convert.cpp)
-        target_compile_options(atlas_convert PRIVATE ${WF_WARNING_FLAGS})
+        wf_apply_warnings(atlas_convert)
         target_link_libraries(atlas_convert AtlasCodecs AtlasMessage Atlas)
 
         install(TARGETS atlas_convert

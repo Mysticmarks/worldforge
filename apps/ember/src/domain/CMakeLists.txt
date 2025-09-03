@@ -3,6 +3,7 @@ add_library(ember-domain
         EntityTalk.cpp
         EmberEntityRef.cpp
 )
+wf_apply_warnings(ember-domain)
 
 target_link_libraries(ember-domain PUBLIC
         eris
@@ -12,6 +13,7 @@ target_link_libraries(ember-domain PUBLIC
 add_library(ember-BindingsDomain STATIC
         bindings/lua/BindingsDomain.cpp
 )
+wf_apply_warnings(ember-BindingsDomain)
 
 target_link_libraries(ember-BindingsDomain PUBLIC
         ember-domain

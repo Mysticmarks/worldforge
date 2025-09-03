@@ -1,6 +1,7 @@
 add_library(cyphesis-rulesbase
         Modifier.cpp
 )
+wf_apply_warnings(cyphesis-rulesbase)
 
 target_link_libraries(cyphesis-rulesbase PUBLIC
         cyphesis-common

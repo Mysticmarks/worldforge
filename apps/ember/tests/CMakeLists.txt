@@ -27,6 +27,7 @@ if (TARGET cppunit::cppunit)
             $<TARGET_OBJECTS:ember-DetourTileCache>
             $<TARGET_OBJECTS:ember-Detour>
             $<TARGET_OBJECTS:ember-Recast>)
+    wf_apply_warnings(TestOgreView)
     target_compile_definitions(TestOgreView PUBLIC -DLOG_TASKS)
     target_link_libraries(TestOgreView cppunit::cppunit
             Bullet::Bullet
@@ -38,6 +39,7 @@ if (TARGET cppunit::cppunit)
             TestTasks.cpp
             $<TARGET_OBJECTS:ember-framework>
             $<TARGET_OBJECTS:ember-tinyxml>)
+    wf_apply_warnings(TestTasks)
     target_compile_definitions(TestTasks PUBLIC -DLOG_TASKS)
     target_link_libraries(TestTasks
             cppunit::cppunit
@@ -50,6 +52,7 @@ if (TARGET cppunit::cppunit)
             TestTimeFrame.cpp
             $<TARGET_OBJECTS:ember-framework>
             $<TARGET_OBJECTS:ember-tinyxml>)
+    wf_apply_warnings(TestTimeFrame)
     target_compile_definitions(TestTimeFrame PUBLIC -DLOG_TASKS)
     target_link_libraries(TestTimeFrame
             cppunit::cppunit
@@ -61,6 +64,7 @@ if (TARGET cppunit::cppunit)
             TestFramework.cpp
             $<TARGET_OBJECTS:ember-framework>
             $<TARGET_OBJECTS:ember-tinyxml>)
+    wf_apply_warnings(TestFramework)
     target_compile_definitions(TestFramework PUBLIC -DLOG_TASKS)
     configure_file(atlas.xml atlas.xml COPYONLY)
     target_link_libraries(TestFramework
@@ -74,6 +78,7 @@ if (TARGET cppunit::cppunit)
             TestConsoleBackend.cpp
             $<TARGET_OBJECTS:ember-framework>
             $<TARGET_OBJECTS:ember-tinyxml>)
+    wf_apply_warnings(TestConsoleBackend)
     target_compile_definitions(TestConsoleBackend PUBLIC -DLOG_TASKS)
     target_link_libraries(TestConsoleBackend
             cppunit::cppunit
@@ -83,6 +88,7 @@ if (TARGET cppunit::cppunit)
 
     add_executable(TestEmberServices
             TestEmberServices.cpp)
+    wf_apply_warnings(TestEmberServices)
     target_compile_definitions(TestEmberServices PUBLIC -DLOG_TASKS)
     target_link_libraries(TestEmberServices
             cppunit::cppunit
@@ -106,6 +112,7 @@ add_executable(ServerSettingsTest
         ../src/services/serversettings/ServerSettings.cpp
         ../src/services/serversettings/ServerSettingsCredentials.cpp
         ../src/services/config/ConfigService.cpp)
+wf_apply_warnings(ServerSettingsTest)
 target_include_directories(ServerSettingsTest PRIVATE ../src)
 target_link_libraries(ServerSettingsTest Catch2::Catch2WithMain varconf)
 add_test(NAME ServerSettingsTest COMMAND ServerSettingsTest)

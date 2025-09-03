@@ -61,6 +61,7 @@ set(PYTHON_TESTS_LIBS
 macro(wf_add_test TEST_FILE)
     get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
     add_executable(${TEST_NAME} ${TEST_FILE} ../src/common/debug.cpp TestWorld.cpp ${ARGN})
+    wf_apply_warnings(${TEST_NAME})
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 
     target_compile_definitions(${TEST_NAME} PUBLIC TESTDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/data\")
@@ -110,6 +111,7 @@ endmacro()
 macro(wf_add_benchmark TEST_FILE)
     get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
     add_executable(${TEST_NAME} ${TEST_FILE} ../src/common/debug.cpp TestWorld.cpp ${ARGN})
+    wf_apply_warnings(${TEST_NAME})
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 
     add_dependencies(benchmark ${TEST_NAME})

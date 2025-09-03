@@ -7,6 +7,7 @@ add_library(cyphesis-client
         BaseClient.cpp
         SimpleTypeStore.cpp
 )
+wf_apply_warnings(cyphesis-client)
 
 target_link_libraries(cyphesis-client PUBLIC
         cyphesis-common)

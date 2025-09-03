@@ -1,5 +1,3 @@
-add_compile_options(${_LIB_NAME} ${WF_WARNING_FLAGS})
-
 add_subdirectory(physics)
 add_subdirectory(common)
 add_subdirectory(modules)

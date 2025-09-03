@@ -6,6 +6,7 @@ add_library(cyphesis-atlas_python
         CyPy_Oplist.cpp
         CyPy_Root.cpp
 )
+wf_apply_warnings(cyphesis-atlas_python)
 
 target_link_libraries(cyphesis-atlas_python PUBLIC
         cyphesis-pythonbase
@@ -25,6 +26,7 @@ add_library(cyphesis-physics_python
         CyPy_Physics.cpp
         CyPy_Ball.cpp
 )
+wf_apply_warnings(cyphesis-physics_python)
 
 target_link_libraries(cyphesis-physics_python PUBLIC
         cyphesis-atlas_python
@@ -36,6 +38,7 @@ target_link_libraries(cyphesis-physics_python PUBLIC
 add_library(cyphesis-common_python
         CyPy_Common.cpp
 )
+wf_apply_warnings(cyphesis-common_python)
 
 target_link_libraries(cyphesis-common_python PUBLIC
         cyphesis-physics_python

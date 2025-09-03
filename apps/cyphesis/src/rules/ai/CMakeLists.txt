@@ -9,6 +9,7 @@ add_library(cyphesis-rulesai
         SharedTerrain.cpp
         TypeResolver.cpp
 )
+wf_apply_warnings(cyphesis-rulesai)
 
 target_link_libraries(cyphesis-rulesai PUBLIC
         external-remotery

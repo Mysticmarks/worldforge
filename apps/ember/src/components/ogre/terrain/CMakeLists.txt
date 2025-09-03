@@ -52,6 +52,7 @@ add_library(ember-ogre_terrain STATIC
         techniques/OnePixelMaterialGenerator.cpp
         TerrainModTranslator.cpp
 )
+wf_apply_warnings(ember-ogre_terrain)
 
 target_precompile_headers(ember-ogre_terrain
         REUSE_FROM

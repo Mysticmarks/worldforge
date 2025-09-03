@@ -2,6 +2,7 @@ file(GLOB BINDINGS_FILES *.cpp)
 
 add_library(ember-BindingsEris STATIC
         ${BINDINGS_FILES})
+wf_apply_warnings(ember-BindingsEris)
 
 target_link_libraries(ember-BindingsEris PUBLIC
         ember-framework

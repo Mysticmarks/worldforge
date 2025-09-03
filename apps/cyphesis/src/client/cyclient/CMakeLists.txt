@@ -7,6 +7,7 @@ add_library(cyphesis-cyclient
         Python_ClientAPI.cpp
         CyPy_CreatorClient.cpp
         CyPy_ObserverClient.cpp)
+wf_apply_warnings(cyphesis-cyclient)
 
 target_link_libraries(cyphesis-cyclient
         cyphesis-client
@@ -28,6 +29,7 @@ target_link_libraries(cyphesis-cyclient
 add_executable(cyclient
         client.cpp
 )
+wf_apply_warnings(cyclient)
 
 target_link_libraries(cyclient
         cyphesis-cyclient

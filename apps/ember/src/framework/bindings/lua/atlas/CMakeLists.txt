@@ -1,6 +1,7 @@
 add_library(ember-BindingsAtlas STATIC
         BindingsAtlas.cpp
 )
+wf_apply_warnings(ember-BindingsAtlas)
 
 target_link_libraries(ember-BindingsAtlas PUBLIC
         ember-framework

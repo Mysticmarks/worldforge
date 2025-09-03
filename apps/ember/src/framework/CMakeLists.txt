@@ -28,6 +28,7 @@ add_library(ember-framework STATIC
         LogExtensions.cpp
         Log.cpp
 )
+wf_apply_warnings(ember-framework)
 
 #Check for libunwind, which is optional and if present will allow for the StackChecker feature to be enabled.
 #This allows for a developer to get some insight into why some frames take too long.

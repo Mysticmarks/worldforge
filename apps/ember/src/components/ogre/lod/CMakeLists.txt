@@ -10,6 +10,7 @@ add_library(ember-ogre-lod STATIC
         ClusterLodStrategy.cpp
 
 )
+wf_apply_warnings(ember-ogre-lod)
 
 target_link_libraries(ember-ogre-lod PUBLIC
         ember-framework

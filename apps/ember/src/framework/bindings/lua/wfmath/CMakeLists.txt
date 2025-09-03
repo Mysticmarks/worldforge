@@ -1,5 +1,6 @@
 add_library(ember-BindingsWFMath STATIC
         BindingsWFMath.cpp)
+wf_apply_warnings(ember-BindingsWFMath)
 target_link_libraries(ember-BindingsWFMath PUBLIC
         ember-framework
         ember-external-sol2

@@ -98,8 +98,11 @@ else ()
     endif ()
 endif ()
 MESSAGE(STATUS "Setting compiler warnings to '${WF_WARNING_FLAGS}'")
-#Do this globally for the whole repo
-add_compile_options(${WF_WARNING_FLAGS})
+
+# Helper applying warning flags to internal targets only
+function(wf_apply_warnings TARGET)
+    target_compile_options(${TARGET} PRIVATE ${WF_WARNING_FLAGS})
+endfunction()
 
 option(WORLDFORGE_ENABLE_COVERAGE "Enable coverage flags for Debug builds" OFF)
 if (WORLDFORGE_ENABLE_COVERAGE AND CMAKE_BUILD_TYPE STREQUAL "Debug")

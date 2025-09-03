@@ -3,6 +3,7 @@ file(GLOB BINDINGS_FILES *.cpp)
 add_library(ember-BindingsOgre STATIC
         ${BINDINGS_FILES}
 )
+wf_apply_warnings(ember-BindingsOgre)
 target_link_libraries(ember-BindingsOgre PUBLIC
         ember-framework
         ember-external-sol2

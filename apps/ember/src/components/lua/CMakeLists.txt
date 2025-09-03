@@ -1,6 +1,7 @@
 add_library(ember-lua-console STATIC
         LuaConsoleObject.cpp
 )
+wf_apply_warnings(ember-lua-console)
 target_link_libraries(ember-lua-console PUBLIC
         ember-framework
         ember-external-sol2
@@ -12,6 +13,7 @@ add_subdirectory(bindings)
 add_library(ember-lua_component STATIC
         LuaScriptingProvider.cpp
 )
+wf_apply_warnings(ember-lua_component)
 
 
 target_link_libraries(ember-lua_component PUBLIC

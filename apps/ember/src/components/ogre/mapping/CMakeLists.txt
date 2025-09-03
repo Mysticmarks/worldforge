@@ -3,6 +3,7 @@ add_library(ember-ogre-mapping STATIC
         ModelActionCreator.cpp
         XMLEntityMappingDefinitionSerializer.cpp
 )
+wf_apply_warnings(ember-ogre-mapping)
 
 target_link_libraries(ember-ogre-mapping PUBLIC
         ember-ogre-support

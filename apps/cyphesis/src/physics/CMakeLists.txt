@@ -8,8 +8,9 @@ add_library(cyphesis-physics
         Transform.cpp
         Convert.h
         Course_impl.h
-        Shape_impl.h
+         Shape_impl.h
 )
+wf_apply_warnings(cyphesis-physics)
 
 target_link_libraries(cyphesis-physics PUBLIC
         wfmath

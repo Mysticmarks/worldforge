@@ -1,6 +1,7 @@
 add_library(ember-BindingsVarconf STATIC
         BindingsVarconf.cpp
 )
+wf_apply_warnings(ember-BindingsVarconf)
 
 target_link_libraries(ember-BindingsVarconf PUBLIC
         ember-framework

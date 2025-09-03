@@ -6,6 +6,7 @@ add_subdirectory(wfmath)
 add_library(ember-BindingsFramework STATIC
         BindingsFramework.cpp
 )
+wf_apply_warnings(ember-BindingsFramework)
 target_link_libraries(ember-BindingsFramework PUBLIC
         ember-framework
         ember-external-sol2

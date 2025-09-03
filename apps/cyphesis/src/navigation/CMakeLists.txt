@@ -5,6 +5,7 @@ add_library(cyphesis-navigation
         AwarenessUtils.h
         IHeightProvider.h
 )
+wf_apply_warnings(cyphesis-navigation)
 
 target_link_libraries(cyphesis-navigation PUBLIC
         cyphesis-rulesai

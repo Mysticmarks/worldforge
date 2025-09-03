@@ -36,6 +36,7 @@ add_library(ember-services STATIC
         sound/SoundService.cpp
         sound/SoundSource.cpp
         EmberServices.cpp)
+wf_apply_warnings(ember-services)
 
 target_link_libraries(ember-services PUBLIC
         ember-framework
@@ -50,6 +51,7 @@ file(GLOB BINDINGS_FILES bindings/lua/*.cpp)
 add_library(ember-BindingsServices STATIC
         ${BINDINGS_FILES}
 )
+wf_apply_warnings(ember-BindingsServices)
 target_link_libraries(ember-BindingsServices PUBLIC
         ember-services
         ember-external-sol2

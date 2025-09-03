@@ -6,6 +6,7 @@ add_executable(metaserver
         MetaServerHandlerUDP.cpp
         DataObject.cpp
 )
+wf_apply_warnings(metaserver)
 target_link_libraries(metaserver
         metaserver-api
         Boost::program_options
@@ -17,6 +18,7 @@ install(TARGETS metaserver DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})
 add_executable(ms-testserver
         TestServer.cpp
 )
+wf_apply_warnings(ms-testserver)
 target_link_libraries(ms-testserver
         metaserver-api
         Boost::program_options
@@ -27,6 +29,7 @@ target_link_libraries(ms-testserver
 add_executable(ms-testclient
         TestClient.cpp
 )
+wf_apply_warnings(ms-testclient)
 target_link_libraries(ms-testclient
         metaserver-api
         Boost::program_options
@@ -37,6 +40,7 @@ target_link_libraries(ms-testclient
 add_executable(ms-pdnspipe
         PDNSPipe.cpp
 )
+wf_apply_warnings(ms-pdnspipe)
 target_link_libraries(ms-pdnspipe
         metaserver-api
         Boost::program_options

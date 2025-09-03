@@ -4,6 +4,7 @@ add_library(ember-navigation STATIC
         Steering.cpp
         Loitering.cpp
         AwarenessUtils.h)
+wf_apply_warnings(ember-navigation)
 
 target_link_libraries(ember-navigation PUBLIC
         external-Detour

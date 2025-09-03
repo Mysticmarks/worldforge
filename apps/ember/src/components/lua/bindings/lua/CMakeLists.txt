@@ -1,5 +1,6 @@
 add_library(ember-BindingsLua STATIC
         BindingsLua.cpp)
+wf_apply_warnings(ember-BindingsLua)
 
 target_link_libraries(ember-BindingsLua PUBLIC
         ember-lua-console

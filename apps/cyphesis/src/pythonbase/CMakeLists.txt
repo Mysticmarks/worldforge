@@ -5,6 +5,7 @@ add_library(cyphesis-pythonbase
         WrapperBase.cpp
         PythonMalloc.cpp
         PythonDebug.cpp)
+wf_apply_warnings(cyphesis-pythonbase)
 
 target_link_libraries(cyphesis-pythonbase PUBLIC
         cyphesis-common

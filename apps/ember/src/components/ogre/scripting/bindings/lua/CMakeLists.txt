@@ -5,6 +5,7 @@ file(GLOB BINDINGS_FILES *.cpp)
 add_library(ember-BindingsEmberOgre STATIC
         ${BINDINGS_FILES}
         helpers/OgreUtils.cpp)
+wf_apply_warnings(ember-BindingsEmberOgre)
 
 target_link_libraries(ember-BindingsEmberOgre PUBLIC
         ember-ogre

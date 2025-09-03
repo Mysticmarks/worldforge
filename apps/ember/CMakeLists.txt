@@ -27,7 +27,7 @@ endif ()
 macro(wf_add_plugin _LIB_NAME _SOURCE_FILES)
 
     add_library(${_LIB_NAME} MODULE ${_SOURCE_FILES})
-    target_compile_options(${_LIB_NAME} PRIVATE ${WF_WARNING_FLAGS})
+    wf_apply_warnings(${_LIB_NAME})
 
     install(TARGETS ${_LIB_NAME}
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/ember/widgets

@@ -4,11 +4,12 @@ if (BUILD_METASERVER_SERVER)
 
     wf_find_boost(program_options)
 
-    add_executable(MetaServer_unittest
-            MetaServer_unittest.cpp
-            ../src/server/MetaServer.cpp
-            ../src/api/MetaServerPacket.cpp
-            ../src/server/DataObject.cpp)
+      add_executable(MetaServer_unittest
+              MetaServer_unittest.cpp
+              ../src/server/MetaServer.cpp
+              ../src/api/MetaServerPacket.cpp
+              ../src/server/DataObject.cpp)
+      wf_apply_warnings(MetaServer_unittest)
     target_link_libraries(MetaServer_unittest PUBLIC
             cppunit::cppunit
             Boost::program_options
@@ -18,9 +19,10 @@ if (BUILD_METASERVER_SERVER)
     add_dependencies(check MetaServer_unittest)
 
 
-    add_executable(MetaServerPackage_unittest
-            MetaServerPacket_unittest.cpp
-            ../src/api/MetaServerPacket.cpp)
+      add_executable(MetaServerPackage_unittest
+              MetaServerPacket_unittest.cpp
+              ../src/api/MetaServerPacket.cpp)
+      wf_apply_warnings(MetaServerPackage_unittest)
     target_link_libraries(MetaServerPackage_unittest PUBLIC
             cppunit::cppunit
             Boost::program_options
@@ -30,9 +32,10 @@ if (BUILD_METASERVER_SERVER)
     add_dependencies(check MetaServerPackage_unittest)
 
 
-    add_executable(DataObject_unittest
-            DataObject_unittest.cpp
-            ../src/server/DataObject.cpp)
+      add_executable(DataObject_unittest
+              DataObject_unittest.cpp
+              ../src/server/DataObject.cpp)
+      wf_apply_warnings(DataObject_unittest)
     target_link_libraries(DataObject_unittest PUBLIC
             cppunit::cppunit
             Boost::program_options
@@ -42,10 +45,11 @@ if (BUILD_METASERVER_SERVER)
     add_dependencies(check DataObject_unittest)
 
 
-    add_executable(MetaServerHandlerUDP_unittest
-            MetaServerHandlerUDP_unittest.cpp
-            ../src/server/MetaServerHandlerUDP.cpp
-            ../src/api/MetaServerPacket.cpp)
+      add_executable(MetaServerHandlerUDP_unittest
+              MetaServerHandlerUDP_unittest.cpp
+              ../src/server/MetaServerHandlerUDP.cpp
+              ../src/api/MetaServerPacket.cpp)
+      wf_apply_warnings(MetaServerHandlerUDP_unittest)
     target_link_libraries(MetaServerHandlerUDP_unittest PUBLIC
             cppunit::cppunit
             Boost::program_options

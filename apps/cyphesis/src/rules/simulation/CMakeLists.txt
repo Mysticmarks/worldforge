@@ -64,6 +64,7 @@ add_library(cyphesis-rulessimulation
         PropertyBase.cpp
         WorldProperty.cpp
 )
+wf_apply_warnings(cyphesis-rulessimulation)
 
 target_link_libraries(cyphesis-rulessimulation PUBLIC
         cyphesis-external-pycxx
