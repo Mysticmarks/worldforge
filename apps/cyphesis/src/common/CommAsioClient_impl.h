@@ -20,6 +20,7 @@
 #define COMMASIOCLIENT_IMPL_H_
 
 #include "common/log.h"
+#include "common/Monitors.h"
 
 #include "CommAsioClient.h"
 #include "Remotery.h"
@@ -47,11 +48,15 @@ CommAsioClient<ProtocolT>::CommAsioClient(std::string name,
 		mSendBuffer(std::make_unique<boost::asio::streambuf>()),
 		mInStream(&mReadBuffer),
 		mOutStream(mWriteBuffer.get()),
-		mNegotiateTimer(io_context, std::chrono::seconds(1)),
-		mIsSending(false),
-		mShouldSend(false),
-		mAutoFlush(false),
-		mName(std::move(name)) {
+                mNegotiateTimer(io_context, std::chrono::seconds(1)),
+                mIsSending(false),
+                mShouldSend(false),
+                mAutoFlush(false),
+                m_throttleTimer(io_context),
+                m_maxThrottledOps(256),
+                m_initialBackoff(std::chrono::milliseconds(50)),
+                m_currentBackoff(m_initialBackoff),
+                mName(std::move(name)) {
 }
 
 template<class ProtocolT>
@@ -307,9 +312,67 @@ int CommAsioClient<ProtocolT>::negotiate() {
 
 template<class ProtocolT>
 void CommAsioClient<ProtocolT>::externalOperation(Atlas::Objects::Operation::RootOperation op) {
-	assert(m_link != 0);
-	//TODO: handle the link saying that it can't accept any more ops for now. We need this for throttling.
-	m_link->externalOperation(op, *m_link);
+        assert(m_link != 0);
+
+        auto queueOp = [&](Atlas::Objects::Operation::RootOperation&& o) {
+                if (m_throttledOps.size() >= m_maxThrottledOps) {
+                        spdlog::warn("Dropping op '{}' due to full throttle queue (limit {})", o->getParent(), m_maxThrottledOps);
+                        return;
+                }
+                m_throttledOps.emplace_back(std::move(o));
+                Monitors::instance().insert("commasio_throttled_ops", (Atlas::Message::IntType) m_throttledOps.size());
+                if (m_throttledOps.size() == 1) {
+                        spdlog::warn("Throttling activated for '{}'", mName);
+                        scheduleThrottleRetry();
+                }
+        };
+
+        if (!m_throttledOps.empty()) {
+                queueOp(std::move(op));
+                return;
+        }
+
+        try {
+                m_link->externalOperation(op, *m_link);
+        } catch (const std::exception& e) {
+                spdlog::debug("Link rejected op '{}': {}", op->getParent(), e.what());
+                queueOp(std::move(op));
+        }
+}
+
+template<class ProtocolT>
+void CommAsioClient<ProtocolT>::drainThrottledOps() {
+        while (!m_throttledOps.empty()) {
+                try {
+                        m_link->externalOperation(m_throttledOps.front(), *m_link);
+                        m_throttledOps.pop_front();
+                } catch (const std::exception& e) {
+                        spdlog::debug("Link still throttled: {}", e.what());
+                        Monitors::instance().insert("commasio_throttled_ops", (Atlas::Message::IntType) m_throttledOps.size());
+                        scheduleThrottleRetry();
+                        return;
+                }
+        }
+
+        // Successfully drained queue
+        m_currentBackoff = m_initialBackoff;
+        Monitors::instance().insert("commasio_throttled_ops", (Atlas::Message::IntType) 0);
+        spdlog::debug("Throttling cleared for '{}'", mName);
+}
+
+template<class ProtocolT>
+void CommAsioClient<ProtocolT>::scheduleThrottleRetry() {
+        auto self(this->shared_from_this());
+        m_throttleTimer.expires_after(m_currentBackoff);
+        m_throttleTimer.async_wait([this, self](const boost::system::error_code& ec) {
+                if (!ec) {
+                        drainThrottledOps();
+                }
+        });
+        m_currentBackoff *= 2;
+        if (m_currentBackoff > std::chrono::seconds(5)) {
+                m_currentBackoff = std::chrono::seconds(5);
+        }
 }
 
 template<class ProtocolT>
