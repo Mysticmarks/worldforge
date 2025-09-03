@@ -27,13 +27,21 @@
 #include <wfmath/vector.h>
 #include <wfmath/point.h>
 #include <wfmath/const.h>
+#include <cmath>
+
+namespace WFMath {
+template<int dim> class AxisBox;
+template<int dim> class Ball;
+template<int dim> class Segment;
+template<int dim> class RotBox;
+template<int dim> class Polygon;
+}
+
 #include <wfmath/intersect_decls.h>
 #include <wfmath/axisbox.h>
 #include <wfmath/ball.h>
 #include <wfmath/segment.h>
 #include <wfmath/rotbox.h>
-
-#include <cmath>
 
 namespace WFMath {
 
@@ -534,6 +542,43 @@ template<int dim>
 struct IntersectDispatcher<Segment<dim>, RotBox<dim>> {
         static bool apply(const Segment<dim>& s, const RotBox<dim>& r, bool proper) {
                 return WFMath::Intersect(r, s, proper);
+        }
+};
+
+// Polygon<> combinations
+
+template<int dim>
+struct IntersectDispatcher<Point<dim>, Polygon<dim>> {
+        static bool apply(const Point<dim>& p, const Polygon<dim>& poly, bool proper) {
+                return WFMath::Intersect(poly, p, proper);
+        }
+};
+
+template<int dim>
+struct IntersectDispatcher<AxisBox<dim>, Polygon<dim>> {
+        static bool apply(const AxisBox<dim>& box, const Polygon<dim>& poly, bool proper) {
+                return WFMath::Intersect(poly, box, proper);
+        }
+};
+
+template<int dim>
+struct IntersectDispatcher<Ball<dim>, Polygon<dim>> {
+        static bool apply(const Ball<dim>& b, const Polygon<dim>& poly, bool proper) {
+                return WFMath::Intersect(poly, b, proper);
+        }
+};
+
+template<int dim>
+struct IntersectDispatcher<Segment<dim>, Polygon<dim>> {
+        static bool apply(const Segment<dim>& s, const Polygon<dim>& poly, bool proper) {
+                return WFMath::Intersect(poly, s, proper);
+        }
+};
+
+template<int dim>
+struct IntersectDispatcher<RotBox<dim>, Polygon<dim>> {
+        static bool apply(const RotBox<dim>& r, const Polygon<dim>& poly, bool proper) {
+                return WFMath::Intersect(poly, r, proper);
         }
 };
 
