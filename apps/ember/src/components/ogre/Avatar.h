@@ -394,13 +394,28 @@ protected:
 	 *
 	 * Call this when the location of the entity, or its graphical representation, has changed.
 	 */
-	void attachCameraToEntity();
+        void attachCameraToEntity();
+
+/**
+ * @brief Convert a world position into coordinates relative to an entity.
+ *
+ * The supplied position is expected to be in the coordinate system of the
+ * top level parent of the entity. The returned position will be in the
+ * entity's local coordinate system.
+ *
+ * @param worldPos Position expressed in world coordinates.
+ * @param entity   Target entity for which the position should be expressed
+ *                 in local coordinates.
+ * @return Position in the local coordinate system of @a entity.
+ */
+static WFMath::Point<3> worldToEntityCoords(const WFMath::Point<3>& worldPos,
+       const Eris::Entity& entity);
 
 
-	void populateUsageArgs(Atlas::Objects::Entity::RootEntity& entity,
-						   const std::map<std::string, Eris::UsageParameter>& params,
-						   const Eris::Entity* target,
-						   const WFMath::Point<3>& posInWorld,
+        void populateUsageArgs(Atlas::Objects::Entity::RootEntity& entity,
+                                                   const std::map<std::string, Eris::UsageParameter>& params,
+                                                   const Eris::Entity* target,
+                                                   const WFMath::Point<3>& posInWorld,
 						   WFMath::Vector<3> direction);
 };
 

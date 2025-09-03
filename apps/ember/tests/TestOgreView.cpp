@@ -3,9 +3,11 @@
 
 #include "ConvertTestCase.h"
 #include "ModelMountTestCase.h"
+#include "NestedEntityTestCase.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION( Ember::ConvertTestCase);
 CPPUNIT_TEST_SUITE_REGISTRATION( Ember::ModelMountTestCase );
+CPPUNIT_TEST_SUITE_REGISTRATION( Ember::NestedEntityTestCase );
 
 int main(int argc, char** argv) {
 	CppUnit::TextUi::TestRunner runner;
