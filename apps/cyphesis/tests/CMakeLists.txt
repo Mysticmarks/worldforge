@@ -197,6 +197,7 @@ wf_add_test(rules/EntityKitTest.cpp)
 wf_add_test(common/LinkTest.cpp ../src/common/Link.cpp)
 wf_add_test(common/CommSocketTest.cpp)
 wf_add_test(common/FileSystemObserverIntegrationTest.cpp ../src/common/FileSystemObserver.cpp)
+wf_add_test(common/AssetsManagerIntegrationTest.cpp ../src/common/AssetsManager.cpp ../src/common/FileSystemObserver.cpp)
 
 # PHYSICS_TESTS
 wf_add_test(physics/BBoxTest.cpp ../src/physics/BBox.cpp ../src/common/const.cpp)
