@@ -609,7 +609,16 @@ WFMath::Vector<3> Avatar::getClientSideAvatarVelocity() const {
 }
 
 void Avatar::viewEntityDeleted() {
-	EventAvatarEntityDestroyed();
+        EventAvatarEntityDestroyed();
+}
+
+WFMath::Point<3> Avatar::worldToEntityCoords(const WFMath::Point<3>& worldPos,
+                                             const Eris::Entity& entity) {
+        if (!entity.getLocation()) {
+                return worldPos;
+        }
+        auto parentCoords = worldToEntityCoords(worldPos, *entity.getLocation());
+        return parentCoords.toLocalCoords(entity.getPredictedPos(), entity.getPredictedOrientation());
 }
 
 void Avatar::useTool(const EmberEntity& tool,
@@ -644,24 +653,17 @@ void Avatar::populateUsageArgs(Atlas::Objects::Entity::RootEntity& entity,
 							   WFMath::Vector<3> direction) {
 	for (auto& param: params) {
 		Atlas::Message::ListType list;
-		if (param.second.type == "entity" || param.second.type == "entity_location") {
-			if (target) {
-				Atlas::Objects::Entity::RootEntity entityArg;
-				entityArg->setId(target->getId());
-				if (posInWorld.isValid()) {
-					if (mErisAvatarEntity.getLocation() == target) {
-						//We're picking in our parent location
-						entityArg->setPosAsList(Atlas::Message::Element(posInWorld.toAtlas()).List());
-					} else {
-						//pos must be relative to the entity
-						//TODO: walk up and down the entity hierarchy; the current code only works for entities that share location
-						auto localPos = posInWorld.toLocalCoords(target->getPredictedPos(), target->getPredictedOrientation());
-						entityArg->setPosAsList(Atlas::Message::Element(localPos.toAtlas()).List());
-					}
-				}
-				list.emplace_back(entityArg->asMessage());
-			}
-		} else if (param.second.type == "position") {
+                if (param.second.type == "entity" || param.second.type == "entity_location") {
+                        if (target) {
+                                Atlas::Objects::Entity::RootEntity entityArg;
+                                entityArg->setId(target->getId());
+                                if (posInWorld.isValid()) {
+                                        auto localPos = worldToEntityCoords(posInWorld, *target);
+                                        entityArg->setPosAsList(Atlas::Message::Element(localPos.toAtlas()).List());
+                                }
+                                list.emplace_back(entityArg->asMessage());
+                        }
+                } else if (param.second.type == "position") {
 			if (posInWorld.isValid()) {
 				list.emplace_back(posInWorld.toAtlas());
 			}
