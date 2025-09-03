@@ -40,20 +40,36 @@ how they work.
 
 ## Installation
 
-The simplest way to install all required dependencies is by using [Conan](https://www.conan.io). This setup requires
-CMake 3.23+
+The simplest way to install all required dependencies is by using
+[Conan](https://www.conan.io). This setup requires CMake 3.23+.
 
-Make sure you have installed a c++ compiler (g++ or clang), Conan, CMake, Subversion and ImageMagick (if you're building
-the server).
+Make sure you have installed a c++ compiler (g++ or clang), Conan,
+CMake, Subversion and ImageMagick (if you're building the server).
+
+### Dependency setup
+
+Conan provides all third‑party libraries, including runtime components
+like `spdlog` and the `cppunit` test framework. Begin by detecting a
+profile and adding the Worldforge remote, which hosts custom packages
+such as `ogre-next` and `cegui`. If the remote requires credentials,
+export `CONAN_LOGIN_USERNAME` and `CONAN_PASSWORD` before the install.
 
 ```bash
+conan profile detect --force
 conan remote add worldforge https://artifactory.ogenvik.org/artifactory/api/conan/conan-local
 conan install . --build missing -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
+```
+
+### Build and installation
+
+Once dependencies are installed configure and build:
+
+```bash
 cmake --preset conan-release -DCMAKE_INSTALL_PREFIX=./build/install/release
 cmake --build --preset conan-release -j --target all
 cmake --build --preset conan-release -j --target install
-cmake --build --preset conan-release -j --target mediarepo-checkout 
-cmake --build --preset conan-release -j --target media-process-install 
+cmake --build --preset conan-release -j --target mediarepo-checkout
+cmake --build --preset conan-release -j --target media-process-install
 ```
 
 The last two invocations are only needed if you also want to host your own server.
