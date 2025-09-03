@@ -6,7 +6,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(PREBUILT_DIR "Directory for prebuilt artifacts" "${CMAKE_SOURCE_DIR}/prebuilt")
-set(CMAKE_INSTALL_PREFIX "${PREBUILT_DIR}" CACHE PATH "Install path prefix" FORCE)
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX "${PREBUILT_DIR}" CACHE PATH "Install path prefix" FORCE)
+endif ()
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(STATUS "Configuring 64-bit build")
