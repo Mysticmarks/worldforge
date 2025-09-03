@@ -24,6 +24,8 @@
 #include <boost/asio/signal_set.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include "Remotery.h"
+#include <thread>
+#include <vector>
 
 namespace {
 void interactiveSignalsHandler(boost::asio::signal_set& this_, boost::system::error_code error, int signal_number) {
@@ -73,10 +75,11 @@ void daemonSignalsHandler(boost::asio::signal_set& this_, boost::system::error_c
 }
 
 void MainLoop::run(bool daemon,
-				   boost::asio::io_context& io_context,
-				   OperationsHandler& operationsHandler,
-				   const Callbacks& callbacks,
-				   std::chrono::steady_clock::duration& time) {
+                                   boost::asio::io_context& io_context,
+                                   OperationsHandler& operationsHandler,
+                                   const Callbacks& callbacks,
+                                   std::chrono::steady_clock::duration& time,
+                                   std::size_t io_threads) {
 
 	boost::asio::signal_set signalSet(io_context);
 	//If we're not running as a daemon we should use the interactive signal handler.
@@ -97,12 +100,23 @@ void MainLoop::run(bool daemon,
 	bool soft_exit_in_progress = false;
 
 
-	//Make sure that the io_context never runs out of work.
-	auto work = boost::asio::make_work_guard(io_context);
-	//This timer is used to wake the io_context when next op needs to be handled.
-	boost::asio::steady_timer nextOpTimer(io_context);
-	//This timer will set a deadline for any mind persistence during soft exits.
-	boost::asio::steady_timer softExitTimer(io_context);
+        //Make sure that the io_context never runs out of work.
+        auto work = boost::asio::make_work_guard(io_context);
+        //This timer will set a deadline for any mind persistence during soft exits.
+        boost::asio::steady_timer softExitTimer(io_context);
+
+        //Start a pool of threads running the io_context.
+        std::vector<std::thread> threads;
+        threads.reserve(io_threads);
+        for (std::size_t i = 0; i < io_threads; ++i) {
+                threads.emplace_back([&io_context]() {
+                        try {
+                                io_context.run();
+                        } catch (const std::exception& ex) {
+                                spdlog::error("Exception in io_context thread: {}", ex.what());
+                        }
+                });
+        }
 
 	std::chrono::steady_clock::duration tick_size = std::chrono::milliseconds(10);
 	// Loop until the exit flag is set. The exit flag can be set anywhere in
@@ -111,46 +125,21 @@ void MainLoop::run(bool daemon,
 
 		rmt_ScopedCPUSample(MainLoop, 0)
 
-		auto frameStartTime = std::chrono::steady_clock::now();
-		auto max_wall_time = std::chrono::milliseconds(8);
-		auto op_handling_expiry_time = frameStartTime + tick_size;
-		bool nextOpTimeExpired = false;
-#if BOOST_VERSION >= 106600
-		nextOpTimer.expires_after(tick_size);
-#else
-		nextOpTimer.expires_from_now(tick_size);
-#endif
-		nextOpTimer.async_wait([&nextOpTimeExpired](boost::system::error_code ec) {
-			if (ec != boost::asio::error::operation_aborted) {
-				rmt_ScopedCPUSample(nextOpTimeExpired, 0)
-				nextOpTimeExpired = true;
-			}
-		});
+                auto frameStartTime = std::chrono::steady_clock::now();
+                auto max_wall_time = std::chrono::milliseconds(8);
+                auto nextTick = frameStartTime + tick_size;
 
-		time += tick_size;
+                time += tick_size;
 
-		//Dispatch any incoming messages first
-		{
-			rmt_ScopedCPUSample(dispatchOperations, 0)
-			callbacks.dispatchOperations();
-		}
-		{
-			rmt_ScopedCPUSample(processOps, 0)
-			operationsHandler.processUntil(time, max_wall_time);
-		}
-		{
-			rmt_ScopedCPUSample(runIO, 0)
-
-			do {
-				try {
-					rmt_ScopedCPUSample(runIO_one, 0)
-					io_context.run_one();
-				} catch (const std::exception& ex) {
-					spdlog::error("Exception caught in main loop: {}", ex.what());
-				}
-			} while (!nextOpTimeExpired && std::chrono::steady_clock::now() < op_handling_expiry_time);
-		}
-		nextOpTimer.cancel();
+                //Dispatch any incoming messages first
+                {
+                        rmt_ScopedCPUSample(dispatchOperations, 0)
+                        callbacks.dispatchOperations();
+                }
+                {
+                        rmt_ScopedCPUSample(processOps, 0)
+                        operationsHandler.processUntil(time, max_wall_time);
+                }
 		if (soft_exit_in_progress) {
 			//If we're in soft exit mode and either the deadline has been exceeded
 			//or we've persisted all minds we should shut down normally.
@@ -178,16 +167,30 @@ void MainLoop::run(bool daemon,
 				});
 			}
 		}
-	}
-	// exit flag has been set so we close down the databases, and indicate
-	// to the metaserver (if we are using one) that this server is going down.
-	// It is assumed that any preparation for the shutdown that is required
-	// by the game has been done before exit flag was set.
-	spdlog::debug("Performing clean shutdown...");
+                //Sleep until next tick
+                auto now = std::chrono::steady_clock::now();
+                if (now < nextTick) {
+                        std::this_thread::sleep_until(nextTick);
+                }
+        }
+        // exit flag has been set so we close down the databases, and indicate
+        // to the metaserver (if we are using one) that this server is going down.
+        // It is assumed that any preparation for the shutdown that is required
+        // by the game has been done before exit flag was set.
+        spdlog::debug("Performing clean shutdown...");
 
 
-	signalSet.cancel();
-	signalSet.clear();
+        signalSet.cancel();
+        signalSet.clear();
 
+        //Allow io_context.run() to exit and join all threads
+        softExitTimer.cancel();
+        work.reset();
+        io_context.stop();
+        for (auto& t : threads) {
+                if (t.joinable()) {
+                        t.join();
+                }
+        }
 
 }
