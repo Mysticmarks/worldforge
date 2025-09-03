@@ -27,6 +27,7 @@
 #include <map>
 #include <unordered_map>
 #include <memory>
+#include <thread>
 
 namespace Ogre {
 class Root;
@@ -179,11 +180,13 @@ private:
 
 	Atlas::Objects::Factories mAtlasFactories;
 
-	std::unique_ptr<Session> mSession;
+        std::unique_ptr<Session> mSession;
 
-	AssetsUpdater mAssetsUpdater;
+        AssetsUpdater mAssetsUpdater;
 
-	std::unique_ptr<FileSystemObserver> mFileSystemObserver;
+        std::unique_ptr<FileSystemObserver> mFileSystemObserver;
+
+        std::thread mIoServiceThread;
 
         /**
          * @brief The OGRE 2.x root object.
