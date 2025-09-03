@@ -26,7 +26,8 @@ endif ()
 
 macro(wf_add_plugin _LIB_NAME _SOURCE_FILES)
 
-    add_library(${_LIB_NAME} MODULE ${_SOURCE_FILES})
+    # Build widget plugins as shared libraries to enable explicit symbol export
+    add_library(${_LIB_NAME} SHARED ${_SOURCE_FILES})
     target_compile_options(${_LIB_NAME} PRIVATE ${WF_WARNING_FLAGS})
     target_compile_definitions(${_LIB_NAME} PRIVATE BOOST_DLL_FORCE_SYMBOL_VISIBILITY)
 
@@ -35,6 +36,7 @@ macro(wf_add_plugin _LIB_NAME _SOURCE_FILES)
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/ember/widgets)
     set_target_properties(${_LIB_NAME} PROPERTIES
             PREFIX ""  # Remove "lib" prefix on Unix
+            WINDOWS_EXPORT_ALL_SYMBOLS ON
     )
     set_property(GLOBAL APPEND PROPERTY PLUGIN_LIBS_LIST "${_LIB_NAME}")
     message(STATUS "Registered widget plugin ${_LIB_NAME}")
@@ -44,6 +46,11 @@ macro(wf_add_plugin _LIB_NAME _SOURCE_FILES)
     target_compile_definitions(${_LIB_NAME} PRIVATE
         OGRE_STATIC_LIB=0
     )
+    if (APPLE)
+        # Ensure unresolved symbols are treated as errors instead of using '-undefined dynamic_lookup'
+        target_link_options(${_LIB_NAME} PRIVATE "-Wl,-undefined,error")
+    endif ()
+    # On Windows the previous '/FORCE:UNRESOLVED' flag is omitted now that symbols are exported
 endmacro()
 
 if (WIN32)
