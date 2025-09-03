@@ -64,8 +64,6 @@ if (CYPHESIS_USE_BINRELOC)
     target_compile_definitions(cyphesis-common PUBLIC CYPHESIS_USE_BINRELOC)
 endif ()
 
-target_compile_features(cyphesis-common PUBLIC cxx_std_20)
-
 target_compile_definitions(cyphesis-common PUBLIC
         -DBINDIR="${CMAKE_INSTALL_FULL_BINDIR}"
         -DDATADIR="${CMAKE_INSTALL_FULL_DATADIR}"

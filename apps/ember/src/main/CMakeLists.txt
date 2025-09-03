@@ -1,6 +1,5 @@
 #Use WIN32 to specify that on Windows it should be a non-console app.
 add_executable(ember WIN32)
-target_compile_features(ember PUBLIC cxx_std_20)
 target_sources(ember PUBLIC
         Application.cpp
         ConfigBoundLogObserver.cpp
@@ -45,7 +44,6 @@ if (WF_USE_WIDGET_PLUGINS)
     target_link_libraries(ember-shared
             ${ember-libraries}
     )
-    target_compile_features(ember-shared PUBLIC cxx_std_20)
 
     #The idea here is to allow symbol exports from the main exe, so that the plugins can import them. Not sure if it works though.
     set_property(TARGET ember-shared PROPERTY ENABLE_EXPORTS 1)
