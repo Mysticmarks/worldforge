@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 from conan import ConanFile
 from conan.tools.cmake import cmake_layout, CMakeDeps, CMakeToolchain
@@ -6,14 +7,25 @@ from conan.tools.microsoft import is_msvc
 
 
 class Worldforge(ConanFile):
-    version = "0.1.0"
     package_type = "application"
     settings = "os", "arch", "compiler", "build_type"
     url = "https://github.com/worldforge"
     homepage = "https://www.worldforge.org"
-    name = "Worldforge"
     license = "GPL-3.0-or-later"
     author = "Erik Ogenvik <erik@ogenvik.org>"
+
+    def set_name(self):
+        self.name = "Worldforge"
+
+    def set_version(self):
+        try:
+            self.version = subprocess.check_output(
+                ["git", "describe"],
+                cwd=self.recipe_folder,
+                encoding="utf-8",
+            ).strip()
+        except Exception:
+            self.version = "0.9.0-dev"
 
     options = {
         "with_client": [True, False],
