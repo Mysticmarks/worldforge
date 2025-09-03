@@ -6,6 +6,7 @@ if (TARGET cppunit::cppunit)
             TestOgreView.cpp
             ConvertTestCase.cpp
             ModelMountTestCase.cpp
+            AvatarMovementTestCase.cpp
             $<TARGET_OBJECTS:ember-ogre>
             $<TARGET_OBJECTS:ember-caelum>
             $<TARGET_OBJECTS:ember-meshtree>

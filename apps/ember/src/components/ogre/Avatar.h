@@ -404,9 +404,10 @@ protected:
 						   WFMath::Vector<3> direction);
 };
 
+float getSurfaceSpeedModifier(const Eris::Entity& entity);
 
 inline Eris::Avatar& Avatar::getErisAvatar() const {
-	return mErisAvatar;
+        return mErisAvatar;
 }
 
 }
