@@ -28,6 +28,7 @@ macro(wf_add_plugin _LIB_NAME _SOURCE_FILES)
 
     add_library(${_LIB_NAME} MODULE ${_SOURCE_FILES})
     target_compile_options(${_LIB_NAME} PRIVATE ${WF_WARNING_FLAGS})
+    target_compile_definitions(${_LIB_NAME} PRIVATE BOOST_DLL_FORCE_SYMBOL_VISIBILITY)
 
     install(TARGETS ${_LIB_NAME}
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/ember/widgets
@@ -35,14 +36,6 @@ macro(wf_add_plugin _LIB_NAME _SOURCE_FILES)
     set_target_properties(${_LIB_NAME} PROPERTIES
             PREFIX ""  # Remove "lib" prefix on Unix
     )
-
-    if (WIN32)
-        #We need to tell msvc to ignore any problems with resolving symbols since they will be resolved when the plugin is loaded.
-        #TODO: make the symbols exported anyway so this isn't needed
-        set_target_properties(${_LIB_NAME} PROPERTIES LINK_FLAGS "/FORCE:UNRESOLVED")
-    else ()
-        set_target_properties(${_LIB_NAME} PROPERTIES LINK_FLAGS "-Wl,-undefined -Wl,dynamic_lookup")
-    endif ()
     set_property(GLOBAL APPEND PROPERTY PLUGIN_LIBS_LIST "${_LIB_NAME}")
     message(STATUS "Registered widget plugin ${_LIB_NAME}")
 
