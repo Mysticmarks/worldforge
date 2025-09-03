@@ -21,8 +21,11 @@
 
 #include <string>
 #include <set>
+#include <vector>
+#include <functional>
 #include <sigc++/signal.h>
 #include <boost/asio/io_context.hpp>
+#include <spdlog/pattern_formatter.h>
 #include "common/log.h"
 
 class AssetsManager;
@@ -36,23 +39,68 @@ class BaseWorld;
 extern sigc::signal<void()> python_reload_scripts;
 
 
+namespace python_log {
+
+inline std::vector<std::function<std::string()>>& prefix_stack()
+{
+    thread_local std::vector<std::function<std::string()>> stack;
+    return stack;
+}
+
+inline std::string current_prefix()
+{
+    auto& stack = prefix_stack();
+    if (stack.empty()) {
+        return {};
+    }
+    return stack.back()();
+}
+
+class prefix_flag : public spdlog::custom_flag_formatter
+{
+public:
+    void format(const spdlog::details::log_msg&, const std::tm&, spdlog::memory_buf_t& dest) override
+    {
+        auto prefix = current_prefix();
+        dest.append(prefix.data(), prefix.data() + prefix.size());
+    }
+
+    std::unique_ptr<spdlog::custom_flag_formatter> clone() const override
+    {
+        return spdlog::details::make_unique<prefix_flag>();
+    }
+};
+
+inline void install_python_log_formatter(const std::shared_ptr<spdlog::logger>& logger = spdlog::default_logger())
+{
+    auto formatter = std::make_unique<spdlog::pattern_formatter>();
+    formatter->add_flag<prefix_flag>('!');
+    formatter->set_pattern("%Y-%m-%d %H:%M:%S.%e %z [%t] %^%l%$ %!%v");
+    logger->set_formatter(std::move(formatter));
+}
+
+} // namespace python_log
+
 /**
  * Registers and unregisters the supplied log injection function.
- * Use this to wrap calls into Python so that informative messages are
- * prepended to any log output.
+ * The function is stored in thread-local storage and evaluated for each
+ * log message through a custom spdlog formatter. This allows contextual
+ * information to be injected while remaining safe for concurrent use.
  */
 struct PythonLogGuard
 {
 
     explicit PythonLogGuard(const std::function<std::string()>& logFn)
     {
-		//TODO: how to make this work with spdlog? Needs to also work with multithreading somehow.
-//        s_logPrefixFn = logFn;
+        python_log::prefix_stack().push_back(logFn);
     }
 
     ~PythonLogGuard()
     {
-//        s_logPrefixFn = nullptr;
+        auto& stack = python_log::prefix_stack();
+        if (!stack.empty()) {
+            stack.pop_back();
+        }
     }
 };
 
