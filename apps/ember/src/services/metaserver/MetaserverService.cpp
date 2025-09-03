@@ -27,9 +27,6 @@
 
 #include "framework/Session.h"
 
-
-using namespace std;
-
 namespace Ember {
 
 MetaserverService::MetaserverService(Session& session, ConfigService& configSrv) :
@@ -59,7 +56,7 @@ MetaserverService::~MetaserverService() {
 }
 
 
-void MetaserverService::gotFailure(const string& msg) {
+void MetaserverService::gotFailure(const std::string& msg) {
 	logger->warn("Got Meta-server error: {}", msg);
 }
 
