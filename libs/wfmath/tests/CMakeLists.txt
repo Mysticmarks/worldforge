@@ -12,6 +12,7 @@ wf_add_test(rotmatrix_test.cpp)
 wf_add_test(shape_test.cpp)
 wf_add_test(timestamp_test.cpp)
 wf_add_test(vector_test.cpp)
+wf_add_test(intersect_unknown_test.cpp)
 
 if (Atlas_FOUND)
     link_directories(${Atlas_LIBRARY_DIR})

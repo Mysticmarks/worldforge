@@ -37,13 +37,23 @@
 
 namespace WFMath {
 
-// Get the reversed order intersect functions (is this safe? FIXME)
-// No it's not. In the case of an unknown intersection we end up in
-// a stack crash loop.
+// Generic intersection dispatcher. The default implementation simply
+// returns false which means we safely handle unknown shape
+// combinations instead of endlessly recursing between two generic
+// overloads.
+
+namespace detail {
+
+template<typename S1, typename S2>
+struct IntersectDispatcher {
+        static bool apply(const S1&, const S2&, bool) { return false; }
+};
+
+} // namespace detail
 
 template<class S1, class S2>
 inline bool Intersect(const S1& s1, const S2& s2, bool proper) {
-	return Intersect(s2, s1, proper);
+        return detail::IntersectDispatcher<S1, S2>::apply(s1, s2, proper);
 }
 
 // Point<>
@@ -443,13 +453,91 @@ inline bool Intersect(const RotBox<dim>& r1, const RotBox<dim>& r2, bool proper)
 
 template<int dim>
 inline bool Contains(const RotBox<dim>& outer, const RotBox<dim>& inner, bool proper) {
-	return Contains(AxisBox<dim>(outer.m_corner0, outer.m_corner0 + outer.m_size),
-					RotBox<dim>(inner).rotatePoint(outer.m_orient.inverse(),
-												   outer.m_corner0), proper);
+        return Contains(AxisBox<dim>(outer.m_corner0, outer.m_corner0 + outer.m_size),
+                                        RotBox<dim>(inner).rotatePoint(outer.m_orient.inverse(),
+                                                                                                  outer.m_corner0), proper);
 }
 
 // Polygon<> intersection functions are in polygon_funcs.h, to avoid
 // unnecessary inclusion of <vector>
+
+namespace detail {
+
+// Provide explicit dispatchers for combinations where the implementation
+// exists only for the reversed argument order. These simply forward to the
+// corresponding specialised overloads.
+
+template<int dim>
+struct IntersectDispatcher<Point<dim>, AxisBox<dim>> {
+        static bool apply(const Point<dim>& p, const AxisBox<dim>& b, bool proper) {
+                return WFMath::Intersect(b, p, proper);
+        }
+};
+
+template<int dim>
+struct IntersectDispatcher<Point<dim>, Ball<dim>> {
+        static bool apply(const Point<dim>& p, const Ball<dim>& b, bool proper) {
+                return WFMath::Intersect(b, p, proper);
+        }
+};
+
+template<int dim>
+struct IntersectDispatcher<Point<dim>, Segment<dim>> {
+        static bool apply(const Point<dim>& p, const Segment<dim>& s, bool proper) {
+                return WFMath::Intersect(s, p, proper);
+        }
+};
+
+template<int dim>
+struct IntersectDispatcher<Point<dim>, RotBox<dim>> {
+        static bool apply(const Point<dim>& p, const RotBox<dim>& r, bool proper) {
+                return WFMath::Intersect(r, p, proper);
+        }
+};
+
+template<int dim>
+struct IntersectDispatcher<AxisBox<dim>, Ball<dim>> {
+        static bool apply(const AxisBox<dim>& b, const Ball<dim>& ball, bool proper) {
+                return WFMath::Intersect(ball, b, proper);
+        }
+};
+
+template<int dim>
+struct IntersectDispatcher<AxisBox<dim>, Segment<dim>> {
+        static bool apply(const AxisBox<dim>& b, const Segment<dim>& s, bool proper) {
+                return WFMath::Intersect(s, b, proper);
+        }
+};
+
+template<int dim>
+struct IntersectDispatcher<AxisBox<dim>, RotBox<dim>> {
+        static bool apply(const AxisBox<dim>& b, const RotBox<dim>& r, bool proper) {
+                return WFMath::Intersect(r, b, proper);
+        }
+};
+
+template<int dim>
+struct IntersectDispatcher<Ball<dim>, Segment<dim>> {
+        static bool apply(const Ball<dim>& b, const Segment<dim>& s, bool proper) {
+                return WFMath::Intersect(s, b, proper);
+        }
+};
+
+template<int dim>
+struct IntersectDispatcher<Ball<dim>, RotBox<dim>> {
+        static bool apply(const Ball<dim>& b, const RotBox<dim>& r, bool proper) {
+                return WFMath::Intersect(r, b, proper);
+        }
+};
+
+template<int dim>
+struct IntersectDispatcher<Segment<dim>, RotBox<dim>> {
+        static bool apply(const Segment<dim>& s, const RotBox<dim>& r, bool proper) {
+                return WFMath::Intersect(r, s, proper);
+        }
+};
+
+} // namespace detail
 
 } // namespace WFMath
 
