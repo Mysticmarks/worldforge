@@ -126,7 +126,7 @@ class Worldforge(ConanFile):
             # The default CMake FindPython3 component will set the Python3_EXECUTABLE, which is then used in Cyphesis.
             # Therefore, do this here.
             tc.variables["Python3_EXECUTABLE"] = os.path.join(self.dependencies["cpython"].package_folder, "bin/python")
-            # Inject the PYTHOHOME variable so we can copy the Python scripts to the Snap package if we choose to build
+            # Inject the PYTHONHOME variable so we can copy the Python scripts to the Snap package if we choose to build
             # that.
             tc.variables["PYTHONHOME"] = self.dependencies["cpython"].package_folder
             tc.variables["WORLDFORGE_WORLDS_SOURCE_PATH"] = os.path.join(
