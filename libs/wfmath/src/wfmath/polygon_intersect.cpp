@@ -31,6 +31,7 @@
 #include <algorithm>
 #include <list>
 #include <cassert>
+#include <cmath>
 
 namespace WFMath {
 
@@ -1185,8 +1186,11 @@ bool Intersect<2>(const Polygon<2>& r, const Point<2>& p, bool proper) {
                 if (!vertically_between)
                         continue;
 
+                CoordType ydiff = (*j)[1] - (*i)[1];
+                if (std::fabs(ydiff) <= numeric_constants<CoordType>::epsilon())
+                        continue;
                 CoordType x_intersect = (*i)[0] + ((*j)[0] - (*i)[0])
-                                                                                  * (p[1] - (*i)[1]) / ((*j)[1] - (*i)[1]);
+                                                                                  * (p[1] - (*i)[1]) / ydiff;
 
                 if (Equal(p[0], x_intersect))
                         return !proper;
@@ -1232,9 +1236,11 @@ bool Intersect<2>(const Polygon<2>& p, const AxisBox<2>& b, bool proper) {
 		CoordType xdiff = ((*j)[0] - (*i)[0]);
 		CoordType ydiff = ((*j)[1] - (*i)[1]);
 
-		if (low_vertically_between) { // Check for edge intersect
-			CoordType x_intersect = (*i)[0] + (b.m_low[1] - (*i)[1])
-											  * xdiff / ydiff;
+                if (low_vertically_between) { // Check for edge intersect
+                        if (std::fabs(ydiff) <= numeric_constants<CoordType>::epsilon())
+                                continue;
+                        CoordType x_intersect = (*i)[0] + (b.m_low[1] - (*i)[1])
+                                                                                          * xdiff / ydiff;
 
                         if (Equal(b.m_low[0], x_intersect) || Equal(b.m_high[0], x_intersect))
                                 return !proper;
@@ -1246,9 +1252,11 @@ bool Intersect<2>(const Polygon<2>& p, const AxisBox<2>& b, bool proper) {
                                 hit = !hit;
 		}
 
-		if (low_horizontally_between) { // Check for edge intersect
-			CoordType y_intersect = (*i)[1] + (b.m_low[0] - (*i)[0])
-											  * ydiff / xdiff;
+                if (low_horizontally_between) { // Check for edge intersect
+                        if (std::fabs(xdiff) <= numeric_constants<CoordType>::epsilon())
+                                continue;
+                        CoordType y_intersect = (*i)[1] + (b.m_low[0] - (*i)[0])
+                                                                                          * ydiff / xdiff;
 
                         if (Equal(b.m_low[1], y_intersect) || Equal(b.m_high[1], y_intersect))
                                 return !proper;
@@ -1256,9 +1264,11 @@ bool Intersect<2>(const Polygon<2>& p, const AxisBox<2>& b, bool proper) {
                                 return true;
 		}
 
-		if (high_vertically_between) { // Check for edge intersect
-			CoordType x_intersect = (*i)[0] + (b.m_high[1] - (*i)[1])
-											  * xdiff / ydiff;
+                if (high_vertically_between) { // Check for edge intersect
+                        if (std::fabs(ydiff) <= numeric_constants<CoordType>::epsilon())
+                                continue;
+                        CoordType x_intersect = (*i)[0] + (b.m_high[1] - (*i)[1])
+                                                                                          * xdiff / ydiff;
 
                         if (Equal(b.m_low[0], x_intersect) || Equal(b.m_high[0], x_intersect))
                                 return !proper;
@@ -1266,9 +1276,11 @@ bool Intersect<2>(const Polygon<2>& p, const AxisBox<2>& b, bool proper) {
                                 return true;
 		}
 
-		if (high_horizontally_between) { // Check for edge intersect
-			CoordType y_intersect = (*i)[1] + (b.m_high[0] - (*i)[0])
-											  * ydiff / xdiff;
+                if (high_horizontally_between) { // Check for edge intersect
+                        if (std::fabs(xdiff) <= numeric_constants<CoordType>::epsilon())
+                                continue;
+                        CoordType y_intersect = (*i)[1] + (b.m_high[0] - (*i)[0])
+                                                                                          * ydiff / xdiff;
 
                         if (Equal(b.m_low[1], y_intersect) || Equal(b.m_high[1], y_intersect))
                                 return !proper;
@@ -1302,9 +1314,11 @@ bool Contains<2>(const Polygon<2>& p, const AxisBox<2>& b, bool proper) {
 		CoordType xdiff = ((*j)[0] - (*i)[0]);
 		CoordType ydiff = ((*j)[1] - (*i)[1]);
 
-		if (low_vertically_between) { // Check for edge intersect
-			CoordType x_intersect = (*i)[0] + (b.m_low[1] - (*i)[1])
-											  * xdiff / ydiff;
+                if (low_vertically_between) { // Check for edge intersect
+                        if (std::fabs(ydiff) <= numeric_constants<CoordType>::epsilon())
+                                continue;
+                        CoordType x_intersect = (*i)[0] + (b.m_low[1] - (*i)[1])
+                                                                                          * xdiff / ydiff;
 
                         bool on_corner = Equal(b.m_low[0], x_intersect)
                                                          || Equal(b.m_high[0], x_intersect);
@@ -1321,9 +1335,11 @@ bool Contains<2>(const Polygon<2>& p, const AxisBox<2>& b, bool proper) {
                                 hit = !hit;
 		}
 
-		if (low_horizontally_between) { // Check for edge intersect
-			CoordType y_intersect = (*i)[1] + (b.m_low[0] - (*i)[0])
-											  * ydiff / xdiff;
+                if (low_horizontally_between) { // Check for edge intersect
+                        if (std::fabs(xdiff) <= numeric_constants<CoordType>::epsilon())
+                                continue;
+                        CoordType y_intersect = (*i)[1] + (b.m_low[0] - (*i)[0])
+                                                                                          * ydiff / xdiff;
 
                         bool on_corner = Equal(b.m_low[1], y_intersect)
                                                          || Equal(b.m_high[1], y_intersect);
@@ -1336,9 +1352,11 @@ bool Contains<2>(const Polygon<2>& p, const AxisBox<2>& b, bool proper) {
                                 return false;
 		}
 
-		if (high_vertically_between) { // Check for edge intersect
-			CoordType x_intersect = (*i)[0] + (b.m_high[1] - (*i)[1])
-											  * xdiff / ydiff;
+                if (high_vertically_between) { // Check for edge intersect
+                        if (std::fabs(ydiff) <= numeric_constants<CoordType>::epsilon())
+                                continue;
+                        CoordType x_intersect = (*i)[0] + (b.m_high[1] - (*i)[1])
+                                                                                          * xdiff / ydiff;
 
                         bool on_corner = Equal(b.m_low[0], x_intersect)
                                                          || Equal(b.m_high[0], x_intersect);
@@ -1351,9 +1369,11 @@ bool Contains<2>(const Polygon<2>& p, const AxisBox<2>& b, bool proper) {
                                 return false;
 		}
 
-		if (high_horizontally_between) { // Check for edge intersect
-			CoordType y_intersect = (*i)[1] + (b.m_high[0] - (*i)[0])
-											  * ydiff / xdiff;
+                if (high_horizontally_between) { // Check for edge intersect
+                        if (std::fabs(xdiff) <= numeric_constants<CoordType>::epsilon())
+                                continue;
+                        CoordType y_intersect = (*i)[1] + (b.m_high[0] - (*i)[0])
+                                                                                          * ydiff / xdiff;
 
                         bool on_corner = Equal(b.m_low[1], y_intersect)
                                                          || Equal(b.m_high[1], y_intersect);
