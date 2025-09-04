@@ -51,7 +51,11 @@ def main() -> int:
         print("Required executables missing; skipping e2e test")
         return 0
 
-    port = 6767
+    # Bind to port 0 to let the OS select a free port for the server
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+    print(f"Using TCP port {port}")
     tmpdir = Path(tempfile.mkdtemp(prefix="wf-e2e-"))
     processes: list[subprocess.Popen] = []
 
@@ -97,7 +101,7 @@ def main() -> int:
         except OSError:
             time.sleep(0.5)
     if not started:
-        raise RuntimeError("cyphesis did not start in time")
+        raise RuntimeError(f"cyphesis did not start in time on port {port}")
 
     # Ensure the database has been cleaned before running tests.
     try:
@@ -134,7 +138,7 @@ def main() -> int:
     output = client.stdout.read() if client.stdout else ""
 
     if "Connected" not in output and client.returncode != 0:
-        raise RuntimeError("ember failed to connect to cyphesis")
+        raise RuntimeError(f"ember failed to connect to cyphesis on port {port}")
 
     print("E2E session completed")
     return 0
