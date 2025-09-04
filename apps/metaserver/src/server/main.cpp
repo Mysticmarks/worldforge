@@ -25,6 +25,7 @@
 #include "MetaServerProtocol.hpp"
 #include "MetaServer.hpp"
 #include "MetaServerHandlerUDP.hpp"
+#include "ShutdownException.hpp"
 
 /*
  * System Includes
@@ -361,44 +362,31 @@ int main(int argc, char** argv) {
 				spdlog::error("Calling reinitialisation of the timers");
 				ms.initTimers(io_service);
 			}
-			catch (const std::exception& ex) {
-				/*
-				 * This will catch exceptions inside the io_service loop/handler.
-				 *
-				 * If we have a handler exception this should account as a reasonable
-				 * effort to resume operation despite the error
-				 */
+                        catch (const ShutdownException& ex) {
+                                std::cout << "Shutdown sequence initiated : " << ex.what() << std::endl;
+                                spdlog::info("Shutdown sequence initiated : {}", ex.what());
+                        }
+                        catch (const std::exception& ex) {
+                                std::cerr << "IOService Loop Exception:" << ex.what() << std::endl;
+                                std::cerr << boost::diagnostic_information(ex) << std::endl;
+                                spdlog::error("IOService Loop Exception: {}", ex.what());
+                                spdlog::error(boost::diagnostic_information(ex));
+                                spdlog::error("Calling reinitialisation of the timers");
+                                ms.initTimers(io_service);
+                        }
+                }
+                spdlog::info("Shutting Down Metaserver");
 
-				/*
-				 * TODO: just being lazy here, should probably subclass a shutdown
-				 *       exception and catch it separately.  This will be totally
-				 *       bogus in the event that a real exception occurs during
-				 *       the shutdown process, but the risk is minimal as it's
-				 *       going down anyway.
-				 */
-				if (ms.isShutdown()) {
-					std::cout << "Shutdown sequence initiated : " << ex.what() << std::endl;
-					spdlog::info("Shutdown sequence initiated : {}", ex.what());
-
-				} else {
-					std::cerr << "IOService Loop Exception:" << ex.what() << std::endl;
-					std::cerr << boost::diagnostic_information(ex) << std::endl;
-					spdlog::error("IOService Loop Exception: {}", ex.what());
-					spdlog::error(boost::diagnostic_information(ex));
-					spdlog::error("Calling reinitialisation of the timers");
-					ms.initTimers(io_service);
-				}
-			}
-		}
-		spdlog::info("Shutting Down Metaserver");
-
-	}
-	catch (const std::exception& e) {
-		/*
-		 * This will catch exceptions during the startup etc
-		 */
-		std::cerr << "Unknown Exception: " << e.what() << std::endl;
-	}
-	spdlog::info("All Done!");
-	return 0;
+        }
+        catch (const ShutdownException& e) {
+                std::cerr << "Shutdown Exception: " << e.what() << std::endl;
+                spdlog::info("All Done!");
+                return 0;
+        }
+        catch (const std::exception& e) {
+                std::cerr << "Unknown Exception: " << e.what() << std::endl;
+                throw;
+        }
+        spdlog::info("All Done!");
+        return 0;
 }
