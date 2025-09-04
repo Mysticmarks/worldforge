@@ -42,7 +42,14 @@ include(CMakeDependentOption)
 #If no VERSION is set externally, and we can't figure out the Git version, we'll use this version as fallback.
 set(VERSION_FALLBACK "0.9.0-dev")
 
-find_package(cppunit 1.15.1 EXACT)
+# Only look for cppunit when tests are requested.
+if (BUILD_TESTING)
+    find_package(cppunit 1.15.1 EXACT QUIET)
+    if (NOT cppunit_FOUND)
+        message(WARNING "cppunit 1.15.1 not found. Tests will be skipped.")
+    endif ()
+endif ()
+
 find_package(spdlog REQUIRED)
 find_package(Microsoft.GSL REQUIRED)
 
