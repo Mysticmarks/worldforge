@@ -149,12 +149,17 @@ def main() -> int:
         stdout, _ = client.communicate()
         raise
 
-    if "Connected" not in output and client.returncode != 0:
-        raise RuntimeError(f"ember failed to connect to cyphesis on port {port}")
+    if "Connected" not in stdout and client.returncode != 0:
+        print(f"ember failed to connect to cyphesis on port {port}")
+        return 1
 
     print("E2E session completed")
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except RuntimeError as exc:
+        print(exc)
+        raise SystemExit(1)
