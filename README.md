@@ -128,6 +128,16 @@ The test suite can be built and run using the ```check``` target. For example:
 cmake --build --preset conan-release --target check
 ```
 
+A minimal end-to-end session test can also be executed directly:
+
+```bash
+python apps/tests/e2e/minimal_session.py
+```
+
+This script optionally checks a PostgreSQL database using either the
+`psycopg` or `psycopg2` Python modules; if neither is installed, the
+verification step is skipped.
+
 ### API documentation
 
 If Doxygen is available API documentation can be generated using the ```dox``` target. For example:
