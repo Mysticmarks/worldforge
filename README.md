@@ -31,6 +31,7 @@ how they work.
 
 * The [Cyphesis](apps/cyphesis/README.md) server is used for hosting a virtual world.
 * The [Ember](apps/ember/README.md) client is the main graphical client.
+* The [Metaserver](apps/metaserver/README) provides a lobby where clients can discover available servers.
 * [Eris](libs/eris/README.md) is a client support library.
 * [Squall](libs/squall/README.md) provides features for syncing assets between servers and clients.
 * [WFMath](libs/wfmath/README.md) contains various math related functions.
