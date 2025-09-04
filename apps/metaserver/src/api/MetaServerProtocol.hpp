@@ -216,10 +216,12 @@ const NetMsgType NMT_MONITOR_RESP = 22;
  * Administrator Controls
  *
  * Intended to provide the ability to affect the
- * data inside the metaserver
+ * data inside the metaserver.
  *
- * @TODO think about whether we want just yes/no type responses from
- * admin packets
+ * Admin responses are structured and include more detail than a simple
+ * yes/no. After the packet type the response contains the sub command
+ * being answered followed by a status code and then any command specific
+ * payload.
  *
  * NMT_ADMINREQ
  * 0 _ENUMERATE (the response that comes back will be an attribute showing command set)
@@ -242,28 +244,27 @@ const NetMsgType NMT_MONITOR_RESP = 22;
  *
  * NMT_ADMINRESP
  * 0 _ENUMERATE
- * 		4 bytes packet type ( 00 00 00 1A )
- * 		4 bytes sub type ( 00 00 00 00 )
- * 		4 bytes number of commands
- * 		  4 bytes for each number of commands ( 4 commands means 4*sizeof(uint32_t) == 16 )
- * 		x bytes for message.  Should be the sum total of the command lengths
- * 		E.g.
- * 		  CMD1(4) and COMMAND2 (8) [12 bytes]
- * 		  26 (4) - for packet type NMT_ADMINRESP
- * 		  2  (4) - number of commands
- * 		  4  (4) - length of command 1
- * 		  8  (4) - length of command 2
- * 		  12 (4) - message (CMD1COMMAND2)
+ *		4 bytes packet type ( 00 00 00 1A )
+ *		4 bytes sub type ( 00 00 00 00 )
+ *		4 bytes status code (e.g. NMT_ADMINRESP_ACK)
+ *		4 bytes number of commands
+ *		 4 bytes for each number of commands ( 4 commands means 4*sizeof(uint32_t) == 16 )
+ *		x bytes for message.  Should be the sum total of the command lengths
+ *		E.g.
+ *		  CMD1(4) and COMMAND2 (8) [12 bytes]
+ *		  26 (4) - packet type NMT_ADMINRESP
+ *		  0  (4) - subtype NMT_ADMINRESP_ENUMERATE
+ *		  32 (4) - status NMT_ADMINRESP_ACK
+ *		  2  (4) - number of commands
+ *		  4  (4) - length of command 1
+ *		  8  (4) - length of command 2
+ *		  12 (4) - message (CMD1COMMAND2)
  * 1 _ADDSERVER
- * 		4 bytes packet type ( 00 00 00 1A )
- * 		4 bytes sub type ( 00 00 00 00 )
- * 		4 bytes address added (same as in req)
- * 		4 bytes port (same as in req)
- *  DENIED
- *  ERR
- *  REQUEST PROCESSED
- *  ACK
- *  NACK
+ *		4 bytes packet type ( 00 00 00 1A )
+ *		4 bytes sub type ( 00 00 00 01 )
+ *		4 bytes status code
+ *		4 bytes address added (same as in req)
+ *		4 bytes port (same as in req)
  *
  */
 const NetMsgType NMT_ADMINREQ = 25;
@@ -290,10 +291,10 @@ const NetMsgType NMT_ADMINRESP_PURGECLIENT = 7;
 const NetMsgType NMT_ADMINRESP_DUMPCLIENT = 8;
 const NetMsgType NMT_ADMINRESP_VERIFY = 9;
 
-const NetMsgType NMT_ADMINRESP_ACK = 32; // serves as 'yes', indicates request is done
-const NetMsgType NMT_ADMINRESP_NACK = 33; // serves as 'no', indicates request is NOT done
-const NetMsgType NMT_ADMINRESP_DENIED = 34;
-const NetMsgType NMT_ADMINRESP_ERR = 35;
+const NetMsgType NMT_ADMINRESP_ACK = 32;    // command succeeded
+const NetMsgType NMT_ADMINRESP_NACK = 33;   // command failed
+const NetMsgType NMT_ADMINRESP_DENIED = 34; // request not authorised
+const NetMsgType NMT_ADMINRESP_ERR = 35;    // malformed request or internal error
 
 /*
  * DNS Hooks

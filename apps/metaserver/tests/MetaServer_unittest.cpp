@@ -46,8 +46,9 @@ CPPUNIT_TEST_SUITE(MetaServer_unittest);
 		CPPUNIT_TEST(testMonitorStats);
 //    CPPUNIT_TEST(testAdminAddServer);
 //    CPPUNIT_TEST(testAdminDelServer);
-		CPPUNIT_TEST(testProcessAdminReq_ENUMERATE);
-		CPPUNIT_TEST(testProcessAdminReq_ADDSERVER);
+                CPPUNIT_TEST(testProcessAdminReq_ENUMERATE);
+                CPPUNIT_TEST(testProcessAdminReq_ADDSERVER);
+                CPPUNIT_TEST(testProcessAdminReq_UNKNOWN);
 //    CPPUNIT_TEST(testProcessAdminReq_DELSERVER);
 	CPPUNIT_TEST_SUITE_END();
 public:
@@ -157,18 +158,19 @@ public:
 		/*
 		 * Ensure it's an admin response
 		 */
-		CPPUNIT_ASSERT(out.getPacketType() == NMT_ADMINRESP);
+                CPPUNIT_ASSERT(out.getPacketType() == NMT_ADMINRESP);
 
-		/*
-		 * Ensure response is the correct type
-		 */
-		CPPUNIT_ASSERT(out.getIntData(4) == NMT_ADMINRESP_ENUMERATE);
+                /*
+                 * Ensure response is the correct type and succeeded
+                 */
+                CPPUNIT_ASSERT(out.getIntData(4) == NMT_ADMINRESP_ENUMERATE);
+                CPPUNIT_ASSERT(out.getIntData(8) == NMT_ADMINRESP_ACK);
 
-		/*
-		 * Check for response properties
-		 */
-		std::ostringstream oss;
-		int packet_commands = out.getIntData(8);
+                /*
+                 * Check for response properties
+                 */
+                std::ostringstream oss;
+                int packet_commands = out.getIntData(12);
 
 		/*
 		 * Make sure the number of commands in testcase match with metaserver
@@ -185,8 +187,9 @@ public:
 
 		// debug output in case it's wrong
 		std::cout << std::endl << "   TYPE: " << out.getPacketType() << std::endl;
-		std::cout << "SUBTYPE: " << out.getIntData(4) << std::endl;
-		std::cout << "COMMANDS: " << out.getIntData(8) << std::endl;
+                std::cout << "SUBTYPE: " << out.getIntData(4) << std::endl;
+                std::cout << "STATUS: " << out.getIntData(8) << std::endl;
+                std::cout << "COMMANDS: " << out.getIntData(12) << std::endl;
 
 		/*
 		 * Ensure that the packed lengths for the given commands
@@ -195,19 +198,19 @@ public:
 		std::string inmsg;
 		std::list<size_t> index;
 		size_t index_total = 0;
-		for (int i = 1; i <= packet_commands; i++) {
-			std::cout << "I: " << i << std::endl;
-			std::cout << "OFFSET: " << (8 + (i * 4)) << std::endl;
-			std::cout << "CMD " << i << " length is " << out.getIntData(8 + (i * 4)) << std::endl;
-			index.push_back(out.getIntData(8 + (i * 4)));
-			index_total += out.getIntData(8 + (i * 4));
-			std::cout << "INDEX TOTAL: " << index_total << std::endl;
-		}
+                for (int i = 1; i <= packet_commands; i++) {
+                        std::cout << "I: " << i << std::endl;
+                        std::cout << "OFFSET: " << (12 + (i * 4)) << std::endl;
+                        std::cout << "CMD " << i << " length is " << out.getIntData(12 + (i * 4)) << std::endl;
+                        index.push_back(out.getIntData(12 + (i * 4)));
+                        index_total += out.getIntData(12 + (i * 4));
+                        std::cout << "INDEX TOTAL: " << index_total << std::endl;
+                }
 
-		// more debug info
-		std::cout << "8 + packet_commands * index.size() " << std::endl;
-		std::cout << "8 + " << packet_commands << " * " << index.size() << std::endl;
-		inmsg = out.getPacketMessage(12 + (4 * index.size()));
+                // more debug info
+                std::cout << "12 + packet_commands * index.size() " << std::endl;
+                std::cout << "12 + " << packet_commands << " * " << index.size() << std::endl;
+                inmsg = out.getPacketMessage(16 + (4 * index.size()));
 		std::cout << "INMSG: " << inmsg << std::endl;
 
 		// make sure that sizes match
@@ -228,7 +231,7 @@ public:
 
 	}
 
-	void testProcessAdminReq_ADDSERVER() {
+        void testProcessAdminReq_ADDSERVER() {
 //		Need to think about maybe a refactor to calculate offsets based on sizeof
 //		but need to be careful because if comminucating with systems that have
 //		different values for unit32_t (normally 4 bytes).  Perhaps determine sizings
@@ -261,14 +264,15 @@ public:
 
 		MetaServer* ms = new MetaServer();
 
-		ms->processADMINREQ(in, out);
+                ms->processADMINREQ(in, out);
 
-		uint32_t out_ip = out.getIntData(8);
-		uint32_t out_port = out.getIntData(12);
+                uint32_t out_ip = out.getIntData(12);
+                uint32_t out_port = out.getIntData(16);
 
-		CPPUNIT_ASSERT(out.getPacketType() == NMT_ADMINRESP);
-		CPPUNIT_ASSERT(out.getIntData(0) == NMT_ADMINRESP);
-		CPPUNIT_ASSERT(out.getIntData(4) == NMT_ADMINRESP_ADDSERVER);
+                CPPUNIT_ASSERT(out.getPacketType() == NMT_ADMINRESP);
+                CPPUNIT_ASSERT(out.getIntData(0) == NMT_ADMINRESP);
+                CPPUNIT_ASSERT(out.getIntData(4) == NMT_ADMINRESP_ADDSERVER);
+                CPPUNIT_ASSERT(out.getIntData(8) == NMT_ADMINRESP_ACK);
 
 		/*
 		 * @see MetaServerPacket::IpAsciiToNet
@@ -287,10 +291,29 @@ public:
 		/*
 		 * Ensure IP and port from data resp packet is the same on the way in
 		 */
-		CPPUNIT_ASSERT(out_ip == 16908415); // packed addy 127.0.2.1
-		CPPUNIT_ASSERT(out_port == 12345);  // packed port
+                CPPUNIT_ASSERT(out_ip == 16908415); // packed addy 127.0.2.1
+                CPPUNIT_ASSERT(out_port == 12345);  // packed port
 
-	}
+        }
+
+        void testProcessAdminReq_UNKNOWN() {
+
+                MetaServerPacket in, out;
+
+                in.setPacketType(NMT_ADMINREQ);
+                in.addPacketData(9999); // unsupported subtype
+
+                MetaServer* ms = new MetaServer();
+
+                ms->processADMINREQ(in, out);
+
+                CPPUNIT_ASSERT(out.getPacketType() == NMT_ADMINRESP);
+                CPPUNIT_ASSERT(out.getIntData(4) == 9999);
+                CPPUNIT_ASSERT(out.getIntData(8) == NMT_ADMINRESP_ERR);
+
+                delete ms;
+
+        }
 
 //    void testProcessAdminReq_DELSERVER() {
 //
