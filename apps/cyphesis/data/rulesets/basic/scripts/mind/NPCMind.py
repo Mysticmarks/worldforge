@@ -53,9 +53,7 @@ class NPCMind(ai.Mind):
 
     # Initialization
     def __init__(self, cppthing):
-        # FIXME: this shouldn't be needed
-        self.mind = cppthing
-
+        # cppthing is provided by the engine but not used here
         # print('init')
 
         self.knowledge = Knowledge()
