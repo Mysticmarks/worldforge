@@ -59,28 +59,28 @@ void test_quaternion(const Quaternion& q)
   std::cout << "q2 * q = " << q2 * q << std::endl;
 
 
-  assert(q == q * q2);
-  assert(q == q2 * q);
-  assert(q == q / q2);
+  REQUIRE(q == q * q2);
+  REQUIRE(q == q2 * q);
+  REQUIRE(q == q / q2);
 
   q2 /= q;
 
   std::cout << "q = " << q << std::endl;
   std::cout << "q2 = " << q2 << std::endl;
 
-  assert(q * q2 == Quaternion().identity());
+  REQUIRE(q * q2 == Quaternion().identity());
 
   q2 *= q;
 
   std::cout << "q2 = " << q2 << std::endl;
 
-  assert(q2 == Quaternion().identity());
+  REQUIRE(q2 == Quaternion().identity());
 
   Quaternion qi((Quaternion::Identity()));
 
   std::cout << "qi = " << qi << std::endl;
 
-  assert(qi == Quaternion().identity());
+  REQUIRE(qi == Quaternion().identity());
 
   Quaternion q3(0, 5.0f/12);
 
@@ -94,26 +94,26 @@ void test_quaternion(const Quaternion& q)
       for(int k = 0; k < 3; ++k)
         dot_sum += m.elem(i, k) * m.elem(j, k);
 //      std::cout << '(' << i << ',' << j << ") dot_sum == " << dot_sum << std::endl;
-      assert(Equal(dot_sum, (i == j) ? 1 : 0));
+      REQUIRE(Equal(dot_sum, (i == j) ? 1 : 0));
     }
   }
 
   Quaternion q4;
 
-  assert(q4.fromRotMatrix(m));
+  REQUIRE(q4.fromRotMatrix(m));
 
 //  std::cout << m << std::endl << q4 << std::endl;
 
   // Converting via a rotation matrix may flip quaternion sign.
   CoordType dot = q4.scalar() * q.scalar() + Dot(q4.vector(), q.vector());
-  assert(Equal(std::fabs(dot), 1));
+  REQUIRE(Equal(std::fabs(dot), 1));
 
   Vector<3> v(1, 2, 3), v2(v);
 
   v.rotate(q);
   v.rotate(q2 / q);
 
-  assert(v2 == v);
+  REQUIRE(v2 == v);
 
 //  std::cout << v << std::endl << v2 << std::endl;
 
@@ -122,34 +122,34 @@ void test_quaternion(const Quaternion& q)
 
 //  std::cout << v << std::endl << v2 << std::endl;
 
-  assert(v == v2);
+  REQUIRE(v == v2);
 
   CoordType s(q.scalar());
 
-  assert(Equal(s * s + q.vector().sqrMag(), 1));
+  REQUIRE(Equal(s * s + q.vector().sqrMag(), 1));
 
   Quaternion q_other(1, 2, 3, 4);
 
   v.rotate(q).rotate(q_other);
   v2.rotate(q * q_other);
 
-  assert(v == v2);
+  REQUIRE(v == v2);
 
   //Check that an invalid quaternion isn't equal to a valid quaternion
   Quaternion invalid_1;
   Quaternion invalid_2;
-  assert(invalid_1 != Quaternion::Identity());
+  REQUIRE(invalid_1 != Quaternion::Identity());
 
   //Two invalid points are never equal
-  assert(invalid_1 != invalid_2);
+  REQUIRE(invalid_1 != invalid_2);
 
   const Quaternion& identity = Quaternion::IDENTITY();
-  assert(identity.isValid());
-  assert(identity.scalar() == 1.0f);
-  assert(identity.vector() == WFMath::Vector<3>::ZERO());
+  REQUIRE(identity.isValid());
+  REQUIRE(identity.scalar() == 1.0f);
+  REQUIRE(identity.vector() == WFMath::Vector<3>::ZERO());
 }
 
-int main()
+TEST_CASE("quaternion_test")
 {
   Quaternion q(Vector<3>(1, 3, -std::sqrt(0.7f)), .3f);
 
@@ -159,5 +159,4 @@ int main()
   Quaternion q180(Vector<3>(1, 0, 0), numeric_constants<CoordType>::pi());
   test_quaternion(q180);
 
-  return 0;
-}
+  }

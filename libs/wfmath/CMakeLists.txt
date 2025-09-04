@@ -37,7 +37,9 @@ macro(wf_add_test TEST_FILE)
     #We need to tell adjust the path so tests on windows can find the .dll files.
     SET_TESTS_PROPERTIES(${TEST_NAME} PROPERTIES ENVIRONMENT "PATH=${CMAKE_BINARY_DIR}/bin;$ENV{PATH}")
 
-    add_dependencies(check ${TEST_NAME})
+    if (TARGET check)
+        add_dependencies(check ${TEST_NAME})
+    endif()
 endmacro()
 
 add_subdirectory(src)

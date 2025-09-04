@@ -32,7 +32,7 @@
 
 #include "wfmath/const.h"
 
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 
 using namespace WFMath;
 
@@ -40,19 +40,18 @@ using namespace WFMath;
 
 static void TestEqual()
 {
-        assert( Equal(1.0001, 1.0, 1.0e-3));
-        assert(!Equal(1.0001, 1.0, 1.0e-5));
+        REQUIRE( Equal(1.0001, 1.0, 1.0e-3));
+        REQUIRE(!Equal(1.0001, 1.0, 1.0e-5));
 
-        assert( Equal(0.00010000, 0.00010002, 1.0e-3));
-        assert(!Equal(0.00010000, 0.00010002, 1.0e-6));
+        REQUIRE( Equal(0.00010000, 0.00010002, 1.0e-3));
+        REQUIRE(!Equal(0.00010000, 0.00010002, 1.0e-6));
 
-        assert( Equal(1000100.0, 1000000.0, 1.0e-3));
-        assert(!Equal(1000100.0, 1000000.0, 1.0e-6));
+        REQUIRE( Equal(1000100.0, 1000000.0, 1.0e-3));
+        REQUIRE(!Equal(1000100.0, 1000000.0, 1.0e-6));
 }
 
-int main()
+TEST_CASE("const_test")
 {
   TestEqual();
 
-  return 0;
-}
+  }

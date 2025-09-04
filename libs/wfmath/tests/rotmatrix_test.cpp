@@ -64,7 +64,7 @@ void test_rotmatrix(const RotMatrix<dim>& m)
 
   for(int i = 0; i < dim; ++i)
     for(int j = 0; j < dim; ++j)
-      assert(Equal(ident.elem(i, j), try_ident.elem(i, j)));
+      REQUIRE(Equal(ident.elem(i, j), try_ident.elem(i, j)));
 
   try_ident = Prod(m, minv);
 
@@ -72,7 +72,7 @@ void test_rotmatrix(const RotMatrix<dim>& m)
 
   for(int i = 0; i < dim; ++i)
     for(int j = 0; j < dim; ++j)
-      assert(Equal(ident.elem(i, j), try_ident.elem(i, j)));
+      REQUIRE(Equal(ident.elem(i, j), try_ident.elem(i, j)));
 
   std::string s_mat = ToString(m);
 
@@ -87,7 +87,7 @@ void test_rotmatrix(const RotMatrix<dim>& m)
     for(int j = 0; j < dim; ++j) {
       CoordType diff = m.elem(i, j) - str_m.elem(i, j);
 //      cout << diff;
-      assert(std::fabs(diff) < FloatMax(numeric_constants<CoordType>::epsilon(), 1e-6f));
+      REQUIRE(std::fabs(diff) < FloatMax(numeric_constants<CoordType>::epsilon(), 1e-6f));
 //      if(i < dim - 1 || j < dim - 1)
 //        cout << ", ";
     }
@@ -101,23 +101,23 @@ void test_rotmatrix(const RotMatrix<dim>& m)
 
   for(int i = 0; i < dim; ++i)
     for(int j = 0; j < dim; ++j)
-      assert(Equal(conv_ident.elem(i, j), (i == j) ? 1 : 0));
+      REQUIRE(Equal(conv_ident.elem(i, j), (i == j) ? 1 : 0));
 
   RotMatrix<dim> full_rot;
   full_rot.rotation(0, 1, numeric_constants<CoordType>::pi() * 2);
   for(int i = 0; i < dim; ++i)
     for(int j = 0; j < dim; ++j)
-      assert(Equal(full_rot.elem(i, j), ident.elem(i, j)));
+      REQUIRE(Equal(full_rot.elem(i, j), ident.elem(i, j)));
 
   RotMatrix<dim> half_rot;
   half_rot.rotation(0, 1, numeric_constants<CoordType>::pi());
   RotMatrix<dim> composed = Prod(half_rot, half_rot);
   for(int i = 0; i < dim; ++i)
     for(int j = 0; j < dim; ++j)
-      assert(Equal(composed.elem(i, j), ident.elem(i, j)));
+      REQUIRE(Equal(composed.elem(i, j), ident.elem(i, j)));
 }
 
-int main()
+TEST_CASE("rotmatrix_test")
 {
   RotMatrix<2> m2;
   RotMatrix<3> m3;
@@ -129,5 +129,4 @@ int main()
   test_rotmatrix(m2);
   test_rotmatrix(m3);
 
-  return 0;
-}
+  }

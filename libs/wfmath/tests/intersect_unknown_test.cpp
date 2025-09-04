@@ -5,20 +5,20 @@
 #include "wfmath/axisbox_funcs.h"
 #include "wfmath/polygon.h"
 #include "wfmath/polygon_intersect.h"
-#include <assert.h>
+#include <catch2/catch_test_macros.hpp>
 
 using namespace WFMath;
 
 struct DummyA {};
 struct DummyB {};
 
-int main()
+TEST_CASE("intersect_unknown_test")
 {
     // Known combination but only implemented for reversed order
     Point<2> p(Point<2>().setToOrigin());
     AxisBox<2> box(p, p);
-    assert(Intersect(box, p, false));
-    assert(Intersect(p, box, false));
+    REQUIRE(Intersect(box, p, false));
+    REQUIRE(Intersect(p, box, false));
 
     // Polygon combinations are implemented only with the polygon first
     Polygon<2> poly;
@@ -27,17 +27,16 @@ int main()
     poly.addCorner(0, Point<2>(1, -1));
     poly.addCorner(0, Point<2>(0, -1));
     poly.isValid();
-    assert(Intersect(poly, box, false));
-    assert(Intersect(box, poly, false));
+    REQUIRE(Intersect(poly, box, false));
+    REQUIRE(Intersect(box, poly, false));
 
     // Completely unknown combinations should be safely handled
     DummyA a;
     DummyB b;
-    assert(!Intersect(a, b, false));
-    assert(!Intersect(b, a, true));
-    assert(!Intersect(a, a, false));
+    REQUIRE(!Intersect(a, b, false));
+    REQUIRE(!Intersect(b, a, true));
+    REQUIRE(!Intersect(a, a, false));
     // Mixed known/unknown combinations
-    assert(!Intersect(a, box, false));
-    assert(!Intersect(box, a, true));
-    return 0;
-}
+    REQUIRE(!Intersect(a, box, false));
+    REQUIRE(!Intersect(box, a, true));
+    }

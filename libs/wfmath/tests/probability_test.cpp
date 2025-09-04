@@ -36,7 +36,7 @@
 #include <iostream>
 #include <vector>
 
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 
 using namespace WFMath;
 
@@ -45,8 +45,8 @@ const double use_epsilon = fudge * std::numeric_limits<double>::epsilon();
 
 void test_probability(double mean, double std_dev, double step)
 {
-  assert(step > 0);
-  assert(mean > 0);
+  REQUIRE(step > 0);
+  REQUIRE(mean > 0);
 
   double one_minus_gauss_sum = 0.5, poisson_sum = 0;
   bool gauss_done = false, poisson_done = false, past_poisson_peak = false;
@@ -67,16 +67,16 @@ void test_probability(double mean, double std_dev, double step)
 //          double first_frac = val / cond, second_frac = val / cond_conj;
 //          double sum = first_frac + second_frac;
 //          std::cout << first_frac << ',' << second_frac << ',' << sum - 1 << std::endl;
-//          assert(Equal(sum, 1, use_epsilon));
+//          REQUIRE(Equal(sum, 1, use_epsilon));
 //          while(!Equal(sum, 1, my_fudge * std::numeric_limits<double>::epsilon()))
 //            my_fudge *= 1.1;
         }
 
         if(num_step != 0) {
 //          std::cout << "one_minus_gauss_sum = " << one_minus_gauss_sum << std::endl;
-          assert(Equal(val, one_minus_gauss_sum * cond, fudge * step / mean));
+          REQUIRE(Equal(val, one_minus_gauss_sum * cond, fudge * step / mean));
           one_minus_gauss_sum = val / cond - val * step;
-          assert(one_minus_gauss_sum > -use_epsilon); // Avoid cumulative roundoff errors
+          REQUIRE(one_minus_gauss_sum > -use_epsilon); // Avoid cumulative roundoff errors
         }
       }
       else
@@ -89,12 +89,12 @@ void test_probability(double mean, double std_dev, double step)
 //      std::cout << "cond = " << cond << std::endl;
 //      std::cout << "poisson_sum = " << poisson_sum << std::endl;
 
-      assert(val <= 1 + use_epsilon);
-      assert(cond <= 1 + use_epsilon);
-      assert(Equal(val + poisson_sum * cond, cond, use_epsilon));
+      REQUIRE(val <= 1 + use_epsilon);
+      REQUIRE(cond <= 1 + use_epsilon);
+      REQUIRE(Equal(val + poisson_sum * cond, cond, use_epsilon));
 
       poisson_sum += val;
-      assert(poisson_sum <= 1 + use_epsilon);
+      REQUIRE(poisson_sum <= 1 + use_epsilon);
 
       if(val > fudge * std::numeric_limits<double>::min() && past_poisson_peak)
         poisson_done = true;
@@ -117,11 +117,10 @@ void test_shuffle()
 //  std::cerr << std::endl;
 }
 
-int main()
+TEST_CASE("probability_test")
 {
   test_probability(2.0, 0.5, 0.001);
 
   test_probability(0.3, 2.0, 0.001);
 
-  return 0;
-}
+  }

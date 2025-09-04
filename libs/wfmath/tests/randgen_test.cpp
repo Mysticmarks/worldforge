@@ -23,14 +23,14 @@
 // Author: Alistair Riddoch
 // Created: 2011-2-14
 
-#include <assert.h>
+#include <catch2/catch_test_macros.hpp>
 #include "wfmath/randgen.h"
 #include <cstdio>
 #include <iostream>
 
 using WFMath::MTRand;
 
-bool test_known_sequence()
+void test_known_sequence()
 {
     static WFMath::MTRand::uint32 expected_results[] = {
       2221777491u,
@@ -45,25 +45,17 @@ bool test_known_sequence()
       1898004827u
     };
     WFMath::MTRand rng;
-    bool result = true;
 
     rng.seed(23);
 
     for (int i = 0; i < 10; ++i)
     {
         WFMath::MTRand::uint32 rnd = rng.randInt();
-        if (rnd != expected_results[i])
-        {
-            std::cerr << "Mismatch between MTRand and known result sequuence\n"
-                      << rnd << " != " << expected_results[i] << std::endl;
-            result = false;
-        }
-        assert(rnd == expected_results[i]);
+        REQUIRE(rnd == expected_results[i]);
     }
-    return result;
 }
 
-bool test_generator_instances()
+void test_generator_instances()
 {
     MTRand one(23);
 
@@ -76,10 +68,11 @@ bool test_generator_instances()
     float twores = two.rand<float>();
 
     printf("%.16f %.16f\n", oneres, twores);
-    return oneres == twores;
+    REQUIRE(oneres == twores);
 }
 
-int main()
+TEST_CASE("randgen_test")
 {
-    return !(test_known_sequence() && test_generator_instances());
+    test_known_sequence();
+    test_generator_instances();
 }

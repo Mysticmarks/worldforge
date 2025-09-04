@@ -46,7 +46,7 @@
 
 #include <vector>
 #include <list>
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 
 using namespace WFMath;
 
@@ -58,7 +58,7 @@ void test_line(const Line<dim>& p)
   test_general(p);
   test_shape(p);
 
-  assert(p == p);
+  REQUIRE(p == p);
 
   // Intersection and distance tests operate on the first segment when available
   if (p.numCorners() >= 2) {
@@ -66,7 +66,7 @@ void test_line(const Line<dim>& p)
 
     // The segment should intersect its own bounding box
     AxisBox<dim> box = seg.boundingBox();
-    assert(Intersect(seg, box, false));
+    REQUIRE(Intersect(seg, box, false));
 
     // A distant box should not intersect
     Point<dim> far_low, far_high;
@@ -77,19 +77,19 @@ void test_line(const Line<dim>& p)
       far_high[i] = 101;
     }
     AxisBox<dim> far_box(far_low, far_high);
-    assert(!Intersect(seg, far_box, false));
+    REQUIRE(!Intersect(seg, far_box, false));
 
     // Boundary condition: touching at endpoint counts as intersection when not proper
     AxisBox<dim> end_box(seg.endpoint(0), seg.endpoint(0));
-    assert(Intersect(seg, end_box, false));
-    assert(!Intersect(seg, end_box, true));
+    REQUIRE(Intersect(seg, end_box, false));
+    REQUIRE(!Intersect(seg, end_box, true));
 
     // Distance checks
     CoordType dist = Distance(seg.endpoint(0), seg.endpoint(1));
-    assert(dist >= 0);
+    REQUIRE(dist >= 0);
 
     Segment<dim> zero(seg.endpoint(0), seg.endpoint(0));
-    assert(Distance(zero.endpoint(0), zero.endpoint(1)) == 0);
+    REQUIRE(Distance(zero.endpoint(0), zero.endpoint(1)) == 0);
   }
 
   // Orientation tests using rotation about the first corner in 2D
@@ -105,7 +105,7 @@ void test_line(const Line<dim>& p)
     expect[0] = -orig[1];
     expect[1] = orig[0];
     Vector<dim> after = rotated.getCorner(1) - rotated.getCorner(0);
-    assert(Equal(after, expect));
+    REQUIRE(Equal(after, expect));
   }
 }
 
@@ -115,65 +115,64 @@ void test_modify()
   line.addCorner(0, Point<2>(2, 2));
   line.addCorner(0, Point<2>(0, 0));
   
-  assert(line.getCorner(0) == Point<2>(0, 0));
+  REQUIRE(line.getCorner(0) == Point<2>(0, 0));
 
   line.moveCorner(0, Point<2>(1, 1));
-  assert(line.getCorner(0) == Point<2>(1, 1));
+  REQUIRE(line.getCorner(0) == Point<2>(1, 1));
 }
 
-int main()
+TEST_CASE("line_test")
 {
   Line<2> line2_1;
-  assert(!line2_1.isValid());
+  REQUIRE(!line2_1.isValid());
   line2_1.addCorner(0, Point<2>(0, 0));
   line2_1.addCorner(0, Point<2>(4, 0));
   line2_1.addCorner(0, Point<2>(4, -4));
   line2_1.addCorner(0, Point<2>(0, -4));
-  assert(line2_1.isValid());
+  REQUIRE(line2_1.isValid());
 
   test_line(line2_1);
 
-  assert(line2_1 == line2_1);
+  REQUIRE(line2_1 == line2_1);
 
   Line<2> line2_2;
-  assert(!line2_2.isValid());
+  REQUIRE(!line2_2.isValid());
   line2_2.addCorner(0, Point<2>(0, 0));
   line2_2.addCorner(0, Point<2>(4, -4));
   line2_2.addCorner(0, Point<2>(4, 0));
   line2_2.addCorner(0, Point<2>(0, -4));
-  assert(line2_2.isValid());
+  REQUIRE(line2_2.isValid());
 
   // Check in-equality
-  assert(line2_1 != line2_2);
+  REQUIRE(line2_1 != line2_2);
 
   // Check assignment
   line2_2 = line2_1;
 
   // Check equality
-  assert(line2_1 == line2_2);
+  REQUIRE(line2_1 == line2_2);
 
   Line<2> line2_3;
-  assert(!line2_3.isValid());
-  assert(line2_3 != line2_1);
+  REQUIRE(!line2_3.isValid());
+  REQUIRE(line2_3 != line2_1);
   line2_3 = line2_1;
-  assert(line2_3 == line2_1);
+  REQUIRE(line2_3 == line2_1);
 
   // Check bounding box calculation
-  assert(Equal(line2_1.boundingBox(),
+  REQUIRE(Equal(line2_1.boundingBox(),
                AxisBox<2>(Point<2>(0, -4), Point<2>(4, 0))));
 
   Line<2> line2_4(line2_1);
 
-  assert(line2_1 == line2_4);
+  REQUIRE(line2_1 == line2_4);
 
   Line<3> line3;
   line3.addCorner(0, Point<3>(0, 0, 0));
   line3.addCorner(0, Point<3>(1, 0, 0));
-  assert(line3.isValid());
+  REQUIRE(line3.isValid());
 
   test_line(line3);
 
   test_modify();
 
-  return 0;
-}
+  }

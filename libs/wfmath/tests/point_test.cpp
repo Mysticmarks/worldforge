@@ -57,22 +57,22 @@ void test_point(const Point<dim>& p)
   std::vector<Point<dim> > pvec;
   std::list<CoordType> clist;
 
-  assert(!Barycenter(pvec).isValid());
+  REQUIRE(!Barycenter(pvec).isValid());
 
-  assert(!Barycenter(pvec, clist).isValid());
+  REQUIRE(!Barycenter(pvec, clist).isValid());
 
   pvec.push_back(p);
-  assert(p == Barycenter(pvec));
+  REQUIRE(p == Barycenter(pvec));
   clist.push_back(5);
-  assert(p == Barycenter(pvec, clist));
+  REQUIRE(p == Barycenter(pvec, clist));
 
   // Barycenter fails if sum of weights is 0
   pvec.push_back(p);
-  assert(Barycenter(pvec).isValid());
+  REQUIRE(Barycenter(pvec).isValid());
   clist.push_back(-5);
-  assert(!Barycenter(pvec, clist).isValid());
+  REQUIRE(!Barycenter(pvec, clist).isValid());
 
-  assert(p == p + (p - p));
+  REQUIRE(p == p + (p - p));
 
   //Check that an invalid point isn't equal to a valid point, even if the values are equal
   Point<dim> invalid_point_1;
@@ -81,44 +81,44 @@ void test_point(const Point<dim>& p)
       invalid_point_1[i] = 0.0;
       invalid_point_2[i] = 0.0;
   }
-  assert(invalid_point_1 != Point<dim>::ZERO());
+  REQUIRE(invalid_point_1 != Point<dim>::ZERO());
 
   //Two invalid points are never equal
-  assert(invalid_point_1 != invalid_point_2);
+  REQUIRE(invalid_point_1 != invalid_point_2);
 
   Vector<dim> zero_vec;
   zero_vec.zero();
   Point<dim> shifted = p;
   shifted += zero_vec;
-  assert(shifted.isEqualTo(p));
+  REQUIRE(shifted.isEqualTo(p));
 
   if constexpr (dim >= 2) {
     RotMatrix<dim> full_rot;
     full_rot.rotation(0, 1, numeric_constants<CoordType>::pi() * 2);
     Point<dim> rotated = p;
     rotated.rotate(full_rot, Point<dim>::ZERO());
-    assert(rotated.isEqualTo(p));
+    REQUIRE(rotated.isEqualTo(p));
   }
 }
 
-int main()
+TEST_CASE("point_test")
 {
 	Point<2> p{};
-	assert(!p.isValid());
+	REQUIRE(!p.isValid());
 
   test_point(Point<2>(1, -1));
   test_point(Point<3>(1, -1, numeric_constants<CoordType>::sqrt2()));
 
   Point<2> zero2 = Point<2>::ZERO();
-  assert(zero2.x() == 0 && zero2.y() == 0);
+  REQUIRE(zero2.x() == 0 && zero2.y() == 0);
   Point<3> zero3 = Point<3>::ZERO();
-  assert(zero3.x() == 0 && zero3.y() == 0 && zero3.z() == 0);
+  REQUIRE(zero3.x() == 0 && zero3.y() == 0 && zero3.z() == 0);
 
-    assert(Point<3>(1,2,3).isEqualTo(Point<3>(1,2,3)));
-    assert(!Point<3>(1,2,3).isEqualTo(Point<3>(3,2,1)));
-    assert(!Point<3>(1,2,3).isEqualTo(Point<3>()));
-    assert(!Point<3>().isEqualTo(Point<3>(3,2,1)));
-    assert(!Point<3>().isEqualTo(Point<3>())); //invalid points are never equal
+    REQUIRE(Point<3>(1,2,3).isEqualTo(Point<3>(1,2,3)));
+    REQUIRE(!Point<3>(1,2,3).isEqualTo(Point<3>(3,2,1)));
+    REQUIRE(!Point<3>(1,2,3).isEqualTo(Point<3>()));
+    REQUIRE(!Point<3>().isEqualTo(Point<3>(3,2,1)));
+    REQUIRE(!Point<3>().isEqualTo(Point<3>())); //invalid points are never equal
 
   // Verify rotateInverse undoes rotate
   RotMatrix<3> rot;
@@ -127,7 +127,6 @@ int main()
   Point<3> rotated = orig;
   rotated.rotate(rot, Point<3>::ZERO());
   rotated.rotateInverse(rot, Point<3>::ZERO());
-  assert(rotated.isEqualTo(orig));
+  REQUIRE(rotated.isEqualTo(orig));
 
-  return 0;
-}
+  }

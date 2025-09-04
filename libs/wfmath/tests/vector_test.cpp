@@ -50,9 +50,9 @@ void test_vector(const Vector<dim>& v)
 
   CoordType sqr_mag = v.sqrMag();
 
-  assert(Equal(std::sqrt(sqr_mag), v.mag()));
+  REQUIRE(Equal(std::sqrt(sqr_mag), v.mag()));
 
-  assert(Equal(sqr_mag, Dot(v, v)));
+  REQUIRE(Equal(sqr_mag, Dot(v, v)));
 
   Vector<dim> v1, v2;
 
@@ -69,11 +69,11 @@ void test_vector(const Vector<dim>& v)
     for(int i = 0; i < steps; ++i) {
       vcopy.rotate(v1, v2, 2 * numeric_constants<CoordType>::pi() / steps);
 //      std::cout << vcopy << std::endl;
-      assert(Equal(sqr_mag, vcopy.sqrMag()));
+      REQUIRE(Equal(sqr_mag, vcopy.sqrMag()));
     }
 
     for(int i = 0; i < dim; ++i)
-      assert(Equal(v[i], vcopy[i]));
+      REQUIRE(Equal(v[i], vcopy[i]));
 
     v2 -= v1 / 2; // operator-=(), operator/()
 
@@ -84,25 +84,25 @@ void test_vector(const Vector<dim>& v)
   v2 *= 2; // operator*=()
 
   for(int i = 0; i < dim; ++i)
-    assert(Equal(v2[i], 1.0));
+    REQUIRE(Equal(v2[i], 1.0));
 
   // operator+(), operator-(), operator*() (pre and post), operator/()
   CoordType check = Dot((v1 + v2) * 5 - v2 / 4, 2 * v2);
-  assert(Equal((10.0 + dim * 38.0 / 4.0), check));
+  REQUIRE(Equal((10.0 + dim * 38.0 / 4.0), check));
 
   Vector<dim> v3 = v;
   v3 += v;
   v3 *= 2;
   v3 -= 2 * v;
   v3 /= 2;
-  assert(v == v3);
+  REQUIRE(v == v3);
   for(int i = 0; i < dim; ++i)
-    assert(v[i] == v3[i]); // const and non-const operator[]()
+    REQUIRE(v[i] == v3[i]); // const and non-const operator[]()
 
   CoordType check_mag = v.sloppyMag() / v.mag();
 
-  assert(1 - numeric_constants<CoordType>::epsilon() < check_mag);
-  assert(check_mag < Vector<dim>::sloppyMagMax() + numeric_constants<CoordType>::epsilon());
+  REQUIRE(1 - numeric_constants<CoordType>::epsilon() < check_mag);
+  REQUIRE(check_mag < Vector<dim>::sloppyMagMax() + numeric_constants<CoordType>::epsilon());
 
   //Check that an invalid vector isn't equal to a valid vector, even if the values are equal
   Vector<dim> invalid_1;
@@ -111,15 +111,15 @@ void test_vector(const Vector<dim>& v)
       invalid_1[i] = 0.0;
       invalid_2[i] = 0.0;
   }
-  assert(invalid_1 != Vector<dim>::ZERO());
+  REQUIRE(invalid_1 != Vector<dim>::ZERO());
 
   //Two invalid points are never equal
-  assert(invalid_1 != invalid_2);
+  REQUIRE(invalid_1 != invalid_2);
 
   // Still need Dot(), Angle(), normalize(), mirror()
 }
 
-int main()
+TEST_CASE("vector_test")
 {
   Vector<2> v2(1, -1);
   Vector<3> v3(1, -1, numeric_constants<CoordType>::sqrt2());
@@ -128,21 +128,20 @@ int main()
   test_vector(v3);
   
   Vector<2> zero2 = Vector<2>::ZERO();
-  assert(zero2.x() == 0 && zero2.y() == 0);
+  REQUIRE(zero2.x() == 0 && zero2.y() == 0);
   Vector<3> zero3 = Vector<3>::ZERO();
-  assert(zero3.x() == 0 && zero3.y() == 0 && zero3.z() == 0);
+  REQUIRE(zero3.x() == 0 && zero3.y() == 0 && zero3.z() == 0);
 
-  assert(v2.sloppyMag() / v2.mag() < Vector<2>::sloppyMagMax());
-  assert(v3.sloppyMag() / v3.mag() < Vector<3>::sloppyMagMax());
+  REQUIRE(v2.sloppyMag() / v2.mag() < Vector<2>::sloppyMagMax());
+  REQUIRE(v3.sloppyMag() / v3.mag() < Vector<3>::sloppyMagMax());
 
   v2.sloppyNorm(1);
   v3.sloppyNorm(1);
 
-  assert((Vector<3>(1, 0, 0).rotate(Cross(Vector<3>(1, 0, 0), Vector<3>(0, 1, 0)),
+  REQUIRE((Vector<3>(1, 0, 0).rotate(Cross(Vector<3>(1, 0, 0), Vector<3>(0, 1, 0)),
 	 numeric_constants<CoordType>::pi() / 2) - Vector<3>(0, 1, 0)).sqrMag()
 	 < numeric_constants<CoordType>::epsilon() * numeric_constants<CoordType>::epsilon()); 
 
   // Need 2D+3D stuff
 
-  return 0;
-}
+  }

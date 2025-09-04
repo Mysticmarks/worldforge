@@ -25,6 +25,7 @@
 
 #include<Atlas/Message/Object.h>
 #include "atlasconv.h"
+#include <catch2/catch_test_macros.hpp>
 
 using namespace WFMath;
 
@@ -36,10 +37,10 @@ void atlas_test(const C& c)
   C out(a);
 //  cout << out << std::endl;
   // Only match to string precision
-  assert(Equal(c, out, FloatMax(WFMATH_EPSILON,1e-5)));
+  REQUIRE(Equal(c, out, FloatMax(WFMATH_EPSILON,1e-5)));
 }
 
-int main()
+TEST_CASE("atlas_0_4_test")
 {
   Point<3> p(1, 0, Sqrt2);
   atlas_test(p);
@@ -54,5 +55,4 @@ int main()
   atlas_test(b1);
   atlas_test(b2);
 
-  return 0;
-}
+  }

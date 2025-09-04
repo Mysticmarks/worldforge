@@ -62,20 +62,20 @@ void test_shape(const Point<dim>& p1, const Point<dim>& p2)
   test_shape_no_rotate(box);
 
   tmp = Union(box, box);
-  assert(tmp == box);
-  assert(Intersection(box, box, tmp));
-  assert(tmp == box);
+  REQUIRE(tmp == box);
+  REQUIRE(Intersection(box, box, tmp));
+  REQUIRE(tmp == box);
   std::vector<AxisBox<dim> > boxvec;
   boxvec.push_back(box);
-  assert(box == BoundingBox(boxvec));
+  REQUIRE(box == BoundingBox(boxvec));
 
-  assert(Intersect(box, p1, false));
-  assert(!Intersect(box, p1, true));
+  REQUIRE(Intersect(box, p1, false));
+  REQUIRE(!Intersect(box, p1, true));
 
-  assert(Intersect(box, box, false));
-  assert(Intersect(box, box, true));
-  assert(Contains(box, box, false));
-  assert(!Contains(box, box, true));
+  REQUIRE(Intersect(box, box, false));
+  REQUIRE(Intersect(box, box, true));
+  REQUIRE(Contains(box, box, false));
+  REQUIRE(!Contains(box, box, true));
 
   Ball<dim> ball(p1, 1);
 
@@ -84,20 +84,20 @@ void test_shape(const Point<dim>& p1, const Point<dim>& p2)
   test_general(ball);
   test_shape(ball);
 
-  assert(Intersect(ball, p1, false));
-  assert(Intersect(ball, p1, true));
+  REQUIRE(Intersect(ball, p1, false));
+  REQUIRE(Intersect(ball, p1, true));
 
-  assert(Intersect(ball, box, false));
-  assert(Intersect(ball, box, true));
-  assert(Contains(ball, box, false) == (sqr_dist <= 1));
-  assert(Contains(ball, box, true) == (sqr_dist < 1));
-  assert(!Contains(box, ball, false));
-  assert(!Contains(box, ball, true));
+  REQUIRE(Intersect(ball, box, false));
+  REQUIRE(Intersect(ball, box, true));
+  REQUIRE(Contains(ball, box, false) == (sqr_dist <= 1));
+  REQUIRE(Contains(ball, box, true) == (sqr_dist < 1));
+  REQUIRE(!Contains(box, ball, false));
+  REQUIRE(!Contains(box, ball, true));
 
-  assert(Intersect(ball, ball, false));
-  assert(Intersect(ball, ball, true));
-  assert(Contains(ball, ball, false));
-  assert(!Contains(ball, ball, true));
+  REQUIRE(Intersect(ball, ball, false));
+  REQUIRE(Intersect(ball, ball, true));
+  REQUIRE(Contains(ball, ball, false));
+  REQUIRE(!Contains(ball, ball, true));
 
   Segment<dim> seg(p1, p2);
 
@@ -106,27 +106,27 @@ void test_shape(const Point<dim>& p1, const Point<dim>& p2)
   test_general(seg);
   test_shape(seg);
 
-  assert(Intersect(seg, p1, false));
-  assert(!Intersect(seg, p1, true));
+  REQUIRE(Intersect(seg, p1, false));
+  REQUIRE(!Intersect(seg, p1, true));
 
-  assert(Intersect(seg, box, false));
-  assert(Intersect(seg, box, true));
-  assert(!Contains(seg, box, false));
-  assert(!Contains(seg, box, true));
-  assert(Contains(box, seg, false));
-  assert(!Contains(box, seg, true));
+  REQUIRE(Intersect(seg, box, false));
+  REQUIRE(Intersect(seg, box, true));
+  REQUIRE(!Contains(seg, box, false));
+  REQUIRE(!Contains(seg, box, true));
+  REQUIRE(Contains(box, seg, false));
+  REQUIRE(!Contains(box, seg, true));
 
-  assert(Intersect(seg, ball, false));
-  assert(Intersect(seg, ball, true));
-  assert(!Contains(seg, ball, false));
-  assert(!Contains(seg, ball, true));
-  assert(Contains(ball, seg, false) == (sqr_dist <= 1));
-  assert(Contains(ball, seg, true) == (sqr_dist < 1));
+  REQUIRE(Intersect(seg, ball, false));
+  REQUIRE(Intersect(seg, ball, true));
+  REQUIRE(!Contains(seg, ball, false));
+  REQUIRE(!Contains(seg, ball, true));
+  REQUIRE(Contains(ball, seg, false) == (sqr_dist <= 1));
+  REQUIRE(Contains(ball, seg, true) == (sqr_dist < 1));
 
-  assert(Intersect(seg, seg, false));
-  assert(Intersect(seg, seg, true));
-  assert(Contains(seg, seg, false));
-  assert(!Contains(seg, seg, true));
+  REQUIRE(Intersect(seg, seg, false));
+  REQUIRE(Intersect(seg, seg, true));
+  REQUIRE(Contains(seg, seg, false));
+  REQUIRE(!Contains(seg, seg, true));
 
   RotBox<dim> rbox(
       p1,
@@ -138,55 +138,54 @@ void test_shape(const Point<dim>& p1, const Point<dim>& p2)
   test_general(rbox);
   test_shape(rbox);
 
-  assert(Intersect(rbox, p1, false));
-  assert(!Intersect(rbox, p1, true));
+  REQUIRE(Intersect(rbox, p1, false));
+  REQUIRE(!Intersect(rbox, p1, true));
 
-  assert(Intersect(rbox, box, false));
-  assert(Intersect(rbox, box, true));
-  assert(!Contains(rbox, box, false));
-  assert(!Contains(rbox, box, true));
-  assert(!Contains(box, rbox, false));
-  assert(!Contains(box, rbox, true));
+  REQUIRE(Intersect(rbox, box, false));
+  REQUIRE(Intersect(rbox, box, true));
+  REQUIRE(!Contains(rbox, box, false));
+  REQUIRE(!Contains(rbox, box, true));
+  REQUIRE(!Contains(box, rbox, false));
+  REQUIRE(!Contains(box, rbox, true));
 
-  assert(Intersect(rbox, ball, false));
-  assert(Intersect(rbox, ball, true));
-  assert(!Contains(rbox, ball, false));
-  assert(!Contains(rbox, ball, true));
-  assert(Contains(ball, rbox, false) == (sqr_dist <= 1));
-  assert(Contains(ball, rbox, true) == (sqr_dist < 1));
+  REQUIRE(Intersect(rbox, ball, false));
+  REQUIRE(Intersect(rbox, ball, true));
+  REQUIRE(!Contains(rbox, ball, false));
+  REQUIRE(!Contains(rbox, ball, true));
+  REQUIRE(Contains(ball, rbox, false) == (sqr_dist <= 1));
+  REQUIRE(Contains(ball, rbox, true) == (sqr_dist < 1));
 
-  assert(Intersect(rbox, seg, false));
+  REQUIRE(Intersect(rbox, seg, false));
   // The next function may either succeed or fail, depending on the points passed.
   Intersect(rbox, seg, true);
-  assert(!Contains(rbox, seg, false));
-  assert(!Contains(rbox, seg, true));
-  assert(!Contains(seg, rbox, false));
-  assert(!Contains(seg, rbox, true));
+  REQUIRE(!Contains(rbox, seg, false));
+  REQUIRE(!Contains(rbox, seg, true));
+  REQUIRE(!Contains(seg, rbox, false));
+  REQUIRE(!Contains(seg, rbox, true));
 
-  assert(Intersect(rbox, rbox, false));
-  assert(Intersect(rbox, rbox, true));
-  assert(Contains(rbox, rbox, false));
-  assert(!Contains(rbox, rbox, true));
+  REQUIRE(Intersect(rbox, rbox, false));
+  REQUIRE(Intersect(rbox, rbox, true));
+  REQUIRE(Contains(rbox, rbox, false));
+  REQUIRE(!Contains(rbox, rbox, true));
 
   // Rotated box with no rotation should behave like an axis-aligned box
   RotBox<dim> aligned(p1, p2 - p1, RotMatrix<dim>().identity());
-  assert(Intersect(aligned, box, true));
-  assert(Contains(aligned, box, false));
-  assert(Contains(box, aligned, false));
+  REQUIRE(Intersect(aligned, box, true));
+  REQUIRE(Contains(aligned, box, false));
+  REQUIRE(Contains(box, aligned, false));
 
   // Degenerate segment represented by a single point
   Segment<dim> degenerate(p1, p1);
-  assert(Intersect(degenerate, p1, false));
-  assert(Contains(box, degenerate, false));
-  assert(Contains(ball, degenerate, false));
+  REQUIRE(Intersect(degenerate, p1, false));
+  REQUIRE(Contains(box, degenerate, false));
+  REQUIRE(Contains(ball, degenerate, false));
 }
 
-int main()
+TEST_CASE("shape_test")
 {
   test_shape(Point<2>(1, -1),
              Point<2>().setToOrigin());
   test_shape(Point<3>(1, -1, numeric_constants<CoordType>::sqrt2()),
              Point<3>().setToOrigin());
 
-  return 0;
-}
+  }

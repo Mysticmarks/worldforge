@@ -58,14 +58,14 @@ TimeDiff::TimeDiff(std::int64_t sec, std::int64_t usec, bool is_valid)
 TimeDiff::TimeDiff(std::int64_t msec)
     : m_isvalid(true) {
     using namespace std::chrono;
-    auto dur = milliseconds(msec);
+    auto dur = std::chrono::milliseconds(msec);
     m_sec = duration_cast<seconds>(dur).count();
     m_usec = duration_cast<microseconds>(dur - seconds(m_sec)).count();
 }
 
 std::int64_t TimeDiff::milliseconds() const {
     using namespace std::chrono;
-    return duration_cast<milliseconds>(seconds(m_sec) + microseconds(m_usec)).count();
+    return duration_cast<std::chrono::milliseconds>(seconds(m_sec) + microseconds(m_usec)).count();
 }
 
 TimeDiff& operator+=(TimeDiff& val, const TimeDiff& d) {
