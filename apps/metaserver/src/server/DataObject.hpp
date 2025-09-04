@@ -33,6 +33,7 @@
 #include <map>
 #include <list>
 #include <vector>
+#include <set>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/algorithm/string.hpp>
 #include <algorithm>
@@ -116,9 +117,12 @@ public:
 
 	uint32_t createServerSessionListresp(std::string ip = "default");
 
-	std::list<std::string> getServerSessionCacheList();
+        std::list<std::string> getServerSessionCacheList();
 
-	std::string getServerExpiryIso(std::string& sessionid);
+        std::string getServerExpiryIso(std::string& sessionid);
+
+        bool aclAdminCheck(const std::string& ip) const;
+        void addAdminACL(const std::string& ip);
 
 private:
 	/**
@@ -150,10 +154,12 @@ private:
 	std::map<std::string, std::vector<std::string> > m_serverListreq;
 	std::map<std::string, std::string> m_listreqExpiry;
 
-	std::map<std::string, std::map<std::string, std::string> > m_clientData;
-	std::map<std::string, std::map<std::string, std::string> > m_clientFilterData;
+        std::map<std::string, std::map<std::string, std::string> > m_clientData;
+        std::map<std::string, std::map<std::string, std::string> > m_clientFilterData;
 
-	std::map<unsigned int, std::map<std::string, std::string> > m_handshakeQueue;
+        std::map<unsigned int, std::map<std::string, std::string> > m_handshakeQueue;
+
+        std::set<std::string> m_adminACL;
 
 
 };

@@ -1023,15 +1023,17 @@ MetaServer::processADMINREQ(const MetaServerPacket& in, MetaServerPacket& out) {
 	uint32_t sub_type = in.getIntData(4);
 	uint32_t in_addr;
 	unsigned int in_port;
-	std::stringstream ss;
-	std::string out_msg;
+        std::stringstream ss;
+        std::string out_msg;
 
-	spdlog::trace("processADMINREQ({})", sub_type);
-
-	/*
-	 * TODO: add in acl check, deny immediately if appropriate
-	 */
-	// msdo.aclAdminCheck(ip) || return ERR
+        spdlog::trace("processADMINREQ({})", sub_type);
+        std::string ip = in.getAddressStr();
+        if (!msdo.aclAdminCheck(ip)) {
+                out.setPacketType(NMT_ADMINRESP);
+                out.addPacketData(sub_type);
+                out.addPacketData(NMT_ADMINRESP_DENIED);
+                return;
+        }
 
         out.setPacketType(NMT_ADMINRESP);
 
