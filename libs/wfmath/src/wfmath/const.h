@@ -28,6 +28,8 @@
 
 #include <limits>
 
+// TODO: Remove unused includes to reduce compile overhead.
+
 #ifdef _MSC_VER
 #if _MSC_VER < 1500
 #error "You are using an older version of MSVC++ with extremely poor"
