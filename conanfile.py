@@ -70,43 +70,43 @@ class Worldforge(ConanFile):
 
         if not is_msvc(self):
             # Just use a more recent version
-            self.requires("pkgconf/2.2.0", force=True)
+            self.requires("pkgconf/[>=2.2.0 <3.0]", force=True)
 
-        self.requires("libsigcpp/3.0.7")
-        self.requires("libcurl/8.12.1")
-        self.requires("spdlog/1.15.3")
-        self.requires("cli11/2.5.0")
-        self.requires("boost/1.87.0")
-        self.requires("ms-gsl/4.1.0")
+        self.requires("libsigcpp/[>=3.0.7 <4.0]")
+        self.requires("libcurl/[>=8.12.1 <9.0]")
+        self.requires("spdlog/[>=1.15.3 <2.0]")
+        self.requires("cli11/[>=2.5.0 <3.0]")
+        self.requires("boost/[>=1.87.0 <2.0]")
+        self.requires("ms-gsl/[>=4.1.0 <5.0]")
 
-        self.requires("zlib/1.3.1")
-        self.requires("bzip2/1.0.8")
+        self.requires("zlib/[>=1.3.1 <2.0]")
+        self.requires("bzip2/[>=1.0.8 <2.0]")
 
         if self.options.with_client or self.options.with_server:
-            self.requires("bullet3/2.89")
-            self.requires("libffi/3.4.8", force=True) #Needed to resolve conflict between cpython and sdl
+            self.requires("bullet3/[>=2.89 <3.0]")
+            self.requires("libffi/3.4.8", force=True) # Needed to resolve conflict between cpython and sdl
 
         if self.options.with_client:
             self.requires("cegui/0.8.7@worldforge")
             self.requires("ogre-next/2.3.0@worldforge")
-            self.requires("sdl/3.2.14")
-            self.requires("lua/5.3.6")
-            self.requires("vorbis/1.3.7")
+            self.requires("sdl/[>=3.2.14 <4.0]")
+            self.requires("lua/[>=5.3.6 <6.0]")
+            self.requires("vorbis/[>=1.3.7 <2.0]")
 
             if not is_msvc(self):
-                self.requires("libunwind/1.8.1", force=True)
+                self.requires("libunwind/[>=1.8.1 <2.0]", force=True)
 
         if self.options.with_server:
             self.requires("worldforge-worlds/0.1.0@worldforge")
-            self.requires("libgcrypt/1.10.3")
-            self.requires("sqlite3/3.49.1", force=True)
-            self.requires("readline/8.2")
-            self.requires("cpython/3.12.2")
+            self.requires("libgcrypt/[>=1.10.3 <2.0]")
+            self.requires("sqlite3/[>=3.49.1 <4.0]", force=True)
+            self.requires("readline/[>=8.2 <9.0]")
+            self.requires("cpython/[>=3.12.2 <3.13]")
 
         # self.requires("avahi/0.8")
 
-        self.test_requires("cppunit/1.15.1")
-        self.test_requires("catch2/3.8.1")
+        self.test_requires("cppunit/[>=1.15.1 <2.0]")
+        self.test_requires("catch2/[>=3.8.1 <4.0]")
 
     def generate(self):
         deps = CMakeDeps(self)

@@ -178,6 +178,17 @@ For example:
 conan install -s build_type=Debug . --build missing -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True -o "widgets_as_plugins=True"
 ```
 
+## Dependency version policy
+
+Dependencies in `conanfile.py` are expressed as compatible version
+ranges rather than fixed pins. This allows minor and patch updates while
+the `conan.lock` file keeps builds reproducible. A scheduled GitHub
+Action runs weekly to execute `tools/check_dependencies.py`, updating the
+lock file and verifying that new versions resolve correctly. Raise the
+minimum version only when required and adjust the upper bound when
+adopting a new major release, committing the refreshed lock file along
+with the change.
+
 ## Running a server
 
 To get a server running you need to build the project and then start the "cyphesis" artifact.
