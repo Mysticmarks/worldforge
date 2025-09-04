@@ -31,6 +31,7 @@
  */
 #include <boost/bind.hpp>
 #include <boost/asio/placeholders.hpp>
+#include <boost/asio/error.hpp>
 #include <spdlog/spdlog.h>
 
 MetaServerHandlerUDP::MetaServerHandlerUDP(MetaServer& ms,
@@ -149,11 +150,16 @@ MetaServerHandlerUDP::handle_send(const MetaServerPacket&, const boost::system::
  * @param error
  */
 void
-MetaServerHandlerUDP::process_outbound(const boost::system::error_code&) {
-	//TODO: should we check for errors?
-	boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
-	boost::posix_time::time_duration duration(now.time_of_day());
-	auto tick = duration.total_milliseconds();
+MetaServerHandlerUDP::process_outbound(const boost::system::error_code& error) {
+        if (error) {
+                spdlog::error("Outbound processing failed: {}", error.message());
+                if (error == boost::asio::error::operation_aborted) {
+                        return;
+                }
+        }
+        boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
+        boost::posix_time::time_duration duration(now.time_of_day());
+        auto tick = duration.total_milliseconds();
 
 	/*
 	 *  Process the outbound response packets

@@ -35,6 +35,8 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 
+#include <boost/asio/error.hpp>
+
 /*
  * Forward Declarations
  */
@@ -46,6 +48,8 @@ class MetaServerHandlerUDP_unittest : public CppUnit::TestCase {
 CPPUNIT_TEST_SUITE(MetaServerHandlerUDP_unittest);
                 CPPUNIT_TEST(testConstructor);
                 CPPUNIT_TEST(testResponseLifetime);
+                CPPUNIT_TEST(testProcessOutboundAbort);
+                CPPUNIT_TEST(testProcessOutboundRetry);
         CPPUNIT_TEST_SUITE_END();
 public:
 	MetaServerHandlerUDP_unittest() {
@@ -92,6 +96,20 @@ public:
 
                 MetaServerPacket rsp(reply, len);
                 CPPUNIT_ASSERT_EQUAL(NMT_HANDSHAKE, rsp.getPacketType());
+        }
+
+        void testProcessOutboundAbort() {
+                CPPUNIT_ASSERT_EQUAL(0UL, ms_udp->getOutboundTick());
+                boost::system::error_code ec = boost::asio::error::operation_aborted;
+                ms_udp->process_outbound(ec);
+                CPPUNIT_ASSERT_EQUAL(0UL, ms_udp->getOutboundTick());
+        }
+
+        void testProcessOutboundRetry() {
+                CPPUNIT_ASSERT_EQUAL(0UL, ms_udp->getOutboundTick());
+                boost::system::error_code ec = boost::asio::error::fault;
+                ms_udp->process_outbound(ec);
+                CPPUNIT_ASSERT(ms_udp->getOutboundTick() > 0);
         }
 };
 
