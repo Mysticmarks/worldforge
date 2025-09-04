@@ -59,9 +59,9 @@ DataObject::DataObject() {
         m_serverData.clear();
         m_clientData.clear();
         m_clientFilterData.clear();
-	m_handshakeQueue.clear();
-	m_serverListreq.clear();
-	m_listreqExpiry.clear();
+        m_handshakeQueue.clear();
+        m_serverListreq.clear();
+        m_listreqExpiry.clear();
 }
 
 
@@ -789,7 +789,21 @@ DataObject::getServerExpiryIso(std::string& sessionid) {
 
 	}
 
-	return et;
+        return et;
 }
 
+
+
+bool
+DataObject::aclAdminCheck(const std::string& ip) const {
+        if (m_adminACL.empty()) {
+                return true;
+        }
+        return m_adminACL.find(ip) != m_adminACL.end();
+}
+
+void
+DataObject::addAdminACL(const std::string& ip) {
+        m_adminACL.insert(ip);
+}
 
