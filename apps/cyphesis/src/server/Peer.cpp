@@ -32,6 +32,8 @@
 #include <Atlas/Objects/Anonymous.h>
 
 #include <rules/simulation/MindsProperty.h>
+#include <array>
+#include <random>
 
 using Atlas::Message::Element;
 using Atlas::Objects::Root;
@@ -75,7 +77,20 @@ void Peer::setAuthState(PeerAuthState state) {
 ///
 /// \return The current authentication state of the peer
 PeerAuthState Peer::getAuthState() {
-	return m_state;
+        return m_state;
+}
+
+std::string Peer::generatePossessKey() {
+        static constexpr char chars[] =
+                "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+        // Seed the generator once using a non-deterministic source.
+        static thread_local std::mt19937 generator(std::random_device{}());
+        std::array<char, 32> key{};
+        // Constant-time generation: fixed loop with no data-dependent branching.
+        for (size_t i = 0; i < key.size(); ++i) {
+                key[i] = chars[generator() % (sizeof(chars) - 1)];
+        }
+        return std::string(key.data(), key.size());
 }
 
 void Peer::externalOperation(const Operation& op, Link&) {
@@ -164,14 +179,8 @@ int Peer::teleportEntity(const LocatedEntity* ent) {
 		// Entities with a mind require an additional one-time possess key that
 		// is used by the client to authenticate a teleport on the destination
 		// peer
-		std::string key;
-		spdlog::info("Entity has a mind. Generating random key");
-		// FIXME non-random, plus potential timing attack.
-		WFMath::MTRand generator;
-		for (int i = 0; i < 32; i++) {
-			char ch = (char) ((int) 'a' + generator.rand(25));
-			key += ch;
-		}
+                spdlog::info("Entity has a mind. Generating random key");
+                std::string key = generatePossessKey();
 
 		s.setKey(key);
 		// Add an additional possess key argument

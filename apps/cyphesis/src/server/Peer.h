@@ -58,13 +58,15 @@ protected:
 	std::map<long, TeleportState> m_teleports;
 
 public:
-	/// The server routing object of this server.
-	ServerRouting& m_server;
+        /// The server routing object of this server.
+        ServerRouting& m_server;
 
-	Peer(CommSocket& client, ServerRouting& svr,
-		 const std::string& addr, int port, RouterId id);
+        Peer(CommSocket& client, ServerRouting& svr,
+                 const std::string& addr, int port, RouterId id);
 
-	~Peer() override;
+        ~Peer() override;
+
+        static std::string generatePossessKey();
 
 	void setAuthState(PeerAuthState state);
 

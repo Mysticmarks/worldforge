@@ -494,6 +494,7 @@ wf_add_test(server/ConnectionTest.cpp ../src/server/Connection.cpp)
 wf_add_test(server/TrustedConnectionTest.cpp ../src/server/TrustedConnection.cpp)
 wf_add_test(server/WorldRouterTest.cpp ../src/rules/simulation/WorldRouter.cpp)
 wf_add_test(server/PeerTest.cpp ../src/server/Peer.cpp)
+wf_add_test(server/PossessKeyTest.cpp ../src/server/Peer.cpp)
 wf_add_test(server/LobbyTest.cpp ../src/server/Lobby.cpp)
 
 
