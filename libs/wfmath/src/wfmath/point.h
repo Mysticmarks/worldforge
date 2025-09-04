@@ -233,12 +233,19 @@ public:
 	/// Access the i'th coordinate of the point
 	CoordType& operator[](const int i) { return m_elem[i]; }
 
-	/// Get the square of the distance from p1 to p2
-	friend CoordType SquaredDistance<dim>(const Point& p1, const Point& p2);
+        /// Get the square of the distance from p1 to p2
+        friend CoordType SquaredDistance<dim>(const Point& p1, const Point& p2);
 
-// FIXME instatiation problem when declared as friend
-//  template<template<class> class container>
-//  friend Point Barycenter(const container<Point>& c);
+        /// Allow Barycenter helper functions access to private members
+        template<int d, template<class, class> class container>
+        friend Point<d> Barycenter(
+                const container<Point<d>, std::allocator<Point<d>>>& c);
+
+        template<int d, template<class, class> class container,
+                 template<class, class> class container2>
+        friend Point<d> Barycenter(
+                const container<Point<d>, std::allocator<Point<d>>>& c,
+                const container2<CoordType, std::allocator<CoordType>>& weights);
 
 	/// Find a point on the line containing p1 and p2, by default the midpoint
 	/**
