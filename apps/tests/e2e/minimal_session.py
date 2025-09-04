@@ -134,8 +134,12 @@ def main() -> int:
         text=True,
     )
     processes.append(client)
-    client.wait(timeout=60)
-    output = client.stdout.read() if client.stdout else ""
+    try:
+        stdout, _ = client.communicate(timeout=60)
+    except subprocess.TimeoutExpired:
+        client.kill()
+        stdout, _ = client.communicate()
+        raise
 
     if "Connected" not in output and client.returncode != 0:
         raise RuntimeError(f"ember failed to connect to cyphesis on port {port}")
