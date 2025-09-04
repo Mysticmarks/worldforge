@@ -1003,43 +1003,46 @@ MetaServer::processADMINREQ(const MetaServerPacket& in, MetaServerPacket& out) {
 	 */
 	// msdo.aclAdminCheck(ip) || return ERR
 
-	out.setPacketType(NMT_ADMINRESP);
+        out.setPacketType(NMT_ADMINRESP);
 
-	switch (sub_type) {
-		case NMT_ADMINREQ_ENUMERATE:
-			spdlog::trace("NMT_ADMINREQ_ENUMERATE : {}", m_adminCommandSet.size());
-			out.addPacketData(NMT_ADMINRESP_ENUMERATE);
-			out.addPacketData(m_adminCommandSet.size());
-			for (auto& p: m_adminCommandSet) {
-				out.addPacketData(p.length());
-				out_msg.append(p);
-			}
-			out.addPacketData(out_msg);
-			break;
-		case NMT_ADMINREQ_ADDSERVER:
-			in_addr = in.getIntData(8);
-			in_port = in.getIntData(12);
+        switch (sub_type) {
+                case NMT_ADMINREQ_ENUMERATE:
+                        spdlog::trace("NMT_ADMINREQ_ENUMERATE : {}", m_adminCommandSet.size());
+                        out.addPacketData(NMT_ADMINRESP_ENUMERATE);
+                        out.addPacketData(NMT_ADMINRESP_ACK);
+                        out.addPacketData(m_adminCommandSet.size());
+                        for (auto& p: m_adminCommandSet) {
+                                out.addPacketData(p.length());
+                                out_msg.append(p);
+                        }
+                        out.addPacketData(out_msg);
+                        break;
+                case NMT_ADMINREQ_ADDSERVER:
+                        in_addr = in.getIntData(8);
+                        in_port = in.getIntData(12);
 
-			/*
-			 * Convert IP
-			 */
-			out.setAddress(IpNetToAscii(in_addr), in_addr);
-			out.setPort(in_port);
-			msdo.addServerSession(out.getAddress());
+                        /*
+                         * Convert IP
+                         */
+                        out.setAddress(IpNetToAscii(in_addr), in_addr);
+                        out.setPort(in_port);
+                        msdo.addServerSession(out.getAddress());
 
-			ss << in_port;
-			msdo.addServerAttribute(out.getAddress(), "port", ss.str());
-			ss.str("");
-			ss << in_addr;
-			msdo.addServerAttribute(out.getAddress(), "ip_int", ss.str());
-			out.addPacketData(NMT_ADMINRESP_ADDSERVER);
-			out.addPacketData(in_addr);
-			out.addPacketData(in_port);
-			break;
-		default:
-			spdlog::trace("NMT_ADMINRESP_ERR");
-			out.addPacketData(NMT_ADMINRESP_ERR);
-	}
+                        ss << in_port;
+                        msdo.addServerAttribute(out.getAddress(), "port", ss.str());
+                        ss.str("");
+                        ss << in_addr;
+                        msdo.addServerAttribute(out.getAddress(), "ip_int", ss.str());
+                        out.addPacketData(NMT_ADMINRESP_ADDSERVER);
+                        out.addPacketData(NMT_ADMINRESP_ACK);
+                        out.addPacketData(in_addr);
+                        out.addPacketData(in_port);
+                        break;
+                default:
+                        spdlog::trace("NMT_ADMINRESP_ERR");
+                        out.addPacketData(sub_type);
+                        out.addPacketData(NMT_ADMINRESP_ERR);
+        }
 
 }
 
