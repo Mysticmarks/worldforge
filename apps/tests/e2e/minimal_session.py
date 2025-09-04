@@ -100,13 +100,21 @@ def main() -> int:
         raise RuntimeError("cyphesis did not start in time")
 
     # Ensure the database has been cleaned before running tests.
+    # Use a short connection timeout to fail fast when the database is unreachable.
+    conn = None
     try:
         import psycopg
-        conn = psycopg.connect("dbname=cyphesis")
+        try:
+            conn = psycopg.connect("dbname=cyphesis", connect_timeout=5)
+        except psycopg.OperationalError as exc:
+            print(f"Database unavailable: {exc}")
     except Exception:
         try:
             import psycopg2 as psycopg
-            conn = psycopg.connect(dbname="cyphesis")
+            try:
+                conn = psycopg.connect(dbname="cyphesis", connect_timeout=5)
+            except psycopg.OperationalError as exc:
+                print(f"Database unavailable: {exc}")
         except Exception:
             conn = None
     if conn is not None:
