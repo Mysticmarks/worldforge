@@ -50,9 +50,11 @@ public:
 
 	void handle_receive(const boost::system::error_code& error, std::size_t);
 
-	static void handle_send(const MetaServerPacket& p, const boost::system::error_code& error, std::size_t);
+        static void handle_send(const MetaServerPacket& p, const boost::system::error_code& error, std::size_t);
 
-	void process_outbound(const boost::system::error_code& error);
+        void process_outbound(const boost::system::error_code& error);
+
+        unsigned long getOutboundTick() const { return m_outboundTick; }
 
 
 private:
