@@ -105,6 +105,10 @@ tar -xzf prebuilt.tar.gz
 
 Artifacts are published only for workflow runs where all tests pass.
 
+### CI warning policy
+
+Continuous integration builds use a trimmed warning set so important diagnostics remain visible without overwhelming the logs. When the `CI` environment variable is present the build enables `-Wall -Wextra` (or `/W3` on MSVC). For particularly sensitive targets you can pass `-DWF_STRICT_CI_WARNINGS=ON` to also enable `-Werror`.
+
 ### CMake < 3.23
 
 If your CMake tool is an earlier version, < 3.23, you can't use the "presets" system with Conan. Instead you have to
