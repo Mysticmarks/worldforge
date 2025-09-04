@@ -223,31 +223,48 @@ Ref<MemEntity> MemMap::del(const std::string& id)
 
 	m_unresolvedEntities.erase(id);
 
-	auto I = m_entities.find(int_id);
-	if (I != m_entities.end()) {
-		auto ent = I->second;
-		assert(ent);
+        auto I = m_entities.find(int_id);
+        if (I != m_entities.end()) {
+                auto ent = I->second;
+                assert(ent);
 
-		long next = -1;
-		if (m_checkIterator != m_entities.end()) {
-			next = m_checkIterator->first;
-		}
-		m_entities.erase(I);
+                long next = -1;
+                if (m_checkIterator != m_entities.end()) {
+                        next = m_checkIterator->first;
+                }
 
+                m_entities.erase(I);
 
-		if (next != -1) {
-			m_checkIterator = m_entities.find(next);
-		} else {
-			m_checkIterator = m_entities.begin();
-		}
+                if (next != -1) {
+                        m_checkIterator = m_entities.find(next);
+                } else {
+                        m_checkIterator = m_entities.begin();
+                }
 
-		//Only signal for those entities that have resolved types.
-		if (ent->getType() && m_listener) {
-			m_listener->entityDeleted(*ent);
-		}
-		ent->destroy();
-		return ent;
-	}
+                // Detach from parent and re-parent children if needed.
+                auto parent = ent->m_parent;
+                if (parent) {
+                        parent->removeChild(*ent);
+                }
+                for (auto& child : ent->m_contains) {
+                        if (parent) {
+                                parent->addChild(*child);
+                        } else {
+                                child->m_parent = nullptr;
+                        }
+                }
+                ent->m_contains.clear();
+                ent->m_parent = nullptr;
+
+                //Only signal for those entities that have resolved types.
+                if (ent->getType() && m_listener) {
+                        m_listener->entityDeleted(*ent);
+                }
+
+                // Mark the entity as destroyed without touching children.
+                ent->destroy();
+                return ent;
+        }
 
 	return {};
 }
@@ -446,27 +463,17 @@ EntityVector MemMap::findByLocation(const EntityLocation<MemEntity>& loc,
 
 void MemMap::check(std::chrono::milliseconds time) {
 	//Check if the entity hasn't been seen the last 600 seconds, and if so removes it.
-	if (m_checkIterator == m_entities.end()) {
-		m_checkIterator = m_entities.begin();
-	} else {
-		auto me = m_checkIterator->second;
-		assert(me);
-		if (me->getType() && (time - me->lastSeen()) > std::chrono::seconds(600) &&
-			(!me->m_contains.empty())) {
-			m_checkIterator = m_entities.erase(m_checkIterator);
-
-			if (me->m_parent) {
-				me->m_parent->removeChild(*me);
-				me->m_parent = nullptr;
-			}
-
-		} else {
-			cy_debug_print(me->describeEntity() << "|"
-												<< me->lastSeen().count()
-												<< " is fine")
-			++m_checkIterator;
-		}
-	}
+        if (m_checkIterator == m_entities.end()) {
+                m_checkIterator = m_entities.begin();
+        } else {
+                auto current = m_checkIterator++;
+                auto me = current->second;
+                assert(me);
+                if (me->getType() && (time - me->lastSeen()) > std::chrono::seconds(600) &&
+                        me->m_contains.empty()) {
+                        del(me->getIdAsString());
+                }
+        }
 }
 
 void MemMap::flush() {
