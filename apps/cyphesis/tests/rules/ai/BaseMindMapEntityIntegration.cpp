@@ -96,8 +96,6 @@ void BaseMindMapEntityintegration::teardown() {
 }
 
 void BaseMindMapEntityintegration::test_MemMapdel_top() {
-	//HACK: Disabled for now as we've disabled the deletion of entities from the mind. See MemMap::del(...)
-	return;
 	Ref<MemEntity> tlve = new MemEntity(0, nullptr);
 	tlve->m_contains.clear();
 	m_mind->m_map.m_entities[0] = tlve;
@@ -125,8 +123,6 @@ void BaseMindMapEntityintegration::test_MemMapdel_top() {
 }
 
 void BaseMindMapEntityintegration::test_MemMapdel_mid() {
-	//HACK: Disabled for now as we've disabled the deletion of entities from the mind. See MemMap::del(...)
-	return;
 	Ref<MemEntity> tlve = new MemEntity(0, nullptr);
 	tlve->m_contains.clear();
 	m_mind->m_map.m_entities[0] = tlve;
@@ -159,8 +155,6 @@ void BaseMindMapEntityintegration::test_MemMapdel_mid() {
 }
 
 void BaseMindMapEntityintegration::test_MemMapdel_edge() {
-	//HACK: Disabled for now as we've disabled the deletion of entities from the mind. See MemMap::del(...)
-	return;
 	Ref<MemEntity> tlve = new MemEntity(0, nullptr);
 	tlve->m_contains.clear();
 	m_mind->m_map.m_entities[0] = tlve;
@@ -314,17 +308,14 @@ void BaseMindMapEntityintegration::test_MemMapcheck() {
 	// We have set up e3 so it is due to be purged from memory.
 	m_mind->m_map.check(time);
 
-	//TODO: Enable this check again, as we've disabled removal of entities from MemMap since there are issues
-	// Check it has been removed
-	//ASSERT_TRUE(e2->m_contains.find(e3) == e2->m_contains.end());
-	//ASSERT_TRUE(tlve->m_contains.find(e3) == tlve->m_contains.end());
+        // Check it has been removed
+        ASSERT_TRUE(e2->m_contains.find(e3) == e2->m_contains.end());
+        ASSERT_TRUE(tlve->m_contains.find(e3) == tlve->m_contains.end());
 
-	//TODO: Enable this check again, as we've disabled removal of entities from MemMap since there are issues
-	// Check the reference we have is the only one remaining
-	//ASSERT_NULL(e3->m_parent)
+        // Check the reference we have is the only one remaining
+        ASSERT_NULL(e3->m_parent);
 
-	//TODO: Enable this check again; it's disabled since we've disabled ref decrements in MemMap, since the knowledge code doesn't handle entity references correctly.
-	//ASSERT_EQUAL(e3->checkRef(), 0);
+        ASSERT_EQUAL(e3->checkRef(), 0);
 }
 
 int main() {
