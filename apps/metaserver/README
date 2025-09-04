@@ -16,12 +16,35 @@
  This is as always, a work-in-progress.  If you have questions / comments / suggestions, please feel free to contact any of the WorldForge folks as detailed on http://worldforge.org
 
 
- Installation
- ------------
+Installation
+------------
 
- The usual:
-	- checkout from github, or download a dist package
-	- autogen.sh && configure && make && make install
+The MetaServer is built with the same CMake and Conan workflow used by
+the rest of WorldForge.
+
+Dependency setup:
+
+       conan profile detect --force
+       conan remote add worldforge https://artifactory.ogenvik.org/artifactory/api/conan/conan-local
+       conan install . --build missing -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
+
+Build and installation:
+
+       cmake --preset conan-release -DBUILD_METASERVER_SERVER=ON -DCMAKE_INSTALL_PREFIX=./build/install/release
+       cmake --build --preset conan-release -j --target metaserver-ng
+       cmake --build --preset conan-release -j --target install
+
+The MetaServer server is disabled by default.  Enable it by passing
+`-DBUILD_METASERVER_SERVER=ON` to the CMake configuration step.  To build
+only the MetaServer server, disable the main client and server
+components during dependency setup:
+
+       conan install . -o Worldforge/*:with_client=False -o Worldforge/*:with_server=False --build missing \
+           -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
+
+Tests can be run with:
+
+       cmake --build --preset conan-release --target check
 
  MetaServer Overview
  -------------------
