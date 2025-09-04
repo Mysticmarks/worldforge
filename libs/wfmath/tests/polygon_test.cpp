@@ -202,6 +202,40 @@ void test_self_intersection()
 }
 
 /**
+ * Test robustness against round-off errors on nearly parallel edges.
+ */
+void test_roundoff()
+{
+  Polygon<2> near_vertical;
+  near_vertical.addCorner(0, Point<2>(0, 0));
+  near_vertical.addCorner(1, Point<2>(1e-9, 1));
+  near_vertical.addCorner(2, Point<2>(1, 1));
+  near_vertical.addCorner(3, Point<2>(1, 0));
+  near_vertical.isValid();
+
+  AxisBox<2> box_v(Point<2>(5e-10, 0.5), Point<2>(0.6, 0.6));
+  assert(Intersect(near_vertical, box_v, false));
+  assert(Intersect(near_vertical, Point<2>(5e-10, 0.5), false));
+  AxisBox<2> box_v_out(Point<2>(-1e-9, 0.5), Point<2>(-5e-10, 0.6));
+  assert(!Intersect(near_vertical, box_v_out, false));
+  assert(!Intersect(near_vertical, Point<2>(-5e-10, 0.5), false));
+
+  Polygon<2> near_horizontal;
+  near_horizontal.addCorner(0, Point<2>(0, 0));
+  near_horizontal.addCorner(1, Point<2>(1, 1e-9));
+  near_horizontal.addCorner(2, Point<2>(1, 1));
+  near_horizontal.addCorner(3, Point<2>(0, 1));
+  near_horizontal.isValid();
+
+  AxisBox<2> box_h(Point<2>(0.5, 5e-10), Point<2>(0.6, 0.6));
+  assert(Intersect(near_horizontal, box_h, false));
+  assert(Intersect(near_horizontal, Point<2>(0.5, 5e-10), false));
+  AxisBox<2> box_h_out(Point<2>(0.5, -1e-9), Point<2>(0.6, -5e-10));
+  assert(!Intersect(near_horizontal, box_h_out, false));
+  assert(!Intersect(near_horizontal, Point<2>(0.5, -5e-10), false));
+}
+
+/**
  * Test rotation and translation of polygons.
  */
 void test_transformations()
@@ -292,6 +326,7 @@ int main()
 
   test_concave_polygon();
   test_self_intersection();
+  test_roundoff();
   test_transformations();
   test_polygon_with_hole();
 
