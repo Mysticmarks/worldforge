@@ -32,19 +32,18 @@
 
 #include "wfmath/ball.h"
 
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 
 using namespace WFMath;
 
-int main()
+TEST_CASE("ball_test")
 {
   Ball<2> b1(Point<2>(0,0), 1);
 
-  assert(b1.isValid());
+  REQUIRE(b1.isValid());
 
   Ball<2> b2(Point<2>(0,0), -1);
 
-  assert(!b2.isValid());
+  REQUIRE(!b2.isValid());
 
-  return 0;
-}
+  }

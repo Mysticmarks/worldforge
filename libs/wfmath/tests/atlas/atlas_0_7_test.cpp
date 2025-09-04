@@ -26,7 +26,7 @@
 #include <Atlas/Message/Element.h>
 #include "wfmath/atlasconv.h"
 #include "wfmath/stream.h"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 using namespace WFMath;
 
 template<class C>
@@ -35,13 +35,13 @@ void atlas_test(const C& c)
   std::cout << c << std::endl;
   Atlas::Message::Element a = c.toAtlas();
   C out(a);
-  assert(out.isValid());
+  REQUIRE(out.isValid());
   std::cout << out << std::endl;
   // Only match to string precision
-  assert(Equal(c, out, FloatMax(numeric_constants<CoordType>::epsilon(),1e-5)));
+  REQUIRE(Equal(c, out, FloatMax(numeric_constants<CoordType>::epsilon(),1e-5)));
 }
 
-int main()
+TEST_CASE("atlas_0_7_test")
 {
   Point<3> p(1, 0, numeric_constants<CoordType>::sqrt2());
   atlas_test(p);
@@ -80,5 +80,4 @@ int main()
   RotBox<2> rotbox(Point<2>(1, 2), Vector<2>(10, 20), rot);
   atlas_test(rotbox);
 
-  return 0;
-}
+  }

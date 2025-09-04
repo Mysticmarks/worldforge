@@ -6,53 +6,36 @@
 #endif
 
 
+// timestamp_test.cpp - TimeStamp related tests
+
 #include <wfmath/timestamp.h>
 #include <stdlib.h>
 #include <iostream>
+#include <catch2/catch_test_macros.hpp>
 
 using namespace WFMath;
-using std::cout;
-using std::endl;
 
-int main()
+TEST_CASE("timestamp_test")
 {
-
     TimeStamp tsa;
-    if (tsa.isValid()) {
-        cout << "default constructor returned valid" << endl;
-        return EXIT_FAILURE;
-    }
-    
+    CHECK_FALSE(tsa.isValid());
+
     tsa += TimeDiff(50);
-    if (tsa.isValid()) {
-        cout << "invalid stamp += valid time diff returned valid" << endl;
-        return EXIT_FAILURE;
-    }
-    
+    CHECK_FALSE(tsa.isValid());
+
     tsa = TimeStamp::now();
-    if (!tsa.isValid()) return EXIT_FAILURE;
-    
+    CHECK(tsa.isValid());
+
     tsa += TimeDiff();
-    if (tsa.isValid()) {
-        cout << "valid time += invalid diff returned valid" << endl;
-        return EXIT_FAILURE;
-    }
-    
+    CHECK_FALSE(tsa.isValid());
+
     TimeDiff tda(1000);
-    if (!tda.isValid()) {
-        cout << "construct diff from literal msecs is broken" << endl;
-        return EXIT_FAILURE;
-    }
-    
+    CHECK(tda.isValid());
+
     tsa = TimeStamp::now();
     TimeStamp tsb = tsa;
-    if (tsa != tsb) {
-        cout << "equality of stamps is broken" << endl;
-        return EXIT_FAILURE; // equality is broken
-    }
-    
+    CHECK(tsa == tsb);
+
     tsb += tda;
-    if (tsa >= tsb) return EXIT_FAILURE; // compare is broken
-    
-    return EXIT_SUCCESS;
+    CHECK(tsa < tsb);
 }

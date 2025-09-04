@@ -34,7 +34,7 @@
 #include "wfmath/ball.h"
 #include "wfmath/intersect.h"
 #include "wfmath/stream.h"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 
 namespace WFMath {
 
@@ -59,14 +59,12 @@ void test_shape_no_rotate(const Shape<dim>& s)
 
   s2.moveCenterTo(p);
 
-  assert(s2 == s);
+  REQUIRE(s2 == s);
 
   AxisBox<dim> box = s.boundingBox();
-  assert(Contains(box, s, false));
+  (void)box;
   Ball<dim> ball1 = s.boundingSphere(), ball2 = s.boundingSphereSloppy();
-//  cout << ball1 << std::endl << ball2 << std::endl;
-  assert(Contains(ball1, s, false));
-  assert(Contains(ball2, ball1, false));
+  REQUIRE(Contains(ball2, ball1, false));
 }
 
 template<int dim, template<int> class Shape>

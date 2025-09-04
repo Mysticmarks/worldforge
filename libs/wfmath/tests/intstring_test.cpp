@@ -37,7 +37,7 @@
 #include <climits>
 #include <cstdlib>
 
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 
 using namespace WFMath;
 
@@ -46,18 +46,17 @@ static void TestConvert()
   for(unsigned i = 0; i < 100; ++i) {
     std::uint64_t val = (static_cast<std::uint64_t>(MTRand::instance.randInt()) << 32)
                        | MTRand::instance.randInt();
-    assert(strtoull(IntToString(val).c_str(), nullptr, 0) == val);
+    REQUIRE(strtoull(IntToString(val).c_str(), nullptr, 0) == val);
     // This assignment changes the value, but we just want a
     // random number, so we don't care. Large unsigned ints will
     // provide us negative numbers for testing.
     std::int64_t val2 = static_cast<std::int64_t>(val);
-    assert(atoll(IntToString(val2).c_str()) == val2);
+    REQUIRE(atoll(IntToString(val2).c_str()) == val2);
   }
 }
 
-int main()
+TEST_CASE("intstring_test")
 {
   TestConvert();
 
-  return 0;
-}
+  }

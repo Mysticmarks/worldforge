@@ -32,7 +32,7 @@
 #include <iostream>
 
 #include <cstdlib>
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 
 namespace WFMath {
 
@@ -43,9 +43,9 @@ void test_general(const C& c)
 
   c1 = c; // operator=()
 
-  assert(Equal(c1, c2));
-  assert(c1 == c2);
-  assert(!(c1 != c2));
+  REQUIRE(Equal(c1, c2));
+  REQUIRE(c1 == c2);
+  REQUIRE(!(c1 != c2));
 
   std::string s = ToString(c); // Uses operator<<() implicitly
   C c3;
@@ -58,7 +58,7 @@ void test_general(const C& c)
   }
 
   // We lose precision in string conversion
-  assert(Equal(c3, c, FloatMax(numeric_constants<CoordType>::epsilon(), 1e-5F)));
+  REQUIRE(Equal(c3, c, FloatMax(numeric_constants<CoordType>::epsilon(), 1e-5F)));
 }
 
 } // namespace WFMath
