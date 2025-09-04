@@ -35,6 +35,12 @@
 #include <istream>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <cstdlib>
+#include <string>
+#ifdef _WIN32
+#include <windows.h>
+#include <ShlObj.h>
+#endif
 
 //#include <json/writer.h>
 #include <spdlog/spdlog.h>
@@ -45,11 +51,35 @@ template<>
 struct fmt::formatter<boost::posix_time::ptime> : ostream_formatter {
 };
 
+static std::string expandHome(const std::string& path)
+{
+    if (path.empty() || path[0] != '~') {
+        return path;
+    }
+
+#ifdef _WIN32
+    const char* home = std::getenv("USERPROFILE");
+    if (!home) {
+        char buffer[MAX_PATH];
+        if (SUCCEEDED(SHGetFolderPathA(nullptr, CSIDL_PROFILE, nullptr, 0, buffer))) {
+            home = buffer;
+        }
+    }
+#else
+    const char* home = std::getenv("HOME");
+#endif
+
+    if (home) {
+        return std::string(home) + path.substr(1);
+    }
+    return path;
+}
+
 
 MetaServer::MetaServer()
-		: m_handshakeExpirySeconds(30),
-		  m_expiryDelayMilliseconds(3000),
-		  m_updateDelayMilliseconds(5000),
+                : m_handshakeExpirySeconds(30),
+                  m_expiryDelayMilliseconds(3000),
+                  m_updateDelayMilliseconds(5000),
 		  m_scoreDelayMilliseconds(60000),
 		  m_sessionExpirySeconds(3600),
 		  m_clientExpirySeconds(300),
@@ -1176,9 +1206,7 @@ MetaServer::registerConfig(boost::program_options::variables_map& vm) {
 			m_PacketLogfile = "~/.metaserver-ng/packetdefault.bin";
 		}
 
-		if (m_PacketLogfile.substr(0, 1) == "~") {
-			m_PacketLogfile.replace(0, 1, std::getenv("HOME"));
-		}
+                m_PacketLogfile = expandHome(m_PacketLogfile);
 
 	}
 
@@ -1206,9 +1234,7 @@ MetaServer::registerConfig(boost::program_options::variables_map& vm) {
 		 *
 		 * TODO: add ifdef WIN32 here if/when metserver needs to run on windows
 		 */
-		if (m_Logfile.substr(0, 1) == "~") {
-			m_Logfile.replace(0, 1, std::getenv("HOME"));
-		}
+                m_Logfile = expandHome(m_Logfile);
 	}
 
 	if (vm.count("server.pidfile")) {
