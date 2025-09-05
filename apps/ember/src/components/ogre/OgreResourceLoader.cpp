@@ -325,10 +325,8 @@ void OgreResourceLoader::loadGeneral() {
 	addSharedMedia("scripting", "EmberFileSystem", "Scripting");
 	addUserMedia("scripting", "EmberFileSystem", "Scripting");
 
-	//Model definitions, terrain definitions, sound definitions and entity mappings
-	//TODO: remove
-	addSharedMedia("data/dural", "EmberFileSystem", "Data");
-	addUserMedia("data", "EmberFileSystem", "Data");
+        //Model definitions, terrain definitions, sound definitions and entity mappings
+        addUserMedia("data", "EmberFileSystem", "Data");
 
 	//The Caelum component
 	addSharedMedia("data/caelum", "EmberFileSystem", "Caelum");

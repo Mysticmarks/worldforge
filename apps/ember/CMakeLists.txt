@@ -123,15 +123,6 @@ add_subdirectory(external)
 add_subdirectory(src)
 add_subdirectory(tests)
 
-file(GLOB MODELDEFINITIONS_FILES data/dural/*.modeldef)
-foreach (FILE ${MODELDEFINITIONS_FILES})
-    add_custom_command(
-            TARGET check
-            POST_BUILD
-            COMMAND "${XMLLINT}" --schema "${PROJECT_SOURCE_DIR}/data/modeldefinition.xsd" --nonet --noout "${FILE}"
-    )
-endforeach ()
-
 configure_file(tools/Version.tmpl.h generated/Version.h @ONLY)
 configure_file(tools/bintray.tmpl.json bintray.json @ONLY)
 message(STATUS "Installing snapcraft.yaml file into build directory. Copy this one to the installation directory if you want to build snaps.")
