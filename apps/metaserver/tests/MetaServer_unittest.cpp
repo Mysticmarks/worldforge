@@ -37,6 +37,10 @@
 
 #include <cassert>
 #include <limits>
+#include <filesystem>
+#include <cstdlib>
+
+std::string expandHome(const std::string& path);
 
 
 class MetaServer_unittest : public CppUnit::TestCase {
@@ -50,7 +54,8 @@ CPPUNIT_TEST_SUITE(MetaServer_unittest);
                 CPPUNIT_TEST(testProcessAdminReq_ADDSERVER);
                 CPPUNIT_TEST(testProcessAdminReq_UNKNOWN);
 //    CPPUNIT_TEST(testProcessAdminReq_DELSERVER);
-	CPPUNIT_TEST_SUITE_END();
+                CPPUNIT_TEST(testExpandHome);
+        CPPUNIT_TEST_SUITE_END();
 public:
 
 	MetaServer_unittest() {}
@@ -313,6 +318,21 @@ public:
 
                 delete ms;
 
+        }
+
+        void testExpandHome() {
+                std::string expanded = expandHome("~/unit_test");
+#ifdef _WIN32
+                const char* env = std::getenv("USERPROFILE");
+#else
+                const char* env = std::getenv("HOME");
+#endif
+                if (env) {
+                        std::filesystem::path expected = std::filesystem::path(env) / "unit_test";
+                        CPPUNIT_ASSERT_EQUAL(expected.string(), expanded);
+                } else {
+                        CPPUNIT_ASSERT(std::filesystem::path(expanded).is_absolute());
+                }
         }
 
 //    void testProcessAdminReq_DELSERVER() {

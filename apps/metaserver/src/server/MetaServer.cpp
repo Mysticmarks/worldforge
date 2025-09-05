@@ -37,10 +37,8 @@
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <cstdlib>
 #include <string>
-#ifdef _WIN32
-#include <windows.h>
-#include <ShlObj.h>
-#endif
+#include <llvm/ADT/SmallString.h>
+#include <llvm/Support/Path.h>
 
 //#include <json/writer.h>
 #include <spdlog/spdlog.h>
@@ -51,28 +49,35 @@ template<>
 struct fmt::formatter<boost::posix_time::ptime> : ostream_formatter {
 };
 
-static std::string expandHome(const std::string& path)
+std::string expandHome(const std::string& path)
 {
     if (path.empty() || path[0] != '~') {
         return path;
     }
 
+    std::filesystem::path home;
 #ifdef _WIN32
-    const char* home = std::getenv("USERPROFILE");
-    if (!home) {
-        char buffer[MAX_PATH];
-        if (SUCCEEDED(SHGetFolderPathA(nullptr, CSIDL_PROFILE, nullptr, 0, buffer))) {
-            home = buffer;
-        }
+    if (const char* envHome = std::getenv("USERPROFILE")) {
+        home = envHome;
     }
 #else
-    const char* home = std::getenv("HOME");
+    if (const char* envHome = std::getenv("HOME")) {
+        home = envHome;
+    }
 #endif
 
-    if (home) {
-        return std::string(home) + path.substr(1);
+    if (home.empty()) {
+        llvm::SmallString<256> storage;
+        if (llvm::sys::path::home_directory(storage)) {
+            home = std::string(storage.str());
+        }
     }
-    return path;
+
+    if (home.empty()) {
+        return path;
+    }
+
+    return (home / path.substr(1)).string();
 }
 
 
