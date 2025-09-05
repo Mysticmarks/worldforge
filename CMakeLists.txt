@@ -44,9 +44,9 @@ set(VERSION_FALLBACK "0.9.0-dev")
 
 # Only look for cppunit when tests are requested.
 if (BUILD_TESTING)
-    find_package(cppunit 1.15.1 EXACT QUIET)
+    find_package(cppunit 1.15...<2.0 QUIET)
     if (NOT cppunit_FOUND)
-        message(FATAL_ERROR "cppunit 1.15.1 not found. Tests require cppunit to be installed.")
+        message(FATAL_ERROR "cppunit >=1.15 and <2.0 not found. Tests require cppunit to be installed.")
     endif ()
 endif ()
 
