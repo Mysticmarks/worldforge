@@ -69,14 +69,6 @@ public:
 
         /// Stream Nanite style clusters into the mesh on demand
         static void loadLod(Ogre::MeshPtr mesh, const NaniteLodDefinition& definition);
-
-private:
-
-	template<typename T>
-	static void loadUserLodImpl(T it, T itEnd, Ogre::Mesh* mesh);
-
-	template<typename T>
-	static void loadAutomaticLodImpl(T it, T itEnd, Ogre::LodConfig& lodConfig);
 };
 
 }

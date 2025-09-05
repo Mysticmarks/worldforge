@@ -78,25 +78,46 @@ void LodManager::loadLod(Ogre::MeshPtr mesh, const LodDefinition& def) {
 			Ogre::LodConfig lodConfig;
 			lodConfig.mesh = mesh;
 			lodConfig.strategy = strategy;
-			const LodDefinition::LodDistanceMap& data = def.getManualLodData();
-			if (def.getStrategy() == LodDefinition::LS_DISTANCE) {
-				// TODO: Use C++11 lambda, instead of template.
-				loadAutomaticLodImpl(data.begin(), data.end(), lodConfig);
-			} else {
-				loadAutomaticLodImpl(data.rbegin(), data.rend(), lodConfig);
-			}
+                        const LodDefinition::LodDistanceMap& data = def.getManualLodData();
+
+                        auto addAutomaticLod = [&lodConfig](auto it, auto end) {
+                                for (; it != end; ++it) {
+                                        const LodDistance& dist = it->second;
+                                        Ogre::LodLevel lodLevel;
+                                        lodLevel.distance = it->first;
+                                        lodLevel.reductionMethod = dist.reductionMethod;
+                                        lodLevel.reductionValue = dist.reductionValue;
+                                        lodConfig.levels.push_back(lodLevel);
+                                }
+                        };
+
+                        if (def.getStrategy() == LodDefinition::LS_DISTANCE) {
+                                addAutomaticLod(data.begin(), data.end());
+                        } else {
+                                addAutomaticLod(data.rbegin(), data.rend());
+                        }
 			Ogre::MeshLodGenerator::getSingleton().generateLodLevels(lodConfig);
 		} else {
 			// User created Lod
 
 			mesh->removeLodLevels();
 
-			const LodDefinition::LodDistanceMap& data = def.getManualLodData();
+                        const LodDefinition::LodDistanceMap& data = def.getManualLodData();
+
+                        auto addUserLod = [&mesh](auto it, auto end) {
+                                for (; it != end; ++it) {
+                                        const Ogre::String& meshName = it->second.meshName;
+                                        if (!meshName.empty()) {
+                                                assert(Ogre::ResourceGroupManager::getSingleton().resourceExistsInAnyGroup(meshName));
+                                                mesh->updateManualLodLevel(static_cast<Ogre::ushort>(it->first), meshName);
+                                        }
+                                }
+                        };
+
                         if (def.getStrategy() == LodDefinition::LS_DISTANCE) {
-                                // TODO: Use C++11 lambda, instead of template.
-                                loadUserLodImpl(data.begin(), data.end(), mesh.get());
+                                addUserLod(data.begin(), data.end());
                         } else {
-                                loadUserLodImpl(data.rbegin(), data.rend(), mesh.get());
+                                addUserLod(data.rbegin(), data.rend());
                         }
                 }
         }
@@ -131,7 +152,6 @@ void LodManager::loadLod(Ogre::MeshPtr mesh, const NaniteLodDefinition& def) {
                 (void)cluster;
         }
 }
-}
 
 std::string LodManager::convertMeshNameToLodName(std::string meshName) {
 	size_t start = meshName.find_last_of("/\\");
@@ -144,33 +164,8 @@ std::string LodManager::convertMeshNameToLodName(std::string meshName) {
 		meshName = meshName.substr(0, end);
 	}
 
-	meshName += ".loddef";
-	return meshName;
-}
-
-template<typename T>
-void LodManager::loadAutomaticLodImpl(T it, T itEnd, Ogre::LodConfig& lodConfig) {
-	for (; it != itEnd; it++) {
-		const LodDistance& dist = it->second;
-		Ogre::LodLevel lodLevel;
-		lodLevel.distance = it->first;
-		lodLevel.reductionMethod = dist.reductionMethod;
-		lodLevel.reductionValue = dist.reductionValue;
-		lodConfig.levels.push_back(lodLevel);
-	}
-}
-
-template<typename T>
-void LodManager::loadUserLodImpl(T it, T itEnd, Ogre::Mesh* mesh) {
-	for (; it != itEnd; it++) {
-		const Ogre::String& meshName = it->second.meshName;
-		if (!meshName.empty()) {
-			assert(Ogre::ResourceGroupManager::getSingleton().resourceExistsInAnyGroup(meshName));
-			mesh->updateManualLodLevel(static_cast<Ogre::ushort>(it->first), meshName);
-		}
-	}
+        meshName += ".loddef";
+        return meshName;
 }
 
 }
-
-
