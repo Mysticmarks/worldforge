@@ -42,6 +42,18 @@ if (BUILD_METASERVER_SERVER)
     add_dependencies(check DataObject_unittest)
 
 
+    add_executable(ClientSessionCache_unittest
+            ClientSessionCache_unittest.cpp
+            ../src/server/DataObject.cpp)
+    target_link_libraries(ClientSessionCache_unittest PUBLIC
+            cppunit::cppunit
+            Boost::program_options
+            spdlog::spdlog
+    )
+    add_test(NAME ClientSessionCache_unittest COMMAND ClientSessionCache_unittest)
+    add_dependencies(check ClientSessionCache_unittest)
+
+
     add_executable(MetaServerHandlerUDP_unittest
             MetaServerHandlerUDP_unittest.cpp
             ../src/server/MetaServerHandlerUDP.cpp
