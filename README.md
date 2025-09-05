@@ -63,6 +63,9 @@ conan remote add worldforge https://artifactory.ogenvik.org/artifactory/api/cona
 conan install . --build missing -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
 ```
 
+Running `conan install` also generates a `CMakeUserPresets.json` file
+with a `conan-release` preset used in the build steps below.
+
 ### Build and installation
 
 Once dependencies are installed configure and build:
