@@ -195,11 +195,34 @@ with the change.
 
 ## Running a server
 
-To get a server running you need to build the project and then start the "cyphesis" artifact.
+After building the project, you can start the server with the Cyphesis
+artifact:
+
+```bash
+./build/install/release/bin/cyphesis --help
+```
+
+The command above prints usage information. To launch the server with the
+default configuration, run:
+
+```bash
+./build/install/release/bin/cyphesis
+```
+
+If you encounter errors about missing worlds data, make sure the
+[Worldforge Worlds](https://github.com/worldforge/worlds) repository is
+available or set `WORLDFORGE_WORLDS_PATH` appropriately.
 
 ## Running a client
 
-To get a client running you need to build the project and then start the "ember" artifact.
+With a server running, connect a client using the Ember artifact:
+
+```bash
+./build/install/release/bin/ember --connect=localhost:6767
+```
+
+If the client fails to connect, verify that the server is listening on
+`localhost:6767` and that no firewall is blocking the connection.
 
 ## Worlds data
 
