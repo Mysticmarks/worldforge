@@ -131,8 +131,8 @@ void Environment::setTime(int hour, int minute, int second) {
 	mProvider->setTime(hour, minute, second);
 }
 
-void Environment::setTime(int seconds) {
-	mProvider->setTime(seconds);
+void Environment::setTimeInSeconds(int seconds) {
+        mProvider->setTime(seconds);
 }
 
 void Environment::setTimeMultiplier(float multiplier) {

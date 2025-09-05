@@ -33,10 +33,10 @@ void registerLua<Environment>(sol::table& space) {
 	iFog["getDensity"] = &IFog::getDensity;
 
 	auto environment = space.new_usertype<Ember::OgreView::Environment::Environment>("Environment", sol::no_constructor);
-	environment["getSun"] = &Ember::OgreView::Environment::Environment::getSun;
-	environment["getFog"] = &Ember::OgreView::Environment::Environment::getFog;
-	environment["setTime"] = [](Ember::OgreView::Environment::Environment* self, int seconds) { self->setTime(seconds); };
-	environment["setTimeMultiplier"] = &Ember::OgreView::Environment::Environment::setTimeMultiplier;
+        environment["getSun"] = &Ember::OgreView::Environment::Environment::getSun;
+        environment["getFog"] = &Ember::OgreView::Environment::Environment::getFog;
+        environment["setTimeInSeconds"] = [](Ember::OgreView::Environment::Environment* self, int seconds) { self->setTimeInSeconds(seconds); };
+        environment["setTimeMultiplier"] = &Ember::OgreView::Environment::Environment::setTimeMultiplier;
 	environment["getTimeMultiplier"] = &Ember::OgreView::Environment::Environment::getTimeMultiplier;
 	environment["setAmbientLight"] = &Ember::OgreView::Environment::Environment::setAmbientLight;
 
