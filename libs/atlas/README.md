@@ -1,9 +1,7 @@
 # Atlas-C++
 
 [![Join us on Gitter!](https://badges.gitter.im/Worldforge.svg)](https://gitter.im/Worldforge/Lobby)
-[![Appveyor build status](https://ci.appveyor.com/api/projects/status/github/worldforge/atlas-cpp?branch=master&svg=true)](https://ci.appveyor.com/project/erikogenvik/atlas-cpp)
-[![Travis build Status](https://travis-ci.com/worldforge/atlas-cpp.svg?branch=master)](https://travis-ci.com/worldforge/atlas-cpp)
-[![Github build status](https://github.com/worldforge/atlas-cpp/actions/workflows/cmake.yml/badge.svg)](https://github.com/worldforge/atlas-cpp/actions/workflows/cmake.yml)
+[![Build with CMake](https://github.com/worldforge/worldforge/actions/workflows/build-all.yml/badge.svg)](https://github.com/worldforge/worldforge/actions/workflows/build-all.yml)
 
 Welcome to Atlas-C++, the C++ reference implementation of the Atlas protocol. The Atlas protocol is the primary protocol
 by which servers and clients in the [WorldForge](http://worldforge.org/ "The main Worldforge site") system communicate.
