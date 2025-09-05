@@ -52,8 +52,12 @@ and for server scripting.
 ### Dependency setup
 
 Conan provides all third‑party libraries, including runtime components
-like `spdlog` and the `cppunit` test framework. Begin by detecting a
-profile and adding the Worldforge remote, which hosts custom packages
+like `spdlog` and the `cppunit` test framework. If you enable tests by
+setting `-DBUILD_TESTING=ON`, the build will halt if `cppunit` is
+missing. Install it via your system package manager (for example,
+`sudo apt-get install libcppunit-dev` on Debian/Ubuntu or `brew install
+cppunit` on macOS) unless Conan is used to supply it. Begin by detecting
+a profile and adding the Worldforge remote, which hosts custom packages
 such as `ogre-next` and `cegui`. If the remote requires credentials,
 export `CONAN_LOGIN_USERNAME` and `CONAN_PASSWORD` before the install.
 

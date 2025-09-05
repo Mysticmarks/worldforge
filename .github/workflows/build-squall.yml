@@ -54,6 +54,18 @@ jobs:
                 run: |
                     export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
 
+            -   name: Install cppunit (Linux)
+                if: runner.os == 'Linux'
+                run: sudo apt-get update && sudo apt-get install -y libcppunit-dev
+
+            -   name: Install cppunit (macOS)
+                if: runner.os == 'macOS'
+                run: brew install cppunit
+
+            -   name: Install cppunit (Windows)
+                if: runner.os == 'Windows'
+                run: choco install -y cppunit
+
             -   uses: actions/setup-python@v5
                 with:
                     python-version: '3.10'

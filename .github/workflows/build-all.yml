@@ -53,7 +53,7 @@ jobs:
                 if: runner.os == 'Linux'
                 with:
                     #Needed for the assets processing step in Cyphesis
-                    packages: imagemagick file rsync libfuse2
+                    packages: imagemagick file rsync libfuse2 libcppunit-dev
                     version: 1.0
 
             -   name: Setup environment
@@ -74,11 +74,15 @@ jobs:
                 shell: bash
                 if: runner.os == 'macOS'
                 run: |
-                    brew install autoconf automake
+                    brew install autoconf automake cppunit
 
             -   name: Install Windows tools
                 if: runner.os == 'Windows'
                 uses: "GuillaumeFalourd/setup-rsync@v1.2"
+
+            -   name: Install cppunit (Windows)
+                if: runner.os == 'Windows'
+                run: choco install -y cppunit
 
             -   name: Install LXD (for Snapcraft)
                 if: env.BUILD_SNAP == 'true'
@@ -223,7 +227,7 @@ jobs:
                 if: runner.os == 'Linux'
                 with:
                     #Needed for the assets processing step in Cyphesis
-                    packages: imagemagick file rsync libfuse2
+                    packages: imagemagick file rsync libfuse2 libcppunit-dev
                     version: 1.0
 
             -   name: Setup environment
@@ -244,11 +248,15 @@ jobs:
                 shell: bash
                 if: runner.os == 'macOS'
                 run: |
-                    brew install autoconf automake
+                    brew install autoconf automake cppunit
 
             -   name: Install Windows tools
                 if: runner.os == 'Windows'
                 uses: "GuillaumeFalourd/setup-rsync@v1.2"
+
+            -   name: Install cppunit (Windows)
+                if: runner.os == 'Windows'
+                run: choco install -y cppunit
 
             -   name: Install LXD (for Snapcraft)
                 if: env.BUILD_SNAP == 'true'
