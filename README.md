@@ -163,6 +163,9 @@ cmake --build . -j --target media-process-install
 
 ### Tests
 
+The Python-based end-to-end tests require [pytest](https://pytest.org).
+Install it with `pip install pytest`.
+
 The test suite can be built and run using the ```check``` target. For example:
 
 ```bash

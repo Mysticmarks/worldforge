@@ -7,3 +7,7 @@ endif ()
 if (NOT SKIP_CYPHESIS OR BUILD_METASERVER_SERVER)
   add_subdirectory(metaserver)
 endif ()
+
+if (BUILD_TESTING)
+  add_test(NAME e2e COMMAND pytest apps/tests/e2e)
+endif ()
