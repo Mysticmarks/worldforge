@@ -91,6 +91,15 @@ if (TARGET cppunit::cppunit)
     add_test(NAME TestEmberServices COMMAND TestEmberServices)
     add_dependencies(check TestEmberServices)
 
+    add_executable(ComboboxAdapterTest
+            ComboboxAdapterTest.cpp)
+    target_compile_definitions(ComboboxAdapterTest PUBLIC -DLOG_TASKS)
+    target_link_libraries(ComboboxAdapterTest
+            cppunit::cppunit
+            ember-widgets)
+    add_test(NAME ComboboxAdapterTest COMMAND ComboboxAdapterTest)
+    add_dependencies(check ComboboxAdapterTest)
+
     #    add_executable(TestTerrain TestTerrain.cpp)
     #    target_compile_definitions(TestTerrain PUBLIC -DLOG_TASKS)
     #    target_link_libraries(TestTerrain ${CPPUNIT_LIBRARIES} ${WF_LIBRARIES} emberogre terrain caelum pagedgeometry entitymapping lua services framework)
