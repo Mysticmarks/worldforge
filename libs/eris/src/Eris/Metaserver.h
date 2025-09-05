@@ -34,6 +34,7 @@
 #include <boost/asio/steady_timer.hpp>
 
 #include <memory>
+#include <vector>
 
 #include <cstdint>
 #include <ios>
@@ -232,9 +233,12 @@ private:
 	std::array<char, DATA_BUFFER_SIZE> m_data;
 	char* m_dataPtr;    ///< The current insert/extract pointer in the buffer
 
-	std::streamsize m_bytesToRecv; ///< The number of bytes to read before processing / dispatch
-	unsigned int m_totalServers,        ///< Total number of servers the Meta knows of
-	m_packed;        ///< The servers in the curent LIST_RESP
+        std::streamsize m_bytesToRecv; ///< The number of bytes to read before processing / dispatch
+        unsigned int m_totalServers,        ///< Total number of servers the Meta knows of
+        m_packed;        ///< The servers in the curent LIST_RESP
+        uint32_t m_remainingServers;   ///< Servers left to read in current response
+        uint32_t m_listChunk;          ///< Servers expected in next data chunk
+        std::vector<uint32_t> m_ipBuffer; ///< Buffer for assembling fragmented responses
 
 	bool m_recvCmd;        ///< true if the next block is a new command
 	uint32_t m_gotCmd;    ///< the curent command being processed

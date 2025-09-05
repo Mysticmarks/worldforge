@@ -82,12 +82,14 @@ Meta::Meta(boost::asio::io_context& io_service,
 		m_send_buffer(new boost::asio::streambuf()),
 		m_send_stream(m_send_buffer.get()),
 		m_data{},
-		m_dataPtr(nullptr),
-		m_bytesToRecv(0),
-		m_totalServers(0),
-		m_packed(0),
-		m_recvCmd(false),
-		m_gotCmd(0) {
+                m_dataPtr(nullptr),
+                m_bytesToRecv(0),
+                m_totalServers(0),
+                m_packed(0),
+                m_remainingServers(0),
+                m_listChunk(0),
+                m_recvCmd(false),
+                m_gotCmd(0) {
 	unsigned int max_half_open = FD_SETSIZE;
 	if (m_maxActiveQueries > (max_half_open - 2)) {
 		m_maxActiveQueries = max_half_open - 2;
@@ -319,10 +321,10 @@ void Meta::recv() {
 //		m_bytesToRecv--;
 //	} while (iobuf->in_avail() && m_bytesToRecv);
 
-	if (m_bytesToRecv > 0) {
-		logger->error("Fragment data received by Meta::recv");
-		return; // can't do anything till we get more data
-	}
+        if (m_bytesToRecv > 0) {
+                // wait for the rest of the packet to arrive
+                return;
+        }
 
 	if (m_recvCmd) {
 		uint32_t op;
@@ -392,49 +394,58 @@ void Meta::processCmd() {
 			} else {
 				m_totalServers = total_servers;
 			}
-			unpack_uint32(m_packed, m_dataPtr);
-			// FIXME This assumes that the data received so far is all the servers, which
-			// in the case of fragmented server list it is not. Currently this code is generally
-			// of the size of packet receieved. As there should only ever be one packet incoming
-			// we should be able to make assumptions based on the amount of data in the buffer.
-			// The buffer should also contain a complete packet if it contains any, so retrieving
-			// data one byte at a time is less efficient than it might be.
-			setupRecvData(m_packed, LIST_RESP2);
+                        unpack_uint32(m_packed, m_dataPtr);
+                        m_remainingServers = m_packed;
+                        m_ipBuffer.clear();
+                        const uint32_t maxChunk = DATA_BUFFER_SIZE / sizeof(uint32_t);
+                        m_listChunk = std::min(m_remainingServers, maxChunk);
+                        setupRecvData(m_listChunk, LIST_RESP2);
 
-			// If this is the first response, allocate the space
-			if (m_gameServers.empty()) {
+                        // If this is the first response, allocate the space
+                        if (m_gameServers.empty()) {
 
-				assert(m_nextQuery == 0);
-				m_gameServers.reserve(m_totalServers);
-			}
-		}
-			break;
+                                assert(m_nextQuery == 0);
+                                m_gameServers.reserve(m_totalServers);
+                        }
+                }
+                        break;
 
-		case LIST_RESP2: {
-			m_dataPtr = m_data.data();
-			while (m_packed--) {
-				uint32_t ip;
-				m_dataPtr = unpack_uint32(ip, m_dataPtr);
-				auto ipAsString = boost::asio::ip::address_v4(ip).to_string();
+                case LIST_RESP2: {
+                        m_dataPtr = m_data.data();
+                        for (uint32_t i = 0; i < m_listChunk; ++i) {
+                                uint32_t ip;
+                                m_dataPtr = unpack_uint32(ip, m_dataPtr);
+                                m_ipBuffer.push_back(ip);
+                        }
 
-				// FIXME  - decide whether a reverse name lookup is necessary here or not
-				m_gameServers.emplace_back(ServerInfo{ipAsString});
-			}
+                        m_remainingServers -= m_listChunk;
+                        if (m_remainingServers > 0) {
+                                const uint32_t maxChunk = DATA_BUFFER_SIZE / sizeof(uint32_t);
+                                m_listChunk = std::min(m_remainingServers, maxChunk);
+                                setupRecvData(m_listChunk, LIST_RESP2);
+                        } else {
+                                for (auto ip : m_ipBuffer) {
+                                        auto ipAsString = boost::asio::ip::address_v4(ip).to_string();
+                                        // FIXME  - decide whether a reverse name lookup is necessary here or not
+                                        m_gameServers.emplace_back(ServerInfo{ipAsString});
+                                }
+                                m_ipBuffer.clear();
 
-			if (m_gameServers.size() < m_totalServers) {
-				// request some more
-				listReq((unsigned int) m_gameServers.size());
-			} else {
-				// allow progress bars to setup, etc, etc
-				CompletedServerList.emit(m_totalServers);
-				m_status = QUERYING;
-				// all done, clean up
-				disconnect();
-			}
-			query();
+                                if (m_gameServers.size() < m_totalServers) {
+                                        // request some more
+                                        listReq((unsigned int) m_gameServers.size());
+                                } else {
+                                        // allow progress bars to setup, etc, etc
+                                        CompletedServerList.emit(m_totalServers);
+                                        m_status = QUERYING;
+                                        // all done, clean up
+                                        disconnect();
+                                }
+                                query();
+                        }
 
-		}
-			break;
+                }
+                        break;
 
 		default:
 			std::stringstream ss;
