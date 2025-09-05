@@ -1,4 +1,6 @@
 include_directories(../src/server ../src/api)
+find_package(LLVM REQUIRED CONFIG)
+include_directories(${LLVM_INCLUDE_DIRS})
 
 if (BUILD_METASERVER_SERVER)
 
@@ -13,6 +15,7 @@ if (BUILD_METASERVER_SERVER)
             cppunit::cppunit
             Boost::program_options
             spdlog::spdlog
+            LLVM::Support
     )
     add_test(NAME MetaServer_unittest COMMAND MetaServer_unittest)
     add_dependencies(check MetaServer_unittest)

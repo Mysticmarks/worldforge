@@ -1,4 +1,5 @@
 wf_find_boost(program_options)
+find_package(LLVM REQUIRED CONFIG)
 
 add_executable(metaserver
         main.cpp
@@ -6,10 +7,12 @@ add_executable(metaserver
         MetaServerHandlerUDP.cpp
         DataObject.cpp
 )
+target_include_directories(metaserver PRIVATE ${LLVM_INCLUDE_DIRS})
 target_link_libraries(metaserver
         metaserver-api
         Boost::program_options
         spdlog::spdlog
+        LLVM::Support
 )
 install(TARGETS metaserver DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})
 
