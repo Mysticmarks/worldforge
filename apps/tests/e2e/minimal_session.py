@@ -149,9 +149,9 @@ def main() -> int:
         stdout, _ = client.communicate()
         raise
 
-    if "Connected" not in stdout and client.returncode != 0:
+    if "Connected" not in stdout or client.returncode != 0:
         print(f"ember failed to connect to cyphesis on port {port}")
-        return 1
+        return client.returncode or 1
 
     print("E2E session completed")
     return 0
