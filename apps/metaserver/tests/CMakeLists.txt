@@ -68,4 +68,14 @@ if (BUILD_METASERVER_SERVER)
     )
     add_test(NAME MetaServerHandlerUDP_unittest COMMAND MetaServerHandlerUDP_unittest)
     add_dependencies(check MetaServerHandlerUDP_unittest)
+
+    add_executable(DomainFilter_unittest
+            DomainFilter_unittest.cpp)
+    target_link_libraries(DomainFilter_unittest PUBLIC
+            cppunit::cppunit
+            Boost::program_options
+            spdlog::spdlog
+    )
+    add_test(NAME DomainFilter_unittest COMMAND DomainFilter_unittest)
+    add_dependencies(check DomainFilter_unittest)
 endif ()

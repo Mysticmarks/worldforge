@@ -25,6 +25,7 @@
  */
 
 #include "MetaServer.hpp"
+#include "DomainFilter.hpp"
 #include <boost/asio/ip/udp.hpp>
 #include <boost/algorithm/string.hpp>
 #include <spdlog/spdlog.h>
@@ -72,7 +73,12 @@ int main(int argc, char** argv) {
 		/**
 		 * domain and banner
 		 */
-		auto banner = vm["banner"].as<std::string>();
+                auto banner = vm["banner"].as<std::string>();
+                std::vector<std::string> allowed_domains;
+                boost::split(allowed_domains, vm["domain"].as<std::string>(), boost::is_any_of(","));
+                for (auto &d : allowed_domains) {
+                        boost::trim(d);
+                }
 
 		boost::asio::ip::udp::socket s(io_service, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0));
 		boost::asio::ip::udp::resolver resolver(io_service);
@@ -199,10 +205,13 @@ int main(int argc, char** argv) {
 				/**
 				 * Grab the name
 				 */
-				std::string name = fields[1];
+                                std::string name = fields[1];
 
-				//TODO: maybe add something where we filter the request by domain
-				//boost::ireplace_last(name,"."+domain,"");
+                                if (!filterDomain(name, allowed_domains)) {
+                                        std::cout << "LOG       Query domain not allowed" << std::endl;
+                                        std::cout << "FAIL" << std::endl;
+                                        continue;
+                                }
 
 				MetaServerPacket req;
 
