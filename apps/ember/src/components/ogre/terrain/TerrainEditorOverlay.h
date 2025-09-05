@@ -27,6 +27,8 @@
 #include <wfmath/point.h>
 #include <Mercator/BasePoint.h>
 #include <map>
+#include <vector>
+#include <memory>
 #include <sigc++/trackable.h>
 #include <components/ogre/BulletCollisionDetector.h>
 
@@ -346,11 +348,21 @@ private:
 	TerrainManager& mManager;
 	Camera::MainCamera& mCamera;
 
-	Ogre::SceneNode* mOverlayNode;
+        Ogre::SceneNode* mOverlayNode;
 
-	std::map<std::string, std::unique_ptr<BasePointUserObject>> mBasePointUserObjects;
+        /**
+         * @brief Owns all user-created base point objects.
+         * These objects are destroyed before the overlay's scene node is torn down.
+         */
+        std::vector<std::unique_ptr<BasePointUserObject>> mUserObjects;
 
-	BasePointPickListener mPickListener;
+        /**
+         * @brief Non-owning lookup map for base point objects keyed by terrain index.
+         * Pointers reference objects stored in @ref mUserObjects.
+         */
+        std::map<std::string, BasePointUserObject*> mBasePointUserObjects;
+
+        BasePointPickListener mPickListener;
 
 	BasePointUserObject* mCurrentUserObject;
 	BasePointUserObjectSet mSecondaryUserObjects;
