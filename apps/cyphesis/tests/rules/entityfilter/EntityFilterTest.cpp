@@ -766,45 +766,10 @@ int main() {
 	Monitors m;
 
 	Tested t;
-	TestPropertyManager<LocatedEntity> pm;
-	TestWorld bw;
+        TestPropertyManager<LocatedEntity> pm;
+        TestWorld bw;
 
-	return t.run();
-
-	//TODO: Move remaining old tests
-// START of Soft property and general filtering tests
-	/*{
-	 // test entity.attribute case with various operators
-
-	 // END of soft property and general tests
-
-	 {
-	 ProviderFactory factory;
-
-	 //self.type
-	 segments.clear();
-	 segments.push_back(ProviderFactory::Segment { "", "self" });
-	 segments.push_back(ProviderFactory::Segment { ".", "mass" });
-	 auto lhs_provider5 = factory.createProviders(segments);
-	 QueryContext<LocatedEntity> qc { bl1 };
-	 qc.self_entity = &b1;
-
-	 lhs_provider5->value(value, qc);
-	 assert(value == Element(30));
-
-
-	 //entity.type.name
-	 segments.clear();
-	 segments.push_back(ProviderFactory::Segment { "", "entity" });
-	 segments.push_back(ProviderFactory::Segment { ".", "type" });
-	 segments.push_back(ProviderFactory::Segment { ".", "name" });
-	 auto lhs_provider6 = mind_factory.createProviders(segments);
-	 ComparePredicate compPred16(lhs_provider6,
-	 new FixedElementProvider("barrel"),
-	 ComparePredicate::Comparator::EQUALS);
-	 assert(compPred15.isMatch(QueryContext<LocatedEntity> { b1, memory }));
-
-	 */
+        return t.run();
 
 }
 
