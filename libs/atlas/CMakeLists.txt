@@ -159,6 +159,18 @@ wf_add_benchmark(tests/benchmark/Codecs_Packed.cpp)
 wf_add_benchmark(tests/benchmark/Message_Element.cpp)
 wf_add_benchmark(tests/benchmark/Objects_setAttr.cpp)
 
+# Python tests for Atlas-Python bindings
+if (Python3_EXECUTABLE)
+    add_test(
+            NAME atlas_python_tests
+            COMMAND ${Python3_EXECUTABLE} -m pytest tests
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/Atlas-Python
+    )
+    set_tests_properties(atlas_python_tests PROPERTIES
+            ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/src/Atlas-Python"
+    )
+endif ()
+
 # Doxygen support, exports a "dox" target.
 
 find_package(Doxygen)

@@ -70,6 +70,10 @@ jobs:
                     sed -i.backup 's/compiler.cppstd=14/compiler.cppstd=17/g' ~/.conan2/profiles/default
                     conan remote add worldforge https://artifactory.ogenvik.org/artifactory/api/conan/conan-local
 
+            -   name: Verify Python packages
+                shell: bash
+                run: python -m pytest --version
+
             -   name: Have Conan install packages
                 shell: bash
                 run: |
