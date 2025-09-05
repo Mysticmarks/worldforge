@@ -110,20 +110,22 @@ Router::RouterResult View::handleOperation(const Atlas::Objects::Operation::Root
 			}
 		}
 		return HANDLED;
-	} else if (op->getClassNo() == APPEARANCE_NO) {
-		//We basically ignore the "from" entity when we receive APPEARANCE. Only the ids in it matter.
-		//TODO: is this correct per the spec?
-		for (const auto& arg: op->getArgs()) {
-			if (!arg->isDefaultId()) {
-				const auto& eid = arg->getId();
-				auto* ent = getEntity(eid);
-				if (!ent) {
-					getEntityFromServer(eid);
-				}
-			}
-		}
-		return HANDLED;
-	} else {
+        } else if (op->getClassNo() == APPEARANCE_NO) {
+                // As per the Atlas operation specification, the entities that
+                // appear are listed in the arguments while the "from" field
+                // denotes the observer; therefore we only request entities
+                // referenced in the args.
+                for (const auto& arg: op->getArgs()) {
+                        if (!arg->isDefaultId()) {
+                                const auto& eid = arg->getId();
+                                auto* ent = getEntity(eid);
+                                if (!ent) {
+                                        getEntityFromServer(eid);
+                                }
+                        }
+                }
+                return HANDLED;
+        } else {
 		if (!op->isDefaultFrom()) {
 			const auto& from = op->getFrom();
 			auto ent = getEntity(from);
