@@ -93,7 +93,7 @@ macro(wf_add_test TEST_FILE)
         add_executable(${TEST_NAME} EXCLUDE_FROM_ALL ${TEST_FILE} ${ARGN})
     endif (BUILD_TESTING)
 
-    target_compile_options(${TEST_NAME} PUBLIC "-w")
+    target_compile_options(${TEST_NAME} PRIVATE ${WF_WARNING_FLAGS})
     target_include_directories(${TEST_NAME} PRIVATE "${PROJECT_SOURCE_DIR}/src")
     add_test(NAME ${TEST_NAME} COMMAND $<TARGET_FILE:${TEST_NAME}>)
     #We need to tell adjust the path so tests on windows can find the .dll files.
