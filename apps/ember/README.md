@@ -22,7 +22,7 @@ slope angle in degrees (default `70`).
 
 ### Working with media
 
-An alternative to the ```media-download``` target is to instead use the raw media repo source, as found at
+An alternative to the ```media-download-rsync``` target is to instead use the raw media repo source, as found at
 https://svn.worldforge.org:886/svn/media/trunk/. If you intend to edit or add new media you probably want this instead.
 
 The target ```mediarepo-checkout``` will use Subversion to checkout the repository to the ```mediarepo``` directory.
