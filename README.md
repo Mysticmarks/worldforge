@@ -44,8 +44,10 @@ how they work.
 The simplest way to install all required dependencies is by using
 [Conan](https://www.conan.io). This setup requires CMake 3.23+.
 
-Make sure you have installed a c++ compiler (g++ or clang), Conan,
+Make sure you have installed a c++ compiler (g++ or clang), Python 3, Conan,
 CMake, Subversion and ImageMagick (if you're building the server).
+Python is used for code generation (for example, generating Atlas objects)
+and for server scripting.
 
 ### Dependency setup
 
