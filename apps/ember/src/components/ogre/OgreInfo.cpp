@@ -27,9 +27,15 @@
 #include <OgreCamera.h>
 #include <OgreResourceManager.h>
 
+#if defined(WIN32) || defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #ifdef HAVE_OPENGL
-#if defined(__WIN32__)
-#elif defined(__APPLE__)
+#include <GL/gl.h>
+#endif
+#include <dxgi.h>
+#elif defined(HAVE_OPENGL)
+#if defined(__APPLE__)
 #include <OpenGL/gl.h>
 #else
 #include <GL/gl.h>
@@ -42,17 +48,41 @@ namespace Ember::OgreView {
 long long int OgreInfo::sResourceCounter(1);
 
 bool OgreInfo::isIndirect() {
-#ifdef WIN32
-	//TODO: add checks for win32 too
-	return false;
+#if defined(WIN32) || defined(_WIN32)
+#ifdef HAVE_OPENGL
+        const GLubyte* pcRenderer = glGetString(GL_RENDERER);
+        if (pcRenderer) {
+                const std::string renderer(reinterpret_cast<const char*>(pcRenderer));
+                if (renderer.find("GDI Generic") != std::string::npos || renderer.find("Microsoft") != std::string::npos) {
+                        return true;
+                }
+        }
+#endif
+        IDXGIFactory* factory = nullptr;
+        if (SUCCEEDED(CreateDXGIFactory(__uuidof(IDXGIFactory), reinterpret_cast<void**>(&factory)))) {
+                IDXGIAdapter* adapter = nullptr;
+                if (SUCCEEDED(factory->EnumAdapters(0, &adapter))) {
+                        DXGI_ADAPTER_DESC desc;
+                        if (SUCCEEDED(adapter->GetDesc(&desc))) {
+                                if (desc.VendorId == 0x1414) {
+                                        adapter->Release();
+                                        factory->Release();
+                                        return true;
+                                }
+                        }
+                        adapter->Release();
+                }
+                factory->Release();
+        }
+        return false;
 #else
 #ifdef HAVE_OPENGL
-	const GLubyte* pcRenderer = glGetString(GL_RENDERER);
-	const std::string renderer((const char*)pcRenderer);
+        const GLubyte* pcRenderer = glGetString(GL_RENDERER);
+        const std::string renderer((const char*)pcRenderer);
 
-	return renderer.find("Indirect") != std::string::npos;
+        return renderer.find("Indirect") != std::string::npos;
 #else
-	return false;
+        return false;
 #endif
 #endif
 
