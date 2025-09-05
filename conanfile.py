@@ -76,7 +76,7 @@ class Worldforge(ConanFile):
         self.requires("libcurl/[>=8.12.1 <9.0]")
         self.requires("spdlog/[>=1.15.3 <2.0]")
         self.requires("cli11/[>=2.5.0 <3.0]")
-        self.requires("boost/[>=1.87.0 <2.0]")
+        self.requires("boost/[>=1.82 <2.0]")
         self.requires("ms-gsl/[>=4.1.0 <5.0]")
 
         self.requires("zlib/[>=1.3.1 <2.0]")

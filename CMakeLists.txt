@@ -170,8 +170,7 @@ add_custom_target(dox)
 #Since there are multiple instances where boost is required we specify this macro to keep the version in sync.
 macro(wf_find_boost COMPONENTS)
     find_package(Boost
-            1.87.0
-            EXACT
+            1.82...<2.0
             REQUIRED
             COMPONENTS ${COMPONENTS})
 endmacro()
