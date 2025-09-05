@@ -105,7 +105,9 @@ struct Rulesetintegration : public Cyphesis::TestBase {
 
 	void test_sequence() {
 		{
-			Atlas::Message::Element val;
+                        Atlas::Message::Element val;
+                        Ref<LocatedEntity> existing_custom_type;
+                        Ref<LocatedEntity> existing_custom_inherited;
 
 			// Instance of Ruleset with all protected methods exposed
 			// for testing
@@ -415,8 +417,9 @@ struct Rulesetintegration : public Cyphesis::TestBase {
 			val = Atlas::Message::Element();
 			assert(val.isNone());
 
-			// Check the custom type no longer has the custom attribute
-			assert(test_ent->getAttr("test_custom_type_attr", val) != 0);
+                        // Check the custom type no longer has the custom attribute
+                        assert(test_ent->getAttr("test_custom_type_attr", val) != 0);
+                        existing_custom_type = test_ent;
 
 			// Check that the factory dictionary does contain the factory for
 			// the second newly installed type
@@ -461,13 +464,14 @@ struct Rulesetintegration : public Cyphesis::TestBase {
 			val = Atlas::Message::Element();
 			assert(val.isNone());
 
-			// Check the custom type has the attribute described when the
-			// second custom type was installed
-			assert(test_ent->getAttr("test_custom_inherited_type_attr", val) != 0);
+                        // Check the custom type has the attribute described when the
+                        // second custom type was installed
+                        assert(test_ent->getAttr("test_custom_inherited_type_attr", val) != 0);
+                        existing_custom_inherited = test_ent;
 
-			// Add more custom attributes to the first type
-			{
-				Anonymous new_custom_type_description;
+                        // Add more custom attributes to the first type
+                        {
+                                Anonymous new_custom_type_description;
 				new_custom_type_description->setObjtype("class");
 				MapType attrs;
 				MapType test_custom_type_attr;
@@ -523,14 +527,35 @@ struct Rulesetintegration : public Cyphesis::TestBase {
 			assert(val.isString());
 			assert(val.String() == "test_value");
 
-			assert(test_ent->getAttr("new_custom_type_attr", val) == 0);
-			assert(val.isString());
-			assert(val.String() == "new_value");
+                        assert(test_ent->getAttr("new_custom_type_attr", val) == 0);
+                        assert(val.isString());
+                        assert(val.String() == "new_value");
 
-			// Check that the factory dictionary does contain the factory for
-			// the second newly installed type
-			custom_inherited_type_factory = dynamic_cast<EntityFactoryBase*>(m_entity_builder->getClassFactory("custom_inherited_type"));
-			assert(custom_inherited_type_factory != 0);
+                        // Existing instances should also pick up the updated attributes.
+                        val = Atlas::Message::Element();
+                        assert(existing_custom_type->getAttr("test_custom_type_attr", val) == 0);
+                        assert(val.isString());
+                        assert(val.String() == "test_value");
+
+                        val = Atlas::Message::Element();
+                        assert(existing_custom_type->getAttr("new_custom_type_attr", val) == 0);
+                        assert(val.isString());
+                        assert(val.String() == "new_value");
+
+                        val = Atlas::Message::Element();
+                        assert(existing_custom_inherited->getAttr("test_custom_type_attr", val) == 0);
+                        assert(val.isString());
+                        assert(val.String() == "test_value");
+
+                        val = Atlas::Message::Element();
+                        assert(existing_custom_inherited->getAttr("new_custom_type_attr", val) == 0);
+                        assert(val.isString());
+                        assert(val.String() == "new_value");
+
+                        // Check that the factory dictionary does contain the factory for
+                        // the second newly installed type
+                        custom_inherited_type_factory = dynamic_cast<EntityFactoryBase*>(m_entity_builder->getClassFactory("custom_inherited_type"));
+                        assert(custom_inherited_type_factory != 0);
 
 			// Check that the factory now has inherited the attributes
 			// from the first custom type
