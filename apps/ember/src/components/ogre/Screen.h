@@ -63,13 +63,15 @@ public:
 	 */
 	void takeScreenshot();
 
-	/**
-	 * @brief Get frame stats, compiled from all render targets.
-	 *
-	 * This will take all compositors into account.
-	 * @return Frame stats.
-	 */
-	const Ogre::RenderTarget::FrameStats& getFrameStats();
+        /**
+         * @brief Get aggregated frame stats across all active render targets.
+         *
+         * Uses Ogre's custom attributes to query per-target statistics and
+         * sum triangle and batch counts. This will take all compositors into
+         * account.
+         * @return Frame stats.
+         */
+        const Ogre::RenderTarget::FrameStats& getFrameStats();
 
 	const ConsoleCommandWrapper ToggleRendermode;
 	const ConsoleCommandWrapper Screenshot;

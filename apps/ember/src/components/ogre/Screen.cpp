@@ -28,6 +28,8 @@
 #include <OgreCamera.h>
 #include <OgreRenderWindow.h>
 #include <OgreViewport.h>
+#include <OgreRoot.h>
+#include <OgreRenderSystem.h>
 #include <filesystem>
 
 
@@ -147,15 +149,30 @@ void Screen::takeScreenshot() {
 }
 
 const Ogre::RenderTarget::FrameStats& Screen::getFrameStats() {
-	mFrameStats = Ogre::RenderTarget::FrameStats();
-	//TODO: see if we can get the combined triangle and batch count from all targets, as the previous API has been deprecated
-	const Ogre::RenderTarget::FrameStats& targetStats = mWindow.getStatistics();
-	mFrameStats.triangleCount += targetStats.triangleCount;
-	mFrameStats.batchCount += targetStats.batchCount;
-	mFrameStats.avgFPS = targetStats.avgFPS;
-	mFrameStats.bestFPS = targetStats.bestFPS;
-	mFrameStats.worstFPS = targetStats.worstFPS;
-	return mFrameStats;
+        mFrameStats = Ogre::RenderTarget::FrameStats();
+        // Retrieve stats for the primary window via custom attribute to get FPS values
+        Ogre::RenderTarget::FrameStats windowStats{};
+        mWindow.getCustomAttribute("FrameStats", &windowStats);
+        mFrameStats.avgFPS = windowStats.avgFPS;
+        mFrameStats.bestFPS = windowStats.bestFPS;
+        mFrameStats.worstFPS = windowStats.worstFPS;
+
+        // Sum triangle and batch counts across all active render targets
+        auto renderSystem = Ogre::Root::getSingleton().getRenderSystem();
+        auto rtIterator = renderSystem->getRenderTargetIterator();
+        while (rtIterator.hasMoreElements()) {
+                Ogre::RenderTarget* target = rtIterator.getNext();
+                if (!target->isActive()) {
+                        continue;
+                }
+                Ogre::RenderTarget::FrameStats targetStats{};
+                target->getCustomAttribute("FrameStats", &targetStats);
+                mFrameStats.triangleCount += targetStats.triangleCount;
+                mFrameStats.batchCount += targetStats.batchCount;
+        }
+
+        logger->debug("Aggregated frame stats: triangles={}, batches={}", mFrameStats.triangleCount, mFrameStats.batchCount);
+        return mFrameStats;
 }
 
 }
