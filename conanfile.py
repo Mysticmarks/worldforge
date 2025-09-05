@@ -105,7 +105,7 @@ class Worldforge(ConanFile):
 
         # self.requires("avahi/0.8")
 
-        self.test_requires("cppunit/[>=1.15.1 <2.0]")
+        self.test_requires("cppunit/[>=1.15 <2.0]")
         self.test_requires("catch2/[>=3.8.1 <4.0]")
 
     def generate(self):
