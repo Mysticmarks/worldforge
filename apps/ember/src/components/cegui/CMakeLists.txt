@@ -12,6 +12,7 @@ target_link_libraries(ember-cegui PUBLIC
         ember-external-CEGUIOgreRenderer
         varconf
         cegui::cegui
+        SDL3::SDL3
 )
 
 file(GLOB CEGUI_FILES bindings/lua/*.cpp)

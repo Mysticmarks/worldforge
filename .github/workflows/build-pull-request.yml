@@ -21,9 +21,7 @@ jobs:
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
-                #Enable building on macOS when it can be fixed. Currently, we're getting SDL linking errors.
-                #        os: [ ubuntu-22.04, macos-12, macos-11 ]
-                os: [ ubuntu-22.04, ubuntu-24.04, windows-2022 ]
+                os: [ ubuntu-22.04, ubuntu-24.04, macos-14, windows-2022 ]
 
         steps:
             -   uses: actions/checkout@v4.2.2
