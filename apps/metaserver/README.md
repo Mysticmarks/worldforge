@@ -1,4 +1,4 @@
-# Metaserver
+#Metaserver
 
 ## Introduction
 Welcome to the WorldForge Next Generation MetaServer!
@@ -99,6 +99,25 @@ server_stats=true
 
 ## MetaServer Protocol
 Refer to `PROTOCOL` document.
+
+## MetaServer API
+The API library contains utilities for communicating with the
+MetaServer over UDP.  Create an instance with a target host and port
+and then use `sendPacket`/`receivePacket` to exchange
+`MetaServerPacket` messages.
+
+```cpp
+#include "MetaServerAPI.hpp"
+
+MetaServerAPI api("example.org", 8453);
+MetaServerPacket packet;
+packet.setPacketType(NMT_HANDSHAKE);
+api.sendPacket(packet);
+
+MetaServerPacket reply = api.receivePacket();
+```
+
+The destination can be changed at runtime with `setEndpoint()`.
 
 ## Contributors
 All contributors will be listed in the `AUTHORS` file.

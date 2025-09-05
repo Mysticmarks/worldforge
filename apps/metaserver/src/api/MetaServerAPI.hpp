@@ -23,17 +23,51 @@
 #define METASERVERAPI_HPP_
 
 /*
- * Packet is the core of the API, allowing for any local transport 
+ * Packet is the core of the API, allowing for any local transport
  * mechanisms.
  */
-#include "MetaServerVersion.hpp"
-#include "MetaServerProtocol.hpp"
 #include "MetaServerPacket.hpp"
+#include "MetaServerProtocol.hpp"
+#include "MetaServerVersion.hpp"
 
-/*
- * TODO: Add in a default transport mechanism using boost
- * sendPacket
- * receivePacket
+#include <boost/asio.hpp>
+#include <string>
+
+/**
+ * Simple helper for sending and receiving MetaServer packets over the
+ * network.  The API currently uses UDP via boost::asio.  The target
+ * endpoint can be configured through the constructor or later via the
+ * setEndpoint method.
  */
+class MetaServerAPI {
+public:
+  /**
+   * Construct the API with an optional remote host and port.  The
+   * default points to the standard MetaServer port on localhost.
+   */
+  MetaServerAPI(const std::string &host = "127.0.0.1",
+                unsigned short port = 8453);
+
+  /**
+   * Change the remote endpoint used for subsequent send/receive
+   * operations.
+   */
+  void setEndpoint(const std::string &host, unsigned short port);
+
+  /**
+   * Send a packet to the configured endpoint.
+   */
+  void sendPacket(const MetaServerPacket &packet);
+
+  /**
+   * Blocking receive of a packet from the configured endpoint.
+   */
+  MetaServerPacket receivePacket();
+
+private:
+  boost::asio::io_context m_ioContext;
+  boost::asio::ip::udp::endpoint m_endpoint;
+  boost::asio::ip::udp::socket m_socket;
+};
 
 #endif /* METASERVERAPI_HPP_ */
