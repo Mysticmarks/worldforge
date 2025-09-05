@@ -137,7 +137,7 @@ class Worldforge(ConanFile):
             tc.variables["BUILD_METASERVER_SERVER"] = "TRUE"
 
         if self.options.widgets_as_plugins:
-            print("Widgets will be built as plugins, which is mainly of use during development.")
+            self.output.info("Widgets will be built as plugins, which is mainly of use during development.")
             tc.variables["WF_USE_WIDGET_PLUGINS"] = "TRUE"
 
         tc.generate()
