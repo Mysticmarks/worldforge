@@ -15,7 +15,7 @@ function Environment:buildWidget(environmentObject)
 	self.timeSlider:subscribeEvent("ValueChanged", function()
 		local timeValue = self.timeSlider:getCurrentValue()
 
-		self.environment:setTime(math.floor(86400 * timeValue))
+                self.environment:setTimeInSeconds(math.floor(86400 * timeValue))
 		return true
 	end)
 

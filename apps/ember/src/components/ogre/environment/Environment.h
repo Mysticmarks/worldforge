@@ -101,12 +101,11 @@ public:
 	 */
 	void setTime(int hour, int minute, int second = 0);
 
-	/**
-	 * @brief Sets the current time.
-	 * @param seconds Seconds since midnight.
-	 * TODO: rename to setTimeInSeconds
-	 */
-	void setTime(int seconds);
+        /**
+         * @brief Sets the current time using seconds since midnight.
+         * @param seconds Seconds since midnight.
+         */
+        void setTimeInSeconds(int seconds);
 
 	/**
 	 * @brief Sets the time multiplier, i.e. how much the time of the environment will progress per real time second.
