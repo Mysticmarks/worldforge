@@ -85,6 +85,37 @@ This step also requires ImageMagick to be installed.
 If you only want to build the server or the client you can supply these options to the "conan install..." command:
 "-o Worldforge/*:with_client=False" or "-o Worldforge/*:with_server=False".
 
+### Windows
+
+The project builds natively on Windows using the MSVC toolchain, and the
+Windows job in
+[`.github/workflows/build-all.yml`](.github/workflows/build-all.yml)
+verifies the steps below on `windows-2022` runners.
+
+Prerequisites:
+
+* [Visual Studio 2022](https://visualstudio.microsoft.com/) with the
+  “Desktop development with C++” workload (provides MSVC).
+* [Python 3](https://www.python.org/),
+  [Conan](https://conan.io), and
+  [CMake](https://cmake.org) available in your `PATH`.
+
+From an **x64 Native Tools Command Prompt for VS 2022**:
+
+```cmd
+pip install conan
+conan profile detect --force
+conan remote add worldforge https://artifactory.ogenvik.org/artifactory/api/conan/conan-local
+conan install . --build missing -c tools.system.package_manager:mode=install
+cmake --preset conan-default -DCMAKE_INSTALL_PREFIX=build/install/release
+cmake --build --preset conan-default --parallel 4 --target install
+```
+
+The `conan-default` preset selects the 64‑bit MSVC generator. To build only the
+server or client add `-o Worldforge/*:with_client=False` or
+`-o Worldforge/*:with_server=False` to the `conan install` step. For stricter
+warning handling pass `-DWF_STRICT_CI_WARNINGS=ON` to treat warnings as errors.
+
 ### Prebuilt CI artifacts
 
 Our continuous integration builds precompiled binaries in the `prebuilt/` directory.
