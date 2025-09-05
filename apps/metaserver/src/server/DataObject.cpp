@@ -168,14 +168,11 @@ DataObject::addClientFilter(const std::string& sessionid, const std::string& nam
 
 std::map<std::string, std::string>
 DataObject::getClientFilter(const std::string& sessionid) {
-	std::map<std::string, std::string> empty;
-	empty.clear();
-
-	if (keyExists<std::string>(m_clientFilterData, sessionid) &&
-		keyExists<std::string>(m_clientData, sessionid)) {
-		return m_clientFilterData[sessionid];
-	}
-	return empty;
+        if (keyExists<std::string>(m_clientFilterData, sessionid) &&
+                keyExists<std::string>(m_clientData, sessionid)) {
+                return m_clientFilterData[sessionid];
+        }
+        return {};
 }
 
 std::string
@@ -243,12 +240,9 @@ DataObject::serverSessionExists(const std::string& sessionid) {
 
 std::map<std::string, std::string>
 DataObject::getServerSession(const std::string& sessionid) {
-	if (keyExists<std::string>(m_serverData, sessionid))
-		return m_serverData[sessionid];
-
-	std::map<std::string, std::string> empty;
-	empty.clear();
-	return empty;
+        if (keyExists<std::string>(m_serverData, sessionid))
+                return m_serverData[sessionid];
+        return {};
 }
 
 bool DataObject::addClientSession(const std::string& sessionid) {
@@ -415,13 +409,9 @@ DataObject::searchServerSessionByAttribute(const std::string& attr_name, const s
 
 std::map<std::string, std::string>
 DataObject::getClientSession(const std::string& sessionid) {
-	if (keyExists<std::string>(m_clientData, sessionid))
-		return m_clientData[sessionid];
-
-	// @TODO: there has to be a way to do this without polluting the stack
-	std::map<std::string, std::string> empty;
-	empty.clear();
-	return empty;
+        if (keyExists<std::string>(m_clientData, sessionid))
+                return m_clientData[sessionid];
+        return {};
 }
 
 std::vector<std::string>
