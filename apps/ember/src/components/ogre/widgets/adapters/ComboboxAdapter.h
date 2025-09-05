@@ -25,6 +25,7 @@
 
 #include "GenericPropertyAdapter.h"
 #include "../ColouredListItem.h"
+#include "framework/Exception.h"
 #include <CEGUI/widgets/Combobox.h>
 #include <CEGUI/widgets/Editbox.h>
 #include <CEGUI/widgets/PushButton.h>
@@ -60,10 +61,12 @@ template<typename ValueType, typename PropertyNativeType>
 ComboboxAdapter<ValueType, PropertyNativeType>::ComboboxAdapter(const ValueType& value, CEGUI::Window* widget):
 		GenericPropertyAdapter<ValueType, PropertyNativeType>(value, widget, "Text", CEGUI::Combobox::EventListSelectionAccepted),
 		mCombobox(dynamic_cast<CEGUI::Combobox*>(widget)) {
-	// TODO: Do we want to assert that given widget is a combobox or just silently not provide the
-	//       functionality specific to the combobox?
+        if (!mCombobox) {
+                logger->error("ComboboxAdapter constructed with non-combobox widget.");
+                throw Exception("ComboboxAdapter requires a CEGUI::Combobox widget");
+        }
 
-	if (mCombobox) {
+        if (mCombobox) {
 		this->addGuiEventConnection(mCombobox->getEditbox()->subscribeEvent(CEGUI::Window::EventDeactivated,
 																			[this](const CEGUI::EventArgs& e) {
 																				auto initialValue = this->mEditedValue;
