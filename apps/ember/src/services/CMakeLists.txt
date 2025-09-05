@@ -42,6 +42,7 @@ target_link_libraries(ember-services PUBLIC
         ember-external-mojoal
         varconf
         Vorbis::vorbisfile
+        SDL3::SDL3
 )
 
 
