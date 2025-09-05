@@ -48,6 +48,7 @@ CPPUNIT_TEST_SUITE(DataObject_unittest);
                 CPPUNIT_TEST(test_ExpireServerSessions);
                 CPPUNIT_TEST(test_ExpireHandshakes);
                 CPPUNIT_TEST(test_ServerSessionSorting);
+                CPPUNIT_TEST(test_MalformedExpiry);
 
 
         CPPUNIT_TEST_SUITE_END();
@@ -327,6 +328,19 @@ public:
 
                 CPPUNIT_ASSERT(v1 == expected1);
                 CPPUNIT_ASSERT(v2 == expected2);
+        }
+
+        void test_MalformedExpiry() {
+                std::string sid = "badexpiry";
+                msdo->addServerSession(sid);
+                msdo->addServerAttribute(sid, "expiry", "not-a-date");
+
+                std::string et = msdo->getServerExpiryIso(sid);
+
+                // Ensure the returned string is a valid ISO timestamp
+                CPPUNIT_ASSERT_NO_THROW(boost::posix_time::from_iso_string(et));
+                // The stored value should be updated to the safe default
+                CPPUNIT_ASSERT(msdo->getServerAttribute(sid, "expiry") == et);
         }
 
 };

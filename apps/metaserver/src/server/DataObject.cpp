@@ -722,62 +722,59 @@ DataObject::getServerSessionCacheList() {
 std::string
 DataObject::getServerExpiryIso(std::string& sessionid) {
 
-	const std::string etdef = "20000101T010000.000000";
-	std::string et;
-	if (m_serverData.find(sessionid) == m_serverData.end()) {
-		/*
-		 * We don't have a session
-		 * Option 1: some list somewhere is iterating over the list and it's
-		 *           removed ... very bad
-		 * Option 2: expiry sub-map is empty ... which is not allowed
-		 */
-		spdlog::trace("session({}) does not exist for expiry request", sessionid);
-		et = getNowStr();
-	} else {
-		/*
-		 * found session, check expiry
-		 *
-		 */
-		if (m_serverData[sessionid].find("expiry") != m_serverData[sessionid].end()) {
-			et = m_serverData[sessionid]["expiry"];
-		} else {
-			spdlog::trace("session({}) does not contain expiry attribute", sessionid);
-			et = getNowStr();
-		}
-	}
+        std::string et;
+        const std::string fallback = getNowStr();
 
-	/*
-	 * And just in case because we know for sure we can't have anything that
-	 * is empty
-	 */
-	if (et.empty()) {
-		spdlog::trace("session({}) expiry time empty, defaulting:{}", sessionid, etdef);
-		et = etdef;
-	}
+        if (m_serverData.find(sessionid) == m_serverData.end()) {
+                /*
+                 * We don't have a session
+                 * Option 1: some list somewhere is iterating over the list and it's
+                 *           removed ... very bad
+                 * Option 2: expiry sub-map is empty ... which is not allowed
+                 */
+                spdlog::trace("session({}) does not exist for expiry request", sessionid);
+                et = fallback;
+        } else {
+                /*
+                 * found session, check expiry
+                 *
+                 */
+                if (m_serverData[sessionid].find("expiry") != m_serverData[sessionid].end()) {
+                        et = m_serverData[sessionid]["expiry"];
+                } else {
+                        spdlog::trace("session({}) does not contain expiry attribute", sessionid);
+                        et = fallback;
+                }
+        }
 
-	/*
-	 * Since it's so important to get the time, we can do a from_iso_string and
-	 * if there is an issue here, there will definitely be an issue elsewhere,
-	 * thus we can override that.
-	 */
-	try {
-		boost::posix_time::from_iso_string(et);
-	}
-	catch (const boost::exception& bex) {
-		/*
-		 * Whoops, date is malformed, we want to reset, unless
-		 * the session is maybe on the way out in which case just
-		 * let it be as it will disappear itself
-		 */
-		spdlog::warn("expiry time for session({}) seems bad, resetting: {}", sessionid, etdef);
-		if (m_serverData.find(sessionid) != m_serverData.end()) {
-			/*
-			 * TODO: rethink this
-			 */
-			m_serverData[sessionid]["expiry"] = etdef;
-		}
+        /*
+         * And just in case because we know for sure we can't have anything that
+         * is empty
+         */
+        if (et.empty()) {
+                spdlog::warn("session({}) expiry time empty, defaulting to {}", sessionid, fallback);
+                et = fallback;
+        }
 
-	}
+        /*
+         * Since it's so important to get the time, we can do a from_iso_string and
+         * if there is an issue here, there will definitely be an issue elsewhere,
+         * thus we can override that.
+         */
+        try {
+                boost::posix_time::from_iso_string(et);
+        }
+        catch (const std::exception& bex) {
+                /*
+                 * Whoops, date is malformed, we want to log and fall back to a safe
+                 * default rather than silently resetting.
+                 */
+                spdlog::warn("expiry time '{}' for session({}) is invalid; using {}", et, sessionid, fallback);
+                et = fallback;
+                if (m_serverData.find(sessionid) != m_serverData.end()) {
+                        m_serverData[sessionid]["expiry"] = fallback;
+                }
+        }
 
         return et;
 }
