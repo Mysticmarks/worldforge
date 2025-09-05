@@ -118,9 +118,17 @@ class Bridge:
             if self.operations_to_send:
                 msg = atlas.Messages(*self.operations_to_send)
                 self.operations_to_send = []
-                res_str = res_str + self.internal_send_string(self.codec.encode(msg))
+                try:
+                    encoded = self.codec.encode(msg)
+                except Exception as e:
+                    raise BridgeException(f"Encoding failed: {e}") from e
+                res_str = res_str + self.internal_send_string(encoded)
             if op!=None:
-                res_str = res_str + self.internal_send_string(self.codec.encode(op))
+                try:
+                    encoded = self.codec.encode(op)
+                except Exception as e:
+                    raise BridgeException(f"Encoding failed: {e}") from e
+                res_str = res_str + self.internal_send_string(encoded)
             return res_str, atlas.Messages()
         if self.store_operations and op!=None:
             self.operations_to_send.append(op)
@@ -138,10 +146,9 @@ class Bridge:
         try:
             objects = self.codec.decode(data)
             self.log("decode_string", objects)
-        except:
+        except Exception as e:
             self.log("exception in decoding", data)
-            raise
-            #raise BridgeException("Decoding failed")
+            raise BridgeException(f"Decoding failed: {e}") from e
         for op in objects:
             self.operation_received(op)
         return objects
