@@ -88,6 +88,19 @@ This step also requires ImageMagick to be installed.
 If you only want to build the server or the client you can supply these options to the "conan install..." command:
 "-o Worldforge/*:with_client=False" or "-o Worldforge/*:with_server=False".
 
+### Running tests
+
+After building, run the test suite to verify the installation:
+
+```bash
+cmake --build --preset conan-release --target check
+```
+
+This target invokes CTest to execute all unit tests. You can also run `ctest`
+directly from the build directory. The tests rely on `cppunit` for C++
+components and `pytest` for Python scripts, so ensure these prerequisites are
+available.
+
 ### Windows
 
 The project builds natively on Windows using the MSVC toolchain, and the
