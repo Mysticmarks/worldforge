@@ -193,21 +193,27 @@ TerrainEditorOverlay::TerrainEditorOverlay(TerrainEditor& editor, Ogre::SceneMan
 }
 
 TerrainEditorOverlay::~TerrainEditorOverlay() {
-	for (auto entity: mEntities) {
-		entity->detachFromParent();
-		mSceneManager.destroyEntity(entity);
-	}
-	//TODO: also delete user objects
-	if (mOverlayNode) {
-		auto* parent = dynamic_cast<Ogre::SceneNode*>(mOverlayNode->getParent());
-		if (parent) {
-			parent->removeAndDestroyChild(mOverlayNode);
-		} else {
-			mOverlayNode->getCreator()->destroySceneNode(mOverlayNode);
-		}
-	}
-	//It's safe to do this even if the pick listener hasn't been added yet.
-	mCamera.removeWorldPickListener(&mPickListener);
+        // Destroy user objects before removing any scene nodes they reference.
+        for (auto& userObject : mUserObjects) {
+                userObject.reset();
+        }
+        mUserObjects.clear();
+        mBasePointUserObjects.clear();
+
+        for (auto entity: mEntities) {
+                entity->detachFromParent();
+                mSceneManager.destroyEntity(entity);
+        }
+        if (mOverlayNode) {
+                auto* parent = dynamic_cast<Ogre::SceneNode*>(mOverlayNode->getParent());
+                if (parent) {
+                        parent->removeAndDestroyChild(mOverlayNode);
+                } else {
+                        mOverlayNode->getCreator()->destroySceneNode(mOverlayNode);
+                }
+        }
+        //It's safe to do this even if the pick listener hasn't been added yet.
+        mCamera.removeWorldPickListener(&mPickListener);
 }
 
 void TerrainEditorOverlay::createOverlay(std::map<int, std::map<int, Mercator::BasePoint>>& basePoints, Ogre::SceneNode& worldSceneNode) {
@@ -246,12 +252,14 @@ void TerrainEditorOverlay::createOverlay(std::map<int, std::map<int, Mercator::B
 			basepointNode->setPosition(ogrePos);
 			basepointNode->attachObject(entity);
 
-			auto userObject = std::make_unique<BasePointUserObject>(TerrainPosition(x, y), basepoint, basepointNode, mManager.getScene().getBulletWorld());
+                        auto userObject = std::make_unique<BasePointUserObject>(TerrainPosition(x, y), basepoint, basepointNode, mManager.getScene().getBulletWorld());
 
-			//store the base point user object
-			std::stringstream ss_;
-			ss_ << x << "_" << y;
-			mBasePointUserObjects[ss_.str()] = std::move(userObject);
+                        // Store the user object. mUserObjects owns the instance while
+                        // mBasePointUserObjects provides non-owning lookup.
+                        std::stringstream ss_;
+                        ss_ << x << "_" << y;
+                        mBasePointUserObjects[ss_.str()] = userObject.get();
+                        mUserObjects.push_back(std::move(userObject));
 		}
 	}
 
@@ -263,11 +271,11 @@ void TerrainEditorOverlay::createOverlay(std::map<int, std::map<int, Mercator::B
 BasePointUserObject* TerrainEditorOverlay::getUserObject(const TerrainPosition& terrainIndex) {
 	std::stringstream ss;
 	ss << terrainIndex.x() << "_" << terrainIndex.y();
-	auto I = mBasePointUserObjects.find(ss.str());
-	if (I != mBasePointUserObjects.end()) {
-		return I->second.get();
-	}
-	return nullptr;
+        auto I = mBasePointUserObjects.find(ss.str());
+        if (I != mBasePointUserObjects.end()) {
+                return I->second;
+        }
+        return nullptr;
 
 }
 
@@ -311,16 +319,16 @@ bool TerrainEditorOverlay::injectMouseMove(const MouseMotion& motion, bool& free
 	//should we also translate secondary objects?
 	if (mEditor.getRadius() > 1.0f) {
 		// 		float squaredMovementRadius = mMovementRadiusInMeters * mMovementRadiusInMeters;
-		for (auto& basePointUserObject: mBasePointUserObjects) {
-			if (basePointUserObject.second.get() != mCurrentUserObject) {
-				auto distance = WFMath::SquaredDistance<2>((basePointUserObject.second)->getPosition(), mCurrentUserObject->getPosition()) * 64;
-				if (distance <= mEditor.getRadius()) {
-					auto movement = 1.0f - (distance / mEditor.getRadius());
-					basePointUserObject.second->translate(translation * (float) movement);
-					mSecondaryUserObjects.insert(basePointUserObject.second.get());
-				}
-			}
-		}
+                for (auto& basePointUserObject: mBasePointUserObjects) {
+                        if (basePointUserObject.second != mCurrentUserObject) {
+                                auto distance = WFMath::SquaredDistance<2>((basePointUserObject.second)->getPosition(), mCurrentUserObject->getPosition()) * 64;
+                                if (distance <= mEditor.getRadius()) {
+                                        auto movement = 1.0f - (distance / mEditor.getRadius());
+                                        basePointUserObject.second->translate(translation * static_cast<float>(movement));
+                                        mSecondaryUserObjects.insert(basePointUserObject.second);
+                                }
+                        }
+                }
 	}
 
 	EventSelectedBasePointUpdatedPosition.emit(mCurrentUserObject);
@@ -504,10 +512,10 @@ void TerrainEditorOverlay::sendChangesToServerWithBasePoints(std::map<int, std::
 			connection->send(s);
 			logger->info("Sent updated terrain to server ({} base points updated).", positions.size());
 
-			//also reset the marking for the base points
-			for (const auto& entry: mBasePointUserObjects) {
-				entry.second->resetMarking();
-			}
+                        //also reset the marking for the base points
+                        for (const auto& entry: mBasePointUserObjects) {
+                                entry.second->resetMarking();
+                        }
 			//clear all actions
 			mActions.clear();
 		} catch (const std::exception& ex) {
