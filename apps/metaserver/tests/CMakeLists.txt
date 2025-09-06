@@ -78,4 +78,15 @@ if (BUILD_METASERVER_SERVER)
     )
     add_test(NAME DomainFilter_unittest COMMAND DomainFilter_unittest)
     add_dependencies(check DomainFilter_unittest)
+
+    add_executable(PacketLogging_integration
+            PacketLogging_integration.cpp
+            ../src/api/MetaServerPacket.cpp)
+    target_link_libraries(PacketLogging_integration PUBLIC
+            cppunit::cppunit
+            Boost::program_options
+            spdlog::spdlog
+    )
+    add_test(NAME PacketLogging_integration COMMAND PacketLogging_integration)
+    add_dependencies(check PacketLogging_integration)
 endif ()
