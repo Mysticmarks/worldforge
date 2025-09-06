@@ -23,70 +23,43 @@ struct TempDir {
 };
 
 void callback(const std::string& section,
-			  const std::string& key,
-			  varconf::Config& conf) {
-	std::cout << "\nConfig Change: item " << key << " under section " << section
-			  << " has changed to " << conf.getItem(section, key) << ".\n";
+                          const std::string& key,
+                          varconf::Config& conf) {
+        std::cout << "\nConfig Change: item " << key << " under section " << section
+                          << " has changed to " << conf.getItem(section, key) << ".\n";
 }
 
 void error(const char* message) {
         std::cerr << message;
 }
 
-int main(int argc, char** argv) {
-	varconf::Config config;
+TEST_CASE("Configuration file operations", "[varconf]") {
+        varconf::Config config;
 
-	config.sige.connect(sigc::ptr_fun(error));
-	config.sigsv.connect(sigc::ptr_fun(callback));
+        config.sige.connect(sigc::ptr_fun(error));
+        config.sigsv.connect(sigc::ptr_fun(callback));
 
-	config.setParameterLookup('f', "foo", true);
-	config.setParameterLookup('b', "bar", false);
+        config.setParameterLookup('f', "foo", true);
+        config.setParameterLookup('b', "bar", false);
 
-        config.getCmdline(argc, argv);
+        // Simulate minimal command line for getCmdline
+        char arg0[] = "conftest";
+        char* argv[] = {arg0};
+        config.getCmdline(1, argv);
         config.getEnv("TEST_");
-        std::filesystem::path exePath = std::filesystem::absolute(argv[0]).parent_path();
-        assert(config.readFromFile((exePath / "conf.cfg").string()));
-	config.setItem("tcp", "port", 6700, varconf::GLOBAL);
-	config.setItem("tcp", "v6port", 6700, varconf::USER);
-	config.setItem("console", "colours", "plenty", varconf::INSTANCE);
-	config.setItem("console", "speed", "fast", varconf::USER);
 
-	assert(config.find("tcp", "port"));
-	assert(config.find("console", "enabled"));
-	assert(config.getItem("tcp", "port")->scope() == varconf::GLOBAL);
-	//Default scope for read files are USER
-	assert(config.getItem("console", "enabled")->scope() == varconf::USER);
+        std::filesystem::path exePath = std::filesystem::current_path();
+        REQUIRE(config.readFromFile((exePath / "conf.cfg").string()));
+        config.setItem("tcp", "port", 6700, varconf::GLOBAL);
+        config.setItem("tcp", "v6port", 6700, varconf::USER);
+        config.setItem("console", "colours", "plenty", varconf::INSTANCE);
+        config.setItem("console", "speed", "fast", varconf::USER);
 
-	std::cout << "\nEnter sample configuration data to test parseStream() method.\n";
-
-	std::stringstream ss;
-	ss << "[general]" << std::endl;
-	ss << "setting = true" << std::endl;
-	ss << "emptyrightbeforeeof = ";
-
-	try {
-		config.parseStream(ss, varconf::USER);
-	}
-	catch (const varconf::ParseError& p) {
-		std::cout << "\nError while parsing from input stream.\n";
-		std::cout << p.what();
-	}
-
-        assert(config.find("general", "setting"));
-        assert(config.find("general", "emptyrightbeforeeof"));
-
-        std::filesystem::path conf_file;
-        {
-                TempDir tmp;
-                conf_file = tmp.path / "conf2.cfg";
-                config.writeToFile(conf_file.string());
-                assert(std::filesystem::exists(conf_file));
-
-                varconf::Config file_conf;
-                assert(file_conf.readFromFile(conf_file.string()));
-                assert(file_conf.find("general", "setting"));
-                assert(file_conf.find("general", "emptyrightbeforeeof"));
-        }
+        REQUIRE(config.find("tcp", "port"));
+        REQUIRE(config.find("console", "enabled"));
+        REQUIRE(config.getItem("tcp", "port")->scope() == varconf::GLOBAL);
+        // Default scope for read files are USER
+        REQUIRE(config.getItem("console", "enabled")->scope() == varconf::USER);
 
         SECTION("Parse configuration stream") {
                 std::cout << "\nEnter sample configuration data to test parseStream() method.\n";
