@@ -1,3 +1,6 @@
+##
+## CppUnit-based tests
+##
 if (TARGET cppunit::cppunit)
 
     MESSAGE(STATUS "Building tests.")
@@ -108,6 +111,9 @@ if (TARGET cppunit::cppunit)
 
 endif ()
 
+##
+## Catch2-based tests
+##
 find_package(Catch2 3 REQUIRED)
 
 add_executable(ServerSettingsTest
