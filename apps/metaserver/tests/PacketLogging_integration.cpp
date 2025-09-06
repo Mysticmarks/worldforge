@@ -44,6 +44,7 @@
 #include <cppunit/extensions/TestFactoryRegistry.h>
 
 #include <cassert>
+#include <filesystem>
 
 class PacketLogging_integration : public CppUnit::TestCase {
 	CPPUNIT_TEST_SUITE(PacketLogging_integration);
@@ -94,9 +95,9 @@ public:
 		mp3->addPacketData(attr_name);
 		mp3->addPacketData(attr_val);
 
-		p = new PacketReader();
-		file_name = "/tmp/packet_test.bin";
-		pl = new PacketLogger(file_name);
+               p = new PacketReader();
+               file_name = (std::filesystem::temp_directory_path() / "packet_test.bin").string();
+               pl = new PacketLogger(file_name);
 
 	}
 
@@ -211,7 +212,7 @@ public:
 		 */
 		unsigned int mr2data = mr2.getIntData(4);
 		std::cout << "mr2.getIntData(4): " << mr2data << std::endl;
-//    	CPPUNIT_ASSERT( mr2data == 22 );
+		CPPUNIT_ASSERT(mr2data == 22);
 
 		std::cout << "mr3.getPacketType(): " << mr3.getPacketType() << " / " << NMT_SERVERATTR << std::endl;
 		std::cout << "mr3.getSize(): " << mr3.getSize() << std::endl;
@@ -254,7 +255,7 @@ public:
 		 * Second parse.  Since no reset, should have 4
 		 */
 		i = p->parseBinaryFile(pl->getFile());
-		CPPUNIT_ASSERT(i = 4);
+		CPPUNIT_ASSERT(i == 4);
 
 		/*
 		 * And back again
