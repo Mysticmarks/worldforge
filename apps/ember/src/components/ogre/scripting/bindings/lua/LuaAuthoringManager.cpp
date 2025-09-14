@@ -38,11 +38,21 @@ void registerLua<AuthoringManager>(sol::table& space) {
 	authoringManager["startMovement"] = &AuthoringManager::startMovement;
 	authoringManager["stopMovement"] = &AuthoringManager::stopMovement;
 
-	auto entityMoveManager = space.new_usertype<EntityMoveManager>("EntityMoveManager", sol::no_constructor);
-	entityMoveManager["startMove"] = &EntityMoveManager::startMove;
-	entityMoveManager["EventStartMoving"] = LuaConnector::make_property(&EntityMoveManager::EventStartMoving);
-	entityMoveManager["EventFinishedMoving"] = LuaConnector::make_property(&EntityMoveManager::EventFinishedMoving);
-	entityMoveManager["EventCancelledMoving"] = LuaConnector::make_property(&EntityMoveManager::EventCancelledMoving);
+        auto entityMoveManager = space.new_usertype<EntityMoveManager>("EntityMoveManager", sol::no_constructor);
+        entityMoveManager["startMove"] = &EntityMoveManager::startMove;
+        entityMoveManager["EventStartMoving"] = LuaConnector::make_property(&EntityMoveManager::EventStartMoving);
+        entityMoveManager["EventFinishedMoving"] = LuaConnector::make_property(&EntityMoveManager::EventFinishedMoving);
+        entityMoveManager["EventCancelledMoving"] = LuaConnector::make_property(&EntityMoveManager::EventCancelledMoving);
+
+        auto entityMover = space.new_usertype<EntityMover>("EntityMover", sol::no_constructor);
+        entityMover["setPosition"] = &EntityMover::setPosition;
+        entityMover["getPosition"] = &EntityMover::getPosition;
+        entityMover["move"] = &EntityMover::move;
+        entityMover["setOrientation"] = &EntityMover::setOrientation;
+        entityMover["setRotation"] = &EntityMover::setRotation;
+        entityMover["yaw"] = &EntityMover::yaw;
+        entityMover["finalizeMovement"] = &EntityMover::finalizeMovement;
+        entityMover["cancelMovement"] = &EntityMover::cancelMovement;
 
 	auto entityRecipe = space.new_usertype<EntityRecipe>("EntityRecipe", sol::no_constructor);
 	entityRecipe["setAuthor"] = &EntityRecipe::setAuthor;

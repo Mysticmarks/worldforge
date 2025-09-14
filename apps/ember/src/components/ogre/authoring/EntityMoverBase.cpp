@@ -130,8 +130,13 @@ void EntityMoverBase::move(const WFMath::Vector<3>& directionVector) {
 	}
 }
 
-void EntityMoverBase::setRotation(int /*axis*/, WFMath::CoordType /*angle*/) {
-	//not implemented yet
+void EntityMoverBase::setRotation(int axis, WFMath::CoordType angle) {
+        if (axis < 0 || axis > 2 || !std::isfinite(angle)) {
+                return;
+        }
+        WFMath::Quaternion rotation;
+        rotation.rotation(axis, angle);
+        setOrientation(rotation * getOrientation());
 }
 
 void EntityMoverBase::yaw(WFMath::CoordType angle) {
