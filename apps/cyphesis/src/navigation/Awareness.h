@@ -38,6 +38,7 @@
 #include <map>
 #include <unordered_map>
 #include <functional>
+#include "EntityTracker.h"
 
 
 
@@ -83,57 +84,6 @@ enum PolyFlags {
 };
 
 
-/**
- * @brief Keeps track of the connections and state of a specific entity.
- *
- * We don't need to observe all entities in the same way; some are ignored, and some are moving.
- * Instances of this keep track of this information.
- */
-struct EntityConnections {
-	bool isMoving;
-	bool isIgnored;
-};
-
-template<typename T>
-struct TimestampedProperty {
-	T data;
-	std::chrono::milliseconds timestamp = std::chrono::milliseconds{-1};
-};
-
-struct EntityEntry {
-	long entityId;
-	int numberOfObservers;
-
-	TimestampedProperty<WFMath::Point<3>> pos;
-	TimestampedProperty<WFMath::Vector<3>> velocity;
-
-	TimestampedProperty<WFMath::Quaternion> orientation;
-	TimestampedProperty<WFMath::Vector<3>> angular;
-
-	TimestampedProperty<WFMath::AxisBox<3>> bbox;
-	TimestampedProperty<WFMath::Vector<3>> scale;
-	WFMath::AxisBox<3> scaledBbox;
-
-	/**
-	 * True if this entity is owned by an actor. These entities should not be updated by sights by other actors: only the actor itself should update it.
-	 */
-	bool isActorOwned;
-
-	/**
-	 * True if the entity is moving. Moving entities should be treated as moving actors, and should not be part of the navmesh.
-	 */
-	bool isMoving;
-
-	/**
-	 * True if this entity is ignored.
-	 */
-	bool isIgnored;
-
-	/**
-	 * True if this entity is solid.
-	 */
-	bool isSolid;
-};
 
 
 /**
@@ -447,27 +397,10 @@ protected:
 	 */
 	std::list<std::pair<int, int>> mDirtyAwareOrderedTiles;
 
-	/**
-	 * @brief The view resolved areas for each entity.
-	 *
-	 * This information is used when determining what tiles to rebuild when entities are moved.
-	 */
-	std::map<const EntityEntry*, WFMath::RotBox<2>> mEntityAreas;
-
-	/**
-	 * @brief Keeps track of all currently observed entities.
-	 */
-	std::unordered_map<long, std::unique_ptr<EntityEntry>> mObservedEntities;
-
-	/**
-	 * @brief Keeps track of all entities that are moving.
-	 *
-	 * Moving entities aren't included in the navmesh generation and updates, but are instead
-	 * considered when doing obstacle avoidance.
-	 * It's expected that moving entities should be rather small and have a uniform shape, since they
-	 * internally are represented as 2d circles.
-	 */
-	std::set<const EntityEntry*> mMovingEntities;
+        /**
+         * @brief Tracks entities and their navigation state.
+         */
+        EntityTracker mEntityTracker;
 
 	/**
 	 * @brief Keeps track of current awareness areas.
@@ -499,28 +432,15 @@ protected:
 	 * @param timestamp
 	 * @return True if any position or size changed.
 	 */
-	bool processEntityUpdate(EntityEntry& entry, const MemEntity& entity, const Atlas::Objects::Entity::RootEntity& ent, std::chrono::milliseconds timestamp);
+        bool processEntityUpdate(EntityEntry& entry, const MemEntity& entity, const Atlas::Objects::Entity::RootEntity& ent, std::chrono::milliseconds timestamp);
 
-	/**
-	 * @brief Rebuild the tile at the specific index.
-	 * @param tx X index.
-	 * @param ty Y index.
-	 * @param entityAreas A list of entities, projected as 2d rotation boxes, which affects the tile.
-	 */
-	void rebuildTile(int tx, int ty, const std::vector<WFMath::RotBox<2>>& entityAreas);
-
-	/**
-	 * @brief Calculates the 2d rotbox area of the entity and adds it to the supplied map of areas.
-	 * @param entity An entity.
-	 */
-	WFMath::RotBox<2> buildEntityAreas(const EntityEntry& entity);
-
-	/**
-	 * Find entity 2d rotbox areas within the supplied extent.
-	 * @param extent An extent in world units.
-	 * @param areas A vector of areas.
-	 */
-	void findEntityAreas(const WFMath::AxisBox<2>& extent, std::vector<WFMath::RotBox<2> >& areas);
+        /**
+         * @brief Rebuild the tile at the specific index.
+         * @param tx X index.
+         * @param ty Y index.
+         * @param entityAreas A list of entities, projected as 2d rotation boxes, which affects the tile.
+         */
+        void rebuildTile(int tx, int ty, const std::vector<WFMath::RotBox<2>>& entityAreas);
 
 	/**
 	 * @brief Rasterizes the tile at the specified index.
