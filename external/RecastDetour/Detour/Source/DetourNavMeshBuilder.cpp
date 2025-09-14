@@ -268,25 +268,33 @@ static unsigned char classifyOffMeshPoint(const float* pt, const float* bmin, co
 	return 0xff;	
 }
 
-// TODO: Better error handling.
+/// Performs sanity checks on the provided creation parameters and reports a detailed
+/// status for each failure case.  This replaces the previous single boolean return
+/// value and allows callers to differentiate between the various error conditions.
 
 /// @par
-/// 
+///
 /// The output data array is allocated using the detour allocator (dtAlloc()).  The method
 /// used to free the memory will be determined by how the tile is added to the navigation
 /// mesh.
 ///
 /// @see dtNavMesh, dtNavMesh::addTile()
-bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData, int* outDataSize)
+dtStatus dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData, int* outDataSize)
 {
-	if (params->nvp > DT_VERTS_PER_POLYGON)
-		return false;
-	if (params->vertCount >= 0xffff)
-		return false;
-	if (!params->vertCount || !params->verts)
-		return false;
-	if (!params->polyCount || !params->polys)
-		return false;
+        if (!params || !outData || !outDataSize)
+                return DT_FAILURE | DT_INVALID_PARAM;
+
+        *outData = 0;
+        *outDataSize = 0;
+
+        if (params->nvp > DT_VERTS_PER_POLYGON)
+                return DT_FAILURE | DT_INVALID_PARAM;
+        if (params->vertCount >= 0xffff)
+                return DT_FAILURE | DT_INVALID_PARAM;
+        if (!params->vertCount || !params->verts)
+                return DT_FAILURE | DT_INVALID_PARAM;
+        if (!params->polyCount || !params->polys)
+                return DT_FAILURE | DT_INVALID_PARAM;
 
 	const int nvp = params->nvp;
 	
@@ -298,9 +306,9 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 	
 	if (params->offMeshConCount > 0)
 	{
-		offMeshConClass = (unsigned char*)dtAlloc(sizeof(unsigned char)*params->offMeshConCount*2, DT_ALLOC_TEMP);
-		if (!offMeshConClass)
-			return false;
+                offMeshConClass = (unsigned char*)dtAlloc(sizeof(unsigned char)*params->offMeshConCount*2, DT_ALLOC_TEMP);
+                if (!offMeshConClass)
+                        return DT_FAILURE | DT_OUT_OF_MEMORY;
 
 		// Find tight heigh bounds, used for culling out off-mesh start locations.
 		float hmin = FLT_MAX;
@@ -438,12 +446,12 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 						 detailMeshesSize + detailVertsSize + detailTrisSize +
 						 bvTreeSize + offMeshConsSize;
 						 
-	unsigned char* data = (unsigned char*)dtAlloc(sizeof(unsigned char)*dataSize, DT_ALLOC_PERM);
-	if (!data)
-	{
-		dtFree(offMeshConClass);
-		return false;
-	}
+        unsigned char* data = (unsigned char*)dtAlloc(sizeof(unsigned char)*dataSize, DT_ALLOC_PERM);
+        if (!data)
+        {
+                dtFree(offMeshConClass);
+                return DT_FAILURE | DT_OUT_OF_MEMORY;
+        }
 	memset(data, 0, dataSize);
 	
 	unsigned char* d = data;
@@ -649,12 +657,12 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 		}
 	}
 		
-	dtFree(offMeshConClass);
-	
-	*outData = data;
-	*outDataSize = dataSize;
-	
-	return true;
+        dtFree(offMeshConClass);
+
+        *outData = data;
+        *outDataSize = dataSize;
+
+        return DT_SUCCESS;
 }
 
 bool dtNavMeshHeaderSwapEndian(unsigned char* data, const int /*dataSize*/)

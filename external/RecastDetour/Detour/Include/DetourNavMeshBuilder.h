@@ -20,6 +20,7 @@
 #define DETOURNAVMESHBUILDER_H
 
 #include "DetourAlloc.h"
+#include "DetourStatus.h"
 
 /// Represents the source data used to build an navigation mesh tile.
 /// @ingroup detour
@@ -109,8 +110,8 @@ struct dtNavMeshCreateParams
 ///  @param[in]		params		Tile creation data.
 ///  @param[out]	outData		The resulting tile data.
 ///  @param[out]	outDataSize	The size of the tile data array.
-/// @return True if the tile data was successfully created.
-bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData, int* outDataSize);
+/// @return Status code indicating success or reason for failure.
+dtStatus dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData, int* outDataSize);
 
 /// Swaps the endianess of the tile data's header (#dtMeshHeader).
 ///  @param[in,out]	data		The tile data array.

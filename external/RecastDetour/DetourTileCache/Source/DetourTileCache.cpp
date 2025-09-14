@@ -758,10 +758,11 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 		m_tmproc->process(&params, bc.lmesh->areas, bc.lmesh->flags);
 	}
 	
-	unsigned char* navData = 0;
-	int navDataSize = 0;
-	if (!dtCreateNavMeshData(&params, &navData, &navDataSize))
-		return DT_FAILURE;
+        unsigned char* navData = 0;
+        int navDataSize = 0;
+        status = dtCreateNavMeshData(&params, &navData, &navDataSize);
+        if (dtStatusFailed(status))
+                return status;
 
 	// Remove existing tile.
 	navmesh->removeTile(navmesh->getTileRefAt(tile->header->tx,tile->header->ty,tile->header->tlayer),0,0);
