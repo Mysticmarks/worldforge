@@ -37,8 +37,9 @@
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <cstdlib>
 #include <string>
-#include <llvm/ADT/SmallString.h>
-#include <llvm/Support/Path.h>
+#ifndef WIN32
+#include <wordexp.h>
+#endif
 
 //#include <json/writer.h>
 #include <spdlog/spdlog.h>
@@ -55,29 +56,25 @@ std::string expandHome(const std::string& path)
         return path;
     }
 
-    std::filesystem::path home;
-#ifdef _WIN32
+#ifdef WIN32
     if (const char* envHome = std::getenv("USERPROFILE")) {
-        home = envHome;
-    }
-#else
-    if (const char* envHome = std::getenv("HOME")) {
-        home = envHome;
-    }
-#endif
-
-    if (home.empty()) {
-        llvm::SmallString<256> storage;
-        if (llvm::sys::path::home_directory(storage)) {
-            home = std::string(storage.str());
+        std::string rest = path.substr(1);
+        if (!rest.empty() && (rest[0] == '/' || rest[0] == '\\')) {
+            rest.erase(0, 1);
         }
+        return (std::filesystem::path(envHome) / rest).string();
     }
-
-    if (home.empty()) {
-        return path;
+    return path;
+#else
+    wordexp_t p;
+    if (wordexp(path.c_str(), &p, 0) == 0 && p.we_wordc > 0) {
+        std::string expanded(p.we_wordv[0]);
+        wordfree(&p);
+        return expanded;
     }
-
-    return (home / path.substr(1)).string();
+    wordfree(&p);
+    return path;
+#endif
 }
 
 
@@ -1213,18 +1210,8 @@ MetaServer::registerConfig(boost::program_options::variables_map& vm) {
 			m_PacketLogfile = "~/.metaserver-ng/packetdefault.bin";
 		}
 
-                // Expand any leading '~' to the user's home directory. On
-                // Windows we resolve this manually as the default helper
-                // expects Unix style paths.
-#ifdef WIN32
-                if (!m_PacketLogfile.empty() && m_PacketLogfile[0] == '~') {
-                        if (const char* envHome = std::getenv("USERPROFILE")) {
-                                m_PacketLogfile = (std::filesystem::path(envHome) / m_PacketLogfile.substr(1)).string();
-                        }
-                }
-#else
+                // Expand any leading '~' to the user's home directory.
                 m_PacketLogfile = expandHome(m_PacketLogfile);
-#endif
 
 	}
 
@@ -1246,24 +1233,9 @@ MetaServer::registerConfig(boost::program_options::variables_map& vm) {
 	if (vm.count("server.logfile")) {
 		m_Logfile = vm["server.logfile"].as<std::string>();
 		std::cout << "Assigning m_Logfile : " << m_Logfile << std::endl;
-		/**
-		 * I tried to use std::filesystem here, but it is so very stupid
-		 * that I have opted for the more brittle way, because at least it works.
-		 *
-		 * TODO: add ifdef WIN32 here if/when metserver needs to run on windows
-		 */
-                // Expand any leading '~' for the logfile path. Provide a
-                // Windows specific implementation since the general helper
-                // assumes POSIX semantics.
-#ifdef WIN32
-                if (!m_Logfile.empty() && m_Logfile[0] == '~') {
-                        if (const char* envHome = std::getenv("USERPROFILE")) {
-                                m_Logfile = (std::filesystem::path(envHome) / m_Logfile.substr(1)).string();
-                        }
-                }
-#else
+                // Expand any leading '~' for the logfile path. On Windows this
+                // relies on std::filesystem, while POSIX platforms use wordexp.
                 m_Logfile = expandHome(m_Logfile);
-#endif
         }
 
 	if (vm.count("server.pidfile")) {
