@@ -896,8 +896,7 @@ int Awareness::rasterizeTileLayers(const std::vector<WFMath::RotBox<2>>& entityA
 
 	float* verts = vertsVector.data();
 	int* tris = trisVector.data();
-	auto nverts = vertsVector.size() / 3;
-	auto ntris = trisVector.size() / 3;
+    auto ntris = trisVector.size() / 3;
 
 // Allocate voxel heightfield where we rasterize our input data to.
 	rc.solid = rcAllocHeightfield();
@@ -918,9 +917,9 @@ int Awareness::rasterizeTileLayers(const std::vector<WFMath::RotBox<2>>& entityA
 	}
 
 	memset(rc.triareas, 0, ntris * sizeof(unsigned char));
-	rcMarkWalkableTriangles(mCtx.get(), tcfg.walkableSlopeAngle, verts, nverts, tris, ntris, rc.triareas);
+    rcMarkWalkableTriangles(mCtx.get(), tcfg.walkableSlopeAngle, verts, tris, ntris, rc.triareas);
 
-	rcRasterizeTriangles(mCtx.get(), verts, nverts, tris, rc.triareas, ntris, *rc.solid, tcfg.walkableClimb);
+    rcRasterizeTriangles(mCtx.get(), verts, tris, rc.triareas, ntris, *rc.solid, tcfg.walkableClimb);
 
 // Once all geometry is rasterized, we do initial pass of filtering to
 // remove unwanted overhangs caused by the conservative rasterization

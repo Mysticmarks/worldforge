@@ -284,7 +284,7 @@ rcPolyMeshDetail::rcPolyMeshDetail()
 {
 }
 
-void rcCalcBounds(const float* verts, int numVerts, float* minBounds, float* maxBounds)
+void rcCalcBounds(const float* verts, float* minBounds, float* maxBounds)
 {
 	// Calculate bounding box.
 	rcVcopy(minBounds, verts);
@@ -334,12 +334,11 @@ static void calcTriNormal(const float* v0, const float* v1, const float* v2, flo
 }
 
 void rcMarkWalkableTriangles(rcContext* context, const float walkableSlopeAngle,
-                             const float* verts, const int numVerts,
+                             const float* verts,
                              const int* tris, const int numTris,
                              unsigned char* triAreaIDs)
 {
 	rcIgnoreUnused(context);
-	rcIgnoreUnused(numVerts);
 
 	const float walkableThr = cosf(walkableSlopeAngle / 180.0f * RC_PI);
 
@@ -358,12 +357,11 @@ void rcMarkWalkableTriangles(rcContext* context, const float walkableSlopeAngle,
 }
 
 void rcClearUnwalkableTriangles(rcContext* context, const float walkableSlopeAngle,
-                                const float* verts, int numVerts,
+                                const float* verts,
                                 const int* tris, int numTris,
                                 unsigned char* triAreaIDs)
 {
 	rcIgnoreUnused(context);
-	rcIgnoreUnused(numVerts);
 
 	// The minimum Y value for a face normal of a triangle with a walkable slope.
 	const float walkableLimitY = cosf(walkableSlopeAngle / 180.0f * RC_PI);
