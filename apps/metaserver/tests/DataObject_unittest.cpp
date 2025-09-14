@@ -48,6 +48,7 @@ CPPUNIT_TEST_SUITE(DataObject_unittest);
                 CPPUNIT_TEST(test_ExpireServerSessions);
                 CPPUNIT_TEST(test_ExpireHandshakes);
                 CPPUNIT_TEST(test_ServerSessionSorting);
+               CPPUNIT_TEST(test_ServerSessionFilteringAndSorting);
                 CPPUNIT_TEST(test_MalformedExpiry);
 
 
@@ -329,6 +330,34 @@ public:
                 CPPUNIT_ASSERT(v1 == expected1);
                 CPPUNIT_ASSERT(v2 == expected2);
         }
+
+       void test_ServerSessionFilteringAndSorting() {
+               // Setup server sessions with attributes that can be filtered and
+               // sorted on
+               msdo->addServerSession("server1");
+               msdo->addServerAttribute("server1", "region", "eu");
+               msdo->addServerAttribute("server1", "population", "100");
+               msdo->addServerSession("server2");
+               msdo->addServerAttribute("server2", "region", "us");
+               msdo->addServerAttribute("server2", "population", "200");
+               msdo->addServerSession("server3");
+               msdo->addServerAttribute("server3", "region", "eu");
+               msdo->addServerAttribute("server3", "population", "150");
+
+               // Client filtering for region=eu and sorting by population
+               msdo->addClientAttribute("clientEu", "dummy", "1");
+               msdo->addClientFilter("clientEu", "region", "eu");
+               msdo->addClientFilter("clientEu", "sortby", "population");
+
+               msdo->createServerSessionListresp("clientEu");
+
+               std::list<std::string> list = msdo->getServerSessionList(0, 10, "clientEu");
+               std::vector<std::string> v(list.begin(), list.end());
+
+               std::vector<std::string> expected = {"server1", "server3"};
+
+               CPPUNIT_ASSERT(v == expected);
+       }
 
         void test_MalformedExpiry() {
                 std::string sid = "badexpiry";

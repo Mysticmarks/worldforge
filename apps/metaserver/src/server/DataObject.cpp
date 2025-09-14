@@ -661,42 +661,63 @@ DataObject::createServerSessionListresp(std::string ip) {
 //		m_serverListreq[ip].clear();
 	}
 
-	/*
-	 * TODO: this is where we can apply custom per-client sorting and
-	 * filtering.  Perhaps maybe create a sort lambda ?
-	 */
-        for (auto& foo: m_serverData) {
-                spdlog::trace("    Temp Cache[{}] = {}", ip, foo.first);
-                ip_list.push_back(foo.first);
-        }
+       // Gather client specific filters and sorting preferences before we
+       // build the list of server session ids. This allows us to apply the
+       // filtering while populating the list and sort it afterwards.
+       auto clientFilters = getClientFilter(ip);
+       std::string sortKey;
+       auto sf = clientFilters.find("sortby");
+       if (sf != clientFilters.end()) {
+               sortKey = sf->second;
+       }
 
-	/*
-	 * Just put in the list to make preventing duplicates easier
-	 */
-	ip_list.unique();
+       // Lambda which determines whether a server should be included based on
+       // the client's filter set. The special key "sortby" is ignored as it is
+       // used solely for ordering.
+       auto passesFilter = [this, &clientFilters](const std::string& sid) {
+               for (const auto& f : clientFilters) {
+                       if (f.first == "sortby") {
+                               continue;
+                       }
+                       if (getServerAttribute(sid, f.first) != f.second) {
+                               return false;
+                       }
+               }
+               return true;
+       };
 
-        for (auto& bar: ip_list) {
-                spdlog::trace("    Packing vector ({})", bar);
-                ip_vec.push_back(bar);
-        }
+       // Comparator lambda to perform custom client aware sorting of the
+       // server list. If the client specified a sort key we order based on the
+       // value of that server attribute, otherwise we default to lexicographic
+       // ordering of the session ids.
+       auto sortLambda = [this, &sortKey](const std::string& lhs, const std::string& rhs) {
+               if (!sortKey.empty()) {
+                       std::string lhsAttr = getServerAttribute(lhs, sortKey);
+                       std::string rhsAttr = getServerAttribute(rhs, sortKey);
+                       if (lhsAttr != rhsAttr) {
+                               return lhsAttr < rhsAttr;
+                       }
+               }
+               return lhs < rhs;
+       };
 
-        /**
-         * Apply optional client specific sorting of the server list. If the
-         * client has provided a filter key named "sortby" we will sort the
-         * servers by the value of that attribute.  Otherwise we default to
-         * lexicographical ordering of the session id.
-         */
-        std::string sortKey = getClientFilter(ip, "sortby");
-        std::sort(ip_vec.begin(), ip_vec.end(), [this, &sortKey](const std::string& lhs, const std::string& rhs) {
-                if (!sortKey.empty()) {
-                        std::string lhsAttr = getServerAttribute(lhs, sortKey);
-                        std::string rhsAttr = getServerAttribute(rhs, sortKey);
-                        if (lhsAttr != rhsAttr) {
-                                return lhsAttr < rhsAttr;
-                        }
-                }
-                return lhs < rhs;
-        });
+       for (auto& foo: m_serverData) {
+               if (passesFilter(foo.first)) {
+                       spdlog::trace("    Temp Cache[{}] = {}", ip, foo.first);
+                       ip_list.push_back(foo.first);
+               }
+       }
+
+       /*
+        * Just put in the list to make preventing duplicates easier
+        */
+       ip_list.unique();
+       ip_list.sort(sortLambda);
+
+       for (auto& bar: ip_list) {
+               spdlog::trace("    Packing vector ({})", bar);
+               ip_vec.push_back(bar);
+       }
 
 	/*
 	 *  Place list into cache
