@@ -45,6 +45,7 @@ CPPUNIT_TEST_SUITE(DataObject_unittest);
                 CPPUNIT_TEST(test_Handshake);
                 CPPUNIT_TEST(test_ServerSession);
                 CPPUNIT_TEST(test_ClientSession);
+                CPPUNIT_TEST(test_ExpireClientSessions);
                 CPPUNIT_TEST(test_ExpireServerSessions);
                 CPPUNIT_TEST(test_ExpireHandshakes);
                 CPPUNIT_TEST(test_ServerSessionSorting);
@@ -266,21 +267,30 @@ public:
 
 		// get session, then check that the expected session key exists
 		// and that it matches
-		sess = msdo->getClientSession("123123");
-		CPPUNIT_ASSERT(!sess.empty());
-		CPPUNIT_ASSERT(sess.find("ip") != sess.end());
-		CPPUNIT_ASSERT(sess["ip"] == "123123");
+                sess = msdo->getClientSession("123123");
+                CPPUNIT_ASSERT(!sess.empty());
+                CPPUNIT_ASSERT(sess.find("ip") != sess.end());
+                CPPUNIT_ASSERT(sess["ip"] == "123123");
 
-		// remove session
-		msdo->removeClientSession("123123");
+                // remove session
+                msdo->removeClientSession("123123");
 
-		// get empty session
-		sess_b = msdo->getClientSession("123123");
-		CPPUNIT_ASSERT(sess_b.empty());
+                // get empty session
+                sess_b = msdo->getClientSession("123123");
+                CPPUNIT_ASSERT(sess_b.empty());
 
-		// negative check for session again
+                // negative check for session again
                 CPPUNIT_ASSERT(msdo->clientSessionExists("123123") == false);
 
+        }
+
+        void test_ExpireClientSessions() {
+                msdo->addClientSession("expired1");
+                msdo->addClientSession("expired2");
+                std::vector<std::string> expired = msdo->expireClientSessions(0);
+                CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(2), expired.size());
+                CPPUNIT_ASSERT(std::find(expired.begin(), expired.end(), std::string("expired1")) != expired.end());
+                CPPUNIT_ASSERT(msdo->clientSessionExists("expired1") == false);
         }
 
         void test_ExpireServerSessions() {
