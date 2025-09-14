@@ -31,6 +31,9 @@ metastats="clients|entities|version|ruleset|buildid"
 #If enabled, it will be possible to see runtime stats of the server using Remotery.
 remotery="false"
 
+# Maximum slope angle in degrees that entities can traverse
+walkableslopeangle=70
+
 # Run in daemon mode
 daemon="false"
 # Run at an increased nice level

@@ -93,6 +93,8 @@
 #include <wfmath/atlasconv.h>
 #include <rules/PhysicalProperties.h>
 #include <rules/ScaleProperty.h>
+#include "common/globals.h"
+#include <spdlog/spdlog.h>
 
 static constexpr auto debug_flag = false;
 
@@ -102,6 +104,9 @@ static constexpr auto debug_flag = false;
 
 // This value specifies how many layers (or "floors") each navmesh tile is expected to have.
 static const int EXPECTED_LAYERS_PER_TILE = 1;
+
+INT_OPTION(walkableSlopeAngle, 70, CYPHESIS, "walkableslopeangle",
+           "Maximum slope angle in degrees considered walkable")
 
 using namespace boost::multi_index;
 
@@ -238,7 +243,15 @@ Awareness::Awareness(long domainEntityId,
 		mCfg.walkableHeight = std::max(3, static_cast<int>(std::ceil(agentHeight / mCfg.ch))); //This is in voxels
 		mCfg.walkableClimb = std::ceil(stepHeight / mCfg.ch); //This is in voxels
 		mCfg.walkableRadius = std::ceil(mAgentRadius / mCfg.cs);
-		mCfg.walkableSlopeAngle = 70; //TODO: implement proper system for limiting climbing; for now just use 70 degrees
+                int slope = walkableSlopeAngle;
+                if (slope < 0) {
+                        ::spdlog::warn("walkableslopeangle {} below 0, clamping", slope);
+                        slope = 0;
+                } else if (slope > 85) {
+                        ::spdlog::warn("walkableslopeangle {} above 85, clamping", slope);
+                        slope = 85;
+                }
+                mCfg.walkableSlopeAngle = slope;
 
 		mCfg.maxEdgeLen = (int) (mCfg.walkableRadius * 8.0f);
 		mCfg.maxSimplificationError = 1.3f;
