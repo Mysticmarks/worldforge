@@ -25,6 +25,7 @@
 #include "../TestBase.h"
 #include "../TestWorld.h"
 #include "rules/EntityLocation_impl.h"
+#include <vector>
 
 using namespace std::chrono_literals;
 
@@ -672,6 +673,8 @@ struct SteeringIntegration : public Cyphesis::TestBase {
                 rebuildAllTilesFn();
                 auto result = steering.queryDestination(EntityLocation<MemEntity>(worldEntity, {10, 0, 0}), 0ms);
                 ASSERT_EQUAL(1, result);
+                std::vector<WFMath::Point<3>> path;
+                ASSERT_TRUE(awareness.findPath(WFMath::Point<3>(0, 0, 0), WFMath::Point<3>(10, 0, 0), 1.f, path) > 0);
         }
 
         void test_path_refresh_on_entity_move() {

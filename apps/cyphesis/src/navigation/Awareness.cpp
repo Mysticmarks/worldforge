@@ -822,13 +822,15 @@ void Awareness::findAffectedTiles(const WFMath::AxisBox<2>& area, int& tileMinXI
 
 int Awareness::findPath(const WFMath::Point<3>& start, const WFMath::Point<3>& end, float radius, std::vector<WFMath::Point<3>>& path) const {
 
-	float pStartPos[]{static_cast<float>(start.x()), static_cast<float>(start.y()), static_cast<float>(start.z())};
-	float pEndPos[]{static_cast<float>(end.x()), static_cast<float>(end.y()), static_cast<float>(end.z())};
-	float startExtent[]{5, 100, 5}; //Only extend radius in horizontal plane
-	//To make sure that the agent can move close enough we need to subtract the agent's radius from the destination radius.
-	//We'll also adjust with 0.95 to allow for some padding.
-	//float destinationRadius = (radius - mAgentRadius) * 0.95f;
-	float endExtent[]{5, 100, 5}; //Only extend radius in horizontal plane
+        float pStartPos[]{static_cast<float>(start.x()), static_cast<float>(start.y()), static_cast<float>(start.z())};
+        float pEndPos[]{static_cast<float>(end.x()), static_cast<float>(end.y()), static_cast<float>(end.z())};
+        //Only extend radius in the horizontal plane. If no radius was supplied, fall back to the agent's radius.
+        float horizExtent = radius > 0.f ? radius : mAgentRadius;
+        float startExtent[]{horizExtent, 100, horizExtent};
+        //To make sure that the agent can move close enough we need to subtract the agent's radius from the destination radius.
+        //We'll also adjust with 0.95 to allow for some padding.
+        //float destinationRadius = (radius - mAgentRadius) * 0.95f;
+        float endExtent[]{horizExtent, 100, horizExtent};
 
 
 	dtStatus status;

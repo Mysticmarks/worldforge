@@ -31,6 +31,7 @@
 #include <wfmath/vector.h>
 #include <wfmath/rotbox.h>
 #include <wfmath/segment.h>
+#include <algorithm>
 
 
 static const bool debug_flag = true;
@@ -89,7 +90,8 @@ int Steering::queryDestination(const EntityLocation<MemEntity>& destination, std
         }
 
         std::vector<WFMath::Point<3>> path;
-        return mAwareness->findPath(currentAvatarPos, resolved.position, 0.f, path);
+        //Use the avatar's horizontal radius to determine the search extent when querying a path.
+        return mAwareness->findPath(currentAvatarPos, resolved.position, mAvatarHorizRadius, path);
 }
 
 void Steering::setDestination(SteeringDestination destination, std::chrono::milliseconds currentServerTimestamp) {
@@ -195,7 +197,8 @@ int Steering::updatePath(std::chrono::milliseconds currentTimestamp, const WFMat
 		mPathResult = -8;
 		return mPathResult;
 	}
-	mPathResult = mAwareness->findPath(currentAvatarPosition, resolvedPosition.position, (float) mSteeringDestination.distance, mPath);
+        float searchRadius = std::max(static_cast<float>(mAvatarHorizRadius), static_cast<float>(mSteeringDestination.distance));
+        mPathResult = mAwareness->findPath(currentAvatarPosition, resolvedPosition.position, searchRadius, mPath);
 	if (mPathResult == -1) {
 		mAwareness->markTilesAsDirty(WFMath::AxisBox<2>(
 				{currentAvatarPosition.x() - 5, currentAvatarPosition.z() - 5},
