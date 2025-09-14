@@ -1213,7 +1213,18 @@ MetaServer::registerConfig(boost::program_options::variables_map& vm) {
 			m_PacketLogfile = "~/.metaserver-ng/packetdefault.bin";
 		}
 
+                // Expand any leading '~' to the user's home directory. On
+                // Windows we resolve this manually as the default helper
+                // expects Unix style paths.
+#ifdef WIN32
+                if (!m_PacketLogfile.empty() && m_PacketLogfile[0] == '~') {
+                        if (const char* envHome = std::getenv("USERPROFILE")) {
+                                m_PacketLogfile = (std::filesystem::path(envHome) / m_PacketLogfile.substr(1)).string();
+                        }
+                }
+#else
                 m_PacketLogfile = expandHome(m_PacketLogfile);
+#endif
 
 	}
 
@@ -1241,8 +1252,19 @@ MetaServer::registerConfig(boost::program_options::variables_map& vm) {
 		 *
 		 * TODO: add ifdef WIN32 here if/when metserver needs to run on windows
 		 */
+                // Expand any leading '~' for the logfile path. Provide a
+                // Windows specific implementation since the general helper
+                // assumes POSIX semantics.
+#ifdef WIN32
+                if (!m_Logfile.empty() && m_Logfile[0] == '~') {
+                        if (const char* envHome = std::getenv("USERPROFILE")) {
+                                m_Logfile = (std::filesystem::path(envHome) / m_Logfile.substr(1)).string();
+                        }
+                }
+#else
                 m_Logfile = expandHome(m_Logfile);
-	}
+#endif
+        }
 
 	if (vm.count("server.pidfile")) {
 		m_pidFile = vm["server.pidfile"].as<std::string>();
