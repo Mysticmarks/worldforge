@@ -31,7 +31,7 @@ class Bridge:
           (or at begin negotiation strings)
        transltaion from string to Object: return Object received
           (or at begin nothing until negotiation done)
-       raise bridge error on negotiation (TODO: or syntax error in encoding)
+       raise BridgeException on negotiation or encoding errors
        operations send before codec if negotiated is either stored to queue or discarded
 
        Usage: replace send_string, operation_received, connection_ok, log
@@ -96,7 +96,10 @@ class Bridge:
         else:
             self.log("Negotiation", str(self.negotiation.state))
             if self.negotiation.state:
-                self.negotiation(data)
+                try:
+                    self.negotiation(data)
+                except Exception as e:
+                    raise BridgeException(f"Negotiation failed: {e}") from e
                 res_str = res_str + self.negotiation.get_send_str()
                 self.internal_send_string(res_str)
                 if not self.negotiation.state:
@@ -105,7 +108,10 @@ class Bridge:
                 raise BridgeException("Negotiation failed")
             elif self.negotiation.result_code=="found":
                 self.log("Codec negotiated", self.negotiation.selected_codec)
-                self.codec = self.negotiation.get_codec()
+                try:
+                    self.codec = self.negotiation.get_codec()
+                except Exception as e:
+                    raise BridgeException(f"Negotiation failed: {e}") from e
                 self.connection_ok()
                 objects = self.decode_string(self.negotiation.str+data)
                 res_str2, objects2 = self.process_operation()
