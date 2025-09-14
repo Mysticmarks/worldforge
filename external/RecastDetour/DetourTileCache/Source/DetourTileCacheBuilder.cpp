@@ -21,6 +21,7 @@
 #include "DetourStatus.h"
 #include "DetourAssert.h"
 #include "DetourTileCacheBuilder.h"
+#include "DetourNavMesh.h"
 #include <string.h>
 
 dtTileCacheAlloc::~dtTileCacheAlloc()
@@ -58,8 +59,8 @@ inline int getDirOffsetY(int dir)
 	return offset[dir&0x03];
 }
 
-static const int MAX_VERTS_PER_POLY = 6;	// TODO: use the DT_VERTS_PER_POLYGON
-static const int MAX_REM_EDGES = 48;		// TODO: make this an expression.
+static const int MAX_VERTS_PER_POLY = DT_VERTS_PER_POLYGON;
+static const int MAX_REM_EDGES = DT_VERTS_PER_POLYGON * (DT_VERTS_PER_POLYGON + 2);
 
 
 
