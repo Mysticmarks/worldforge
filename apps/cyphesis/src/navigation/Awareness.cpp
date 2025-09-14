@@ -361,89 +361,63 @@ void Awareness::removeObserver() {
 }
 
 void Awareness::updateEntity(const MemEntity& observer, const MemEntity& entity, const Atlas::Objects::Entity::RootEntity& ent) {
-	auto I = mObservedEntities.find(entity.getIdAsInt());
-	if (I != mObservedEntities.end()) {
-		if (!entity.m_parent || entity.m_parent->getIdAsInt() != mDomainEntityId) {
-			removeEntity(observer, entity);
-		} else {
-			processEntityUpdate(*I->second, entity, ent, entity.m_lastUpdated);
-		}
-	} else {
-		if (entity.m_parent && entity.m_parent->getIdAsInt() == mDomainEntityId) {
-			addEntity(observer, entity, true);
-		}
-	}
+        auto& observed = mEntityTracker.getObservedEntities();
+        auto I = observed.find(entity.getIdAsInt());
+        if (I != observed.end()) {
+                if (!entity.m_parent || entity.m_parent->getIdAsInt() != mDomainEntityId) {
+                        removeEntity(observer, entity);
+                } else {
+                        processEntityUpdate(*I->second, entity, ent, entity.m_lastUpdated);
+                }
+        } else {
+                if (entity.m_parent && entity.m_parent->getIdAsInt() == mDomainEntityId) {
+                        addEntity(observer, entity, true);
+                }
+        }
 }
 
 
 void Awareness::addEntity(const MemEntity& observer, const MemEntity& entity, bool isDynamic) {
-	rmt_ScopedCPUSample(Awareness_addEntity, 0)
-	auto I = mObservedEntities.find(entity.getIdAsInt());
-	if (I == mObservedEntities.end()) {
-		std::unique_ptr<EntityEntry> entityEntry(new EntityEntry());
-		entityEntry->entityId = entity.getIdAsInt();
-		entityEntry->numberOfObservers = 1;
-		auto bboxProp = entity.getPropertyClassFixed<BBoxProperty<MemEntity>>();
-		entityEntry->isIgnored = !bboxProp || !bboxProp->data().isValid();
-		entityEntry->isMoving = isDynamic;
-		entityEntry->isActorOwned = false;
-		auto solidPropery = entity.getPropertyClassFixed<SolidProperty<MemEntity>>();
-		//TODO: handle the entity changing solid status
-		entityEntry->isSolid = !solidPropery || solidPropery->isTrue();
-		if (isDynamic) {
-			mMovingEntities.insert(entityEntry.get());
-		}
-		I = mObservedEntities.emplace(entity.getIdAsInt(), std::move(entityEntry)).first;
-		cy_debug_print("Creating new entry for " << entity.getIdAsString())
-	} else {
-		I->second->numberOfObservers++;
-	}
-
-	//Entity already exists; check if it's the same as the observer and marked it as owned.
-	if (I->first == observer.getIdAsInt()) {
-		I->second->isActorOwned = true;
-	}
-
-	bool isNotActorAndFirstSeen = !I->second->isActorOwned && I->second->numberOfObservers == 1;
-	bool isOwnEntity = I->first == observer.getIdAsInt();
-
-	//Only do movement change processing if this is the first observer; otherwise that should already have been done
-	//Or if the entity is the actor`s own entity.
-	if (isNotActorAndFirstSeen || isOwnEntity) {
-		processEntityUpdate(*I->second, entity, nullptr, entity.m_lastUpdated);
-	}
-
+        rmt_ScopedCPUSample(Awareness_addEntity, 0)
+        auto& entry = mEntityTracker.addEntity(observer, entity, isDynamic);
+        bool isNotActorAndFirstSeen = !entry.isActorOwned && entry.numberOfObservers == 1;
+        bool isOwnEntity = entry.entityId == observer.getIdAsInt();
+        if (isNotActorAndFirstSeen || isOwnEntity) {
+                processEntityUpdate(entry, entity, nullptr, entity.m_lastUpdated);
+        }
 }
 
 void Awareness::removeEntity(const MemEntity& observer, const MemEntity& entity) {
-	auto I = mObservedEntities.find(entity.getIdAsInt());
-	if (I != mObservedEntities.end()) {
-		cy_debug_print("Removing entity " << entity.getIdAsString())
-		//Decrease the number of observers, and delete entry if there's none left
-		auto& entityEntry = I->second;
-		if (entityEntry->numberOfObservers == 0) {
-			spdlog::warn("Entity entry {} has decreased number of observers to < 0. This indicates an error.", entity.getIdAsString());
-		}
-		entityEntry->numberOfObservers--;
-		if (entityEntry->numberOfObservers == 0) {
-			if (entityEntry->isMoving) {
-				mMovingEntities.erase(entityEntry.get());
-			}
-			auto areasI = mEntityAreas.find(entityEntry.get());
-			if (areasI != mEntityAreas.end()) {
-				if (areasI->second.isValid()) {
-					markTilesAsDirty(areasI->second.boundingBox());
-				}
-				mEntityAreas.erase(areasI);
-			}
-			mObservedEntities.erase(I);
-		} else {
-			//If the entity and the observer are the same we need to remove the marking of the entry being owned by an actor.
-			if (observer.getIdAsInt() == entity.getIdAsInt()) {
-				entityEntry->isActorOwned = false;
-			}
-		}
-	}
+        auto& observed = mEntityTracker.getObservedEntities();
+        auto I = observed.find(entity.getIdAsInt());
+        if (I != observed.end()) {
+                cy_debug_print("Removing entity " << entity.getIdAsString())
+                //Decrease the number of observers, and delete entry if there's none left
+                auto& entityEntry = I->second;
+                if (entityEntry->numberOfObservers == 0) {
+                        spdlog::warn("Entity entry {} has decreased number of observers to < 0. This indicates an error.", entity.getIdAsString());
+                }
+                entityEntry->numberOfObservers--;
+                if (entityEntry->numberOfObservers == 0) {
+                        if (entityEntry->isMoving) {
+                                mEntityTracker.getMovingEntities().erase(entityEntry.get());
+                        }
+                        auto& areas = mEntityTracker.getEntityAreas();
+                        auto areasI = areas.find(entityEntry.get());
+                        if (areasI != areas.end()) {
+                                if (areasI->second.isValid()) {
+                                        markTilesAsDirty(areasI->second.boundingBox());
+                                }
+                                areas.erase(areasI);
+                        }
+                        observed.erase(I);
+                } else {
+                        //If the entity and the observer are the same we need to remove the marking of the entry being owned by an actor.
+                        if (observer.getIdAsInt() == entity.getIdAsInt()) {
+                                entityEntry->isActorOwned = false;
+                        }
+                }
+        }
 }
 
 bool Awareness::processEntityUpdate(EntityEntry& entityEntry, const MemEntity& entity, const Atlas::Objects::Entity::RootEntity& ent, std::chrono::milliseconds timestamp) {
@@ -533,12 +507,13 @@ bool Awareness::processEntityUpdate(EntityEntry& entityEntry, const MemEntity& e
 				entityEntry.isIgnored = true;
 
 				//We must now mark those areas that the entities used to touch as dirty, as well as remove the entity areas
-				auto existingI = mEntityAreas.find(&entityEntry);
-				if (existingI != mEntityAreas.end()) {
-					//The entity already was registered; mark those tiles where the entity previously were as dirty.
-					markTilesAsDirty(existingI->second.boundingBox());
-					mEntityAreas.erase(&entityEntry);
-				}
+                                auto& areas = mEntityTracker.getEntityAreas();
+                                auto existingI = areas.find(&entityEntry);
+                                if (existingI != areas.end()) {
+                                        //The entity already was registered; mark those tiles where the entity previously were as dirty.
+                                        markTilesAsDirty(existingI->second.boundingBox());
+                                        areas.erase(&entityEntry);
+                                }
 			} else {
 
 				//Only update if there's a change
@@ -549,41 +524,43 @@ bool Awareness::processEntityUpdate(EntityEntry& entityEntry, const MemEntity& e
 					//If an entity which previously didn't move start moving we need to move it to the "movable entities" collection.
 					if (entityEntry.velocity.data.isValid() && entityEntry.velocity.data != WFMath::Vector<3>::ZERO()) {
 						cy_debug_print("Entity is now moving.")
-						mMovingEntities.insert(&entityEntry);
-						entityEntry.isMoving = true;
-						auto existingI = mEntityAreas.find(&entityEntry);
-						if (existingI != mEntityAreas.end()) {
-							//The entity already was registered; mark those tiles where the entity previously were as dirty.
-							markTilesAsDirty(existingI->second.boundingBox());
-							mEntityAreas.erase(&entityEntry);
-						}
-					} else {
-						auto area = buildEntityAreas(entityEntry);
+                                                mEntityTracker.getMovingEntities().insert(&entityEntry);
+                                                entityEntry.isMoving = true;
+                                                auto& areas = mEntityTracker.getEntityAreas();
+                                                auto existingI = areas.find(&entityEntry);
+                                                if (existingI != areas.end()) {
+                                                        //The entity already was registered; mark those tiles where the entity previously were as dirty.
+                                                        markTilesAsDirty(existingI->second.boundingBox());
+                                                        areas.erase(&entityEntry);
+                                                }
+                                        } else {
+                                                auto area = mEntityTracker.buildEntityAreas(entityEntry);
 
-						if (area.isValid()) {
-							auto bbox = area.boundingBox();
-							auto existingI = mEntityAreas.find(&entityEntry);
-							//Check if it was a minor change; if so we might keep the old entry without much effect on navigation.
-							bool isLargeEnoughChange = true;
-							if (existingI != mEntityAreas.end()) {
-								auto existingBbox = existingI->second.boundingBox();
-								if (WFMath::Distance(existingBbox.lowCorner(), bbox.lowCorner()) > 0.1 || WFMath::Distance(existingBbox.highCorner(), bbox.highCorner()) > 0.1) {
-									isLargeEnoughChange = true;
-								} else {
-									isLargeEnoughChange = false;
-								}
-							}
-							if (isLargeEnoughChange) {
-								markTilesAsDirty(area.boundingBox());
-								if (existingI != mEntityAreas.end()) {
-									//The entity already was registered; mark both those tiles where the entity previously were as well as the new tiles as dirty.
-									markTilesAsDirty(existingI->second.boundingBox());
-									existingI->second = area;
-								} else {
-									mEntityAreas.emplace(&entityEntry, area);
-								}
-							}
-						}
+                                                if (area.isValid()) {
+                                                        auto bbox = area.boundingBox();
+                                                        auto& areas = mEntityTracker.getEntityAreas();
+                                                        auto existingI = areas.find(&entityEntry);
+                                                        //Check if it was a minor change; if so we might keep the old entry without much effect on navigation.
+                                                        bool isLargeEnoughChange = true;
+                                                        if (existingI != areas.end()) {
+                                                                auto existingBbox = existingI->second.boundingBox();
+                                                                if (WFMath::Distance(existingBbox.lowCorner(), bbox.lowCorner()) > 0.1 || WFMath::Distance(existingBbox.highCorner(), bbox.highCorner()) > 0.1) {
+                                                                        isLargeEnoughChange = true;
+                                                                } else {
+                                                                        isLargeEnoughChange = false;
+                                                                }
+                                                        }
+                                                        if (isLargeEnoughChange) {
+                                                                markTilesAsDirty(area.boundingBox());
+                                                                if (existingI != areas.end()) {
+                                                                        //The entity already was registered; mark both those tiles where the entity previously were as well as the new tiles as dirty.
+                                                                        markTilesAsDirty(existingI->second.boundingBox());
+                                                                        existingI->second = area;
+                                                                } else {
+                                                                        areas.emplace(&entityEntry, area);
+                                                                }
+                                                        }
+                                                }
 						cy_debug_print("Entity affects " << area << ". Dirty unaware tiles: " << mDirtyUnwareTiles.size() << " Dirty aware tiles: " << mDirtyAwareTiles.size())
 					}
 
@@ -621,7 +598,7 @@ bool Awareness::avoidObstacles(long avatarEntityId,
 
 	WFMath::Ball<2> playerRadius(position, 5);
 
-	for (auto& entry: mMovingEntities) {
+        for (auto& entry: mEntityTracker.getMovingEntities()) {
 
 		//All of the entities have the same location as we have, so we don't need to resolve the position in the world.
 
@@ -729,7 +706,7 @@ size_t Awareness::rebuildDirtyTile() {
 										WFMath::Point<2>(mCfg.bmin[0] + ((tileIndex.first + 1) * tilesize), mCfg.bmin[2] + ((tileIndex.second + 1) * tilesize)));
 
 		std::vector<WFMath::RotBox<2>> entityAreas;
-		findEntityAreas(adjustedArea, entityAreas);
+            mEntityTracker.findEntityAreas(adjustedArea, entityAreas);
 
 		rebuildTile(tileIndex.first, tileIndex.second, entityAreas);
 		mDirtyAwareTiles.erase(tileIndex);
@@ -881,35 +858,15 @@ int Awareness::findPath(const WFMath::Point<3>& start, const WFMath::Point<3>& e
 }
 
 bool Awareness::projectPosition(long entityId, WFMath::Point<3>& pos, std::chrono::milliseconds currentServerTimestamp) const {
-	auto entityI = mObservedEntities.find(entityId);
-	if (entityI != mObservedEntities.end()) {
-		auto& entityEntry = entityI->second;
-		pos = entityEntry->pos.data;
-		auto& velocity = entityEntry->velocity.data;
-		if (velocity.isValid() && velocity != WFMath::Vector<3>::ZERO()) {
-			pos += (velocity * to_seconds(currentServerTimestamp - entityEntry->pos.timestamp));
-		}
-		return true;
-	}
-	return false;
+        return mEntityTracker.projectPosition(entityId, pos, currentServerTimestamp);
 }
 
 WFMath::Point<3> Awareness::projectPosition(long entityId, std::chrono::milliseconds currentServerTimestamp) const {
-	auto entityI = mObservedEntities.find(entityId);
-	if (entityI != mObservedEntities.end()) {
-		auto& entityEntry = entityI->second;
-		auto pos = entityEntry->pos.data;
-		auto& velocity = entityEntry->velocity.data;
-		if (velocity.isValid() && velocity != WFMath::Vector<3>::ZERO()) {
-			pos += (velocity * to_seconds(currentServerTimestamp - entityEntry->pos.timestamp));
-		}
-		return pos;
-	}
-	return {};
+        return mEntityTracker.projectPosition(entityId, currentServerTimestamp);
 }
 
 const std::unordered_map<long, std::unique_ptr<EntityEntry>>& Awareness::getObservedEntities() const {
-	return mObservedEntities;
+        return mEntityTracker.getObservedEntities();
 }
 
 
@@ -1123,61 +1080,6 @@ void Awareness::rebuildTile(int tx, int ty, const std::vector<WFMath::RotBox<2>>
 
 	EventTileUpdated(tx, ty);
 
-}
-
-WFMath::RotBox<2> Awareness::buildEntityAreas(const EntityEntry& entity) {
-
-	//The entity is solid (i.e. can be collided with) if it has a bbox and the "solid" property isn't set to false (or 0 as it's an int).
-	if (entity.isSolid) {
-		//we now have to get the location of the entity in world space
-		auto& pos = entity.pos.data;
-		auto& orientation = entity.orientation.data;
-		auto& bbox = entity.bbox.data;
-
-		//If it's below walkable height just skip it.
-		if (bbox.highCorner().y() - bbox.lowCorner().y() < mStepHeight) {
-			return {};
-		}
-
-		if (pos.isValid()) {
-			WFMath::RotMatrix<2> rm;
-			if (orientation.isValid()) {
-				WFMath::Vector<3> xVec = WFMath::Vector<3>(1.0, 0.0, 0.0).rotate(orientation);
-				auto theta = std::atan2(xVec.z(), xVec.x()); // rotation about Y
-
-				rm.rotation(theta);
-			}
-
-
-			WFMath::Point<2> highCorner(bbox.highCorner().x(), bbox.highCorner().z());
-			WFMath::Point<2> lowCorner(bbox.lowCorner().x(), bbox.lowCorner().z());
-
-			//Expand the box a little so that we can navigate around it without being stuck on it.
-			//We'll use the radius of the avatar.
-			highCorner += WFMath::Vector<2>(mAgentRadius, mAgentRadius);
-			lowCorner -= WFMath::Vector<2>(mAgentRadius, mAgentRadius);
-
-			WFMath::RotBox<2> rotbox(WFMath::Point<2>::ZERO(), highCorner - lowCorner, WFMath::RotMatrix<2>().identity());
-			rotbox.shift(WFMath::Vector<2>(lowCorner.x(), lowCorner.y()));
-			if (rm.isValid()) {
-				rotbox.rotatePoint(rm, WFMath::Point<2>::ZERO());
-			}
-
-			rotbox.shift(WFMath::Vector<2>(pos.x(), pos.z()));
-
-			return rotbox;
-		}
-	}
-	return {};
-}
-
-void Awareness::findEntityAreas(const WFMath::AxisBox<2>& extent, std::vector<WFMath::RotBox<2> >& areas) {
-	for (auto& entry: mEntityAreas) {
-		auto& rotbox = entry.second;
-		if (WFMath::Contains(extent, rotbox, false) || WFMath::Intersect(extent, rotbox, false)) {
-			areas.push_back(rotbox);
-		}
-	}
 }
 
 int Awareness::rasterizeTileLayers(const std::vector<WFMath::RotBox<2>>& entityAreas, int tx, int ty, TileCacheData* tiles, int maxTiles) {
