@@ -30,6 +30,7 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <memory>
 
 /*
  * Forward Declarations
@@ -50,7 +51,7 @@ public:
 
 	void handle_receive(const boost::system::error_code& error, std::size_t);
 
-        static void handle_send(const MetaServerPacket& p, const boost::system::error_code& error, std::size_t);
+        static void handle_send(const std::shared_ptr<MetaServerPacket>& p, const boost::system::error_code& error, std::size_t);
 
         void process_outbound(const boost::system::error_code& error);
 

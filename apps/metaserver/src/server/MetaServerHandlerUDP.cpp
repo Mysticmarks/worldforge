@@ -33,6 +33,7 @@
 #include <boost/asio/placeholders.hpp>
 #include <boost/asio/error.hpp>
 #include <spdlog/spdlog.h>
+#include <memory>
 
 MetaServerHandlerUDP::MetaServerHandlerUDP(MetaServer& ms,
 										   boost::asio::io_context& ios,
@@ -96,18 +97,19 @@ MetaServerHandlerUDP::handle_receive(const boost::system::error_code& error,
 			 */
                         m_msRef.processMetaserverPacket(msp, *rsp);
 
-			/**
-			 * Send back response, only if it's not NULL and has some data
-			 * otherwise we let it fall to the floor
-			 * TODO: find out if MSP goes out of scope ( or buffer thereto )
-			 */
+                        /**
+                         * Send back response, only if it's not NULL and has some data
+                         * otherwise we let it fall to the floor. Capture the packet in
+                         * the lambda to ensure that the underlying buffer remains valid
+                         * for the duration of the async operation.
+                         */
 
                         if (rsp->getSize() > 0 && rsp->getPacketType() != NMT_NULL) {
                                 spdlog::info("UDP: Outgoing Packet [{}][{}][{}]", rsp->getAddress(), NMT_PRETTY[rsp->getPacketType()], rsp->getSize());
                                 m_Socket.async_send_to(
                                                 boost::asio::buffer(rsp->getBuffer(), rsp->getSize()), m_remoteEndpoint,
                                                 [rsp](const boost::system::error_code& send_error, std::size_t bytes_sent) {
-                                                        handle_send(*rsp, send_error, bytes_sent);
+                                                        handle_send(rsp, send_error, bytes_sent);
                                                 });
                         }
 
@@ -133,7 +135,7 @@ MetaServerHandlerUDP::handle_receive(const boost::system::error_code& error,
 }
 
 void
-MetaServerHandlerUDP::handle_send(const MetaServerPacket&, const boost::system::error_code& error, std::size_t) {
+MetaServerHandlerUDP::handle_send(const std::shared_ptr<MetaServerPacket>&, const boost::system::error_code& error, std::size_t) {
 	// include counters and stuff
 	if (error) {
 		//Should we do something more?
