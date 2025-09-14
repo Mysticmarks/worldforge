@@ -27,6 +27,8 @@
 #include "rules/EntityLocation_impl.h"
 #include <vector>
 
+extern int walkableSlopeAngle;
+
 using namespace std::chrono_literals;
 
 namespace WFMath {
@@ -96,6 +98,7 @@ struct SteeringIntegration : public Cyphesis::TestBase {
 		ADD_TEST(SteeringIntegration::test_distance);
                 ADD_TEST(SteeringIntegration::test_navigation);
                 ADD_TEST(SteeringIntegration::test_query_destination_static);
+                ADD_TEST(SteeringIntegration::test_walkableSlopeAngle);
                 ADD_TEST(SteeringIntegration::test_path_refresh_on_entity_move);
         }
 
@@ -104,11 +107,12 @@ struct SteeringIntegration : public Cyphesis::TestBase {
 	}
 
 	void teardown() {
-		for (auto thing: things) {
-			thing->destroy();
-		}
-		things.clear();
-	}
+                for (auto thing: things) {
+                        thing->destroy();
+                }
+                things.clear();
+                walkableSlopeAngle = 70;
+        }
 
 	void test_create() {
 		Ref<MemEntity> avatarEntity(new MemEntityExt(1));
@@ -673,8 +677,50 @@ struct SteeringIntegration : public Cyphesis::TestBase {
                 rebuildAllTilesFn();
                 auto result = steering.queryDestination(EntityLocation<MemEntity>(worldEntity, {10, 0, 0}), 0ms);
                 ASSERT_EQUAL(1, result);
+        std::vector<WFMath::Point<3>> path;
+        ASSERT_TRUE(awareness.findPath(WFMath::Point<3>(0, 0, 0), WFMath::Point<3>(10, 0, 0), 1.f, path) > 0);
+        }
+
+        void test_walkableSlopeAngle() {
+                walkableSlopeAngle = 30;
+
+                Ref<MemEntity> worldEntity(new MemEntityExt(0));
+
+                WFMath::AxisBox<3> extent = {{-64, -64, -64}, {64, 64, 64}};
+                static int tileSize = 64;
+                struct : public IHeightProvider {
+                        void blitHeights(int xMin, int xMax, int yMin, int yMax, std::vector<float>& heights) const override {
+                                int sizeX = xMax - xMin;
+                                int sizeY = yMax - yMin;
+                                heights.resize(sizeX * sizeY);
+                                for (int y = 0; y < sizeY; ++y) {
+                                        for (int x = 0; x < sizeX; ++x) {
+                                                int worldX = x + xMin;
+                                                float h;
+                                                if (worldX < 5) {
+                                                        h = 0;
+                                                } else if (worldX < 10) {
+                                                        h = static_cast<float>(worldX - 5);
+                                                } else {
+                                                        h = 5;
+                                                }
+                                                heights[y * sizeX + x] = h;
+                                        }
+                                }
+                        }
+                } heightProvider;
+
+                Awareness awareness(worldEntity->getIdAsInt(), 1, 2, 0.5, heightProvider, extent, tileSize);
+
+                auto rebuildAllTilesFn = [&]() {
+                        while (awareness.rebuildDirtyTile() != 0) {
+                        }
+                };
+                rebuildAllTilesFn();
+
                 std::vector<WFMath::Point<3>> path;
-                ASSERT_TRUE(awareness.findPath(WFMath::Point<3>(0, 0, 0), WFMath::Point<3>(10, 0, 0), 1.f, path) > 0);
+                int result = awareness.findPath(WFMath::Point<3>(2, 0, 0), WFMath::Point<3>(12, 5, 0), 1.f, path);
+                ASSERT_TRUE(result < 0);
         }
 
         void test_path_refresh_on_entity_move() {

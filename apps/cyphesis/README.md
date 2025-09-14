@@ -18,6 +18,13 @@ It provides a complete solution for running an MMORPG server. Amongst its featur
 * Emergent gameplay through multiple simple systems interacting
 * Quick and powerful procedural terrain generation
 
+### Navigation settings
+
+The navigation mesh generation can be tuned through the `walkableslopeangle`
+configuration option in the `[cyphesis]` section of `cyphesis.vconf`. This
+controls the maximum slope angle in degrees that entities are allowed to
+traverse (default `70`).
+
 ### Documentation
 
 Documentation describing how the system works can be found [here](docs/dox/index.md).
