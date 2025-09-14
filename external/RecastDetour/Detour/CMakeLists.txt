@@ -9,3 +9,10 @@ add_library(external-Detour
 )
 
 target_include_directories(external-Detour PUBLIC Include)
+
+if(BUILD_TESTING)
+    enable_testing()
+    add_executable(DetourNavMeshBuilderTest tests/DetourNavMeshBuilderTest.cpp)
+    target_link_libraries(DetourNavMeshBuilderTest external-Detour)
+    add_test(NAME DetourNavMeshBuilderTest COMMAND DetourNavMeshBuilderTest)
+endif()
