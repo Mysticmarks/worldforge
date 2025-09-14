@@ -10,10 +10,12 @@ CPPUNIT_TEST_SUITE_REGISTRATION( Ember::ModelMountTestCase );
 CPPUNIT_TEST_SUITE_REGISTRATION( Ember::NestedEntityTestCase );
 
 #include "AvatarMovementTestCase.h"
+#include "InstancingRenderTestCase.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION( Ember::ConvertTestCase);
 CPPUNIT_TEST_SUITE_REGISTRATION( Ember::ModelMountTestCase );
 CPPUNIT_TEST_SUITE_REGISTRATION( Ember::AvatarMovementTestCase );
+CPPUNIT_TEST_SUITE_REGISTRATION( Ember::InstancingRenderTestCase );
 
 int main(int argc, char** argv) {
 	CppUnit::TextUi::TestRunner runner;

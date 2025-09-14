@@ -1,7 +1,9 @@
 #pragma once
 
 #include "OgreIncludes.h"
-#include <OgreMovableObject.h>
+#include <OgreEntity.h>
+#include <OgreInstanceManager.h>
+#include <OgreInstancedEntity.h>
 #include <vector>
 
 namespace Ember::OgreView {
@@ -19,11 +21,17 @@ public:
     /** Register a movable object for instanced rendering. */
     void registerMovable(Ogre::MovableObject* obj);
 
-    /** Update instancing buffers (placeholder). */
+    /** Build and upload instance buffers. */
     void update();
 
 private:
-    std::vector<Ogre::MovableObject*> mRegistered;
+    struct Entry {
+        Ogre::Entity* source;
+        Ogre::InstancedEntity* instanced{nullptr};
+    };
+
+    std::vector<Entry> mEntries;
+    Ogre::InstanceManager* mInstanceManager{nullptr};
 };
 
 } // namespace Ember::OgreView
