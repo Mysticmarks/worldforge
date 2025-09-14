@@ -136,30 +136,39 @@ MetaServer::expiry_timer(const boost::system::error_code&) {
 	boost::posix_time::ptime etime;
 	std::map<std::string, std::string>::iterator attr_iter;
 
-	/*
-	 * Remove handshakes that are older than threshold
-	 * TODO: returned vector shows removed
-	 */
-	std::vector<unsigned int> expiredHS = msdo.expireHandshakes(m_handshakeExpirySeconds);
-	if (!expiredHS.empty()) {
-		spdlog::trace("Expiry Handshakes: {}", expiredHS.size());
-	}
+        /*
+         * Remove handshakes that are older than threshold
+         * and log the removed handshake identifiers
+         */
+        std::vector<unsigned int> expiredHS = msdo.expireHandshakes(m_handshakeExpirySeconds);
+        if (!expiredHS.empty()) {
+                spdlog::trace("Expiry Handshakes: {}", expiredHS.size());
+                for (auto hs : expiredHS) {
+                        spdlog::trace("  expired handshake {}", hs);
+                }
+        }
 
 	/*
 	 * Sweep for server sessions ... expire any that are older than m_sessionExpirySeconds
 	 */
-	std::vector<std::string> expiredSS = msdo.expireServerSessions(m_sessionExpirySeconds);
-	if (!expiredSS.empty()) {
-		spdlog::trace("Expiry ServerSessions: {}", expiredSS.size());
-	}
+        std::vector<std::string> expiredSS = msdo.expireServerSessions(m_sessionExpirySeconds);
+        if (!expiredSS.empty()) {
+                spdlog::trace("Expiry ServerSessions: {}", expiredSS.size());
+                for (const auto& ss : expiredSS) {
+                        spdlog::trace("  expired server session {}", ss);
+                }
+        }
 
 	/**
 	 *  Remove client sessions that are expired
 	 */
-	std::vector<std::string> expiredCS = msdo.expireClientSessions(m_clientExpirySeconds);
-	if (!expiredCS.empty()) {
-		spdlog::trace("Expiry ClientSessions: {}", expiredCS.size());
-	}
+        std::vector<std::string> expiredCS = msdo.expireClientSessions(m_clientExpirySeconds);
+        if (!expiredCS.empty()) {
+                spdlog::trace("Expiry ClientSessions: {}", expiredCS.size());
+                for (const auto& cs : expiredCS) {
+                        spdlog::trace("  expired client session {}", cs);
+                }
+        }
 
 	/*
 	 * We want to purge any cache items that are missing
@@ -167,6 +176,9 @@ MetaServer::expiry_timer(const boost::system::error_code&) {
         std::vector<std::string> expiredCSC = msdo.expireClientSessionCache(m_serverClientCacheExpirySeconds);
         if (!expiredCSC.empty()) {
                 spdlog::trace("Expiry ClientSession Cache: {}", expiredCSC.size());
+                for (const auto& csc : expiredCSC) {
+                        spdlog::trace("  expired cache entry {}", csc);
+                }
         }
 
 	/**
