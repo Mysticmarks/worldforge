@@ -816,10 +816,9 @@ inline void rcVnormalize(float* v)
 /// Calculates the bounding box of an array of vertices.
 /// @ingroup recast
 /// @param[in]		verts		An array of vertices. [(x, y, z) * @p nv]
-/// @param[in]		numVerts	The number of vertices in the @p verts array.
 /// @param[out]		minBounds	The minimum bounds of the AABB. [(x, y, z)] [Units: wu]
 /// @param[out]		maxBounds	The maximum bounds of the AABB. [(x, y, z)] [Units: wu]
-void rcCalcBounds(const float* verts, int numVerts, float* minBounds, float* maxBounds);
+void rcCalcBounds(const float* verts, float* minBounds, float* maxBounds);
 
 /// Calculates the grid size based on the bounding box and grid cell size.
 /// @ingroup recast
@@ -864,11 +863,10 @@ bool rcCreateHeightfield(rcContext* context, rcHeightfield& heightfield, int siz
 /// @param[in]		walkableSlopeAngle	The maximum slope that is considered walkable.
 /// 									[Limits: 0 <= value < 90] [Units: Degrees]
 /// @param[in]		verts				The vertices. [(x, y, z) * @p nv]
-/// @param[in]		numVerts			The number of vertices.
 /// @param[in]		tris				The triangle vertex indices. [(vertA, vertB, vertC) * @p nt]
 /// @param[in]		numTris				The number of triangles.
 /// @param[out]		triAreaIDs			The triangle area ids. [Length: >= @p nt]
-void rcMarkWalkableTriangles(rcContext* context, float walkableSlopeAngle, const float* verts, int numVerts,
+void rcMarkWalkableTriangles(rcContext* context, float walkableSlopeAngle, const float* verts,
 							 const int* tris, int numTris, unsigned char* triAreaIDs); 
 
 /// Sets the area id of all triangles with a slope greater than or equal to the specified value to #RC_NULL_AREA.
@@ -885,11 +883,10 @@ void rcMarkWalkableTriangles(rcContext* context, float walkableSlopeAngle, const
 /// @param[in]		walkableSlopeAngle	The maximum slope that is considered walkable.
 /// 									[Limits: 0 <= value < 90] [Units: Degrees]
 /// @param[in]		verts				The vertices. [(x, y, z) * @p nv]
-/// @param[in]		numVerts			The number of vertices.
 /// @param[in]		tris				The triangle vertex indices. [(vertA, vertB, vertC) * @p nt]
 /// @param[in]		numTris				The number of triangles.
 /// @param[out]		triAreaIDs			The triangle area ids. [Length: >= @p nt]
-void rcClearUnwalkableTriangles(rcContext* context, float walkableSlopeAngle, const float* verts, int numVerts,
+void rcClearUnwalkableTriangles(rcContext* context, float walkableSlopeAngle, const float* verts,
 								const int* tris, int numTris, unsigned char* triAreaIDs); 
 
 /// Adds a span to the specified heightfield.
@@ -944,7 +941,6 @@ bool rcRasterizeTriangle(rcContext* context,
 /// @ingroup recast
 /// @param[in,out]	context				The build context to use during the operation.
 /// @param[in]		verts				The vertices. [(x, y, z) * @p nv]
-/// @param[in]		numVerts			The number of vertices. (unused) TODO (graham): Remove in next major release
 /// @param[in]		tris				The triangle indices. [(vertA, vertB, vertC) * @p nt]
 /// @param[in]		triAreaIDs			The area id's of the triangles. [Limit: <= #RC_WALKABLE_AREA] [Size: @p nt]
 /// @param[in]		numTris				The number of triangles.
@@ -953,7 +949,7 @@ bool rcRasterizeTriangle(rcContext* context,
 ///										[Limit: >= 0] [Units: vx]
 /// @returns True if the operation completed successfully.
 bool rcRasterizeTriangles(rcContext* context,
-                          const float* verts, int numVerts,
+                          const float* verts,
                           const int* tris, const unsigned char* triAreaIDs, int numTris,
                           rcHeightfield& heightfield, int flagMergeThreshold = 1);
 
@@ -965,7 +961,6 @@ bool rcRasterizeTriangles(rcContext* context,
 /// @ingroup recast
 /// @param[in,out]	context				The build context to use during the operation.
 /// @param[in]		verts				The vertices. [(x, y, z) * @p nv]
-/// @param[in]		numVerts			The number of vertices. (unused) TODO (graham): Remove in next major release
 /// @param[in]		tris				The triangle indices. [(vertA, vertB, vertC) * @p nt]
 /// @param[in]		triAreaIDs			The area id's of the triangles. [Limit: <= #RC_WALKABLE_AREA] [Size: @p nt]
 /// @param[in]		numTris				The number of triangles.
@@ -974,7 +969,7 @@ bool rcRasterizeTriangles(rcContext* context,
 /// 									[Limit: >= 0] [Units: vx]
 /// @returns True if the operation completed successfully.
 bool rcRasterizeTriangles(rcContext* context,
-                          const float* verts, int numVerts,
+                          const float* verts,
                           const unsigned short* tris, const unsigned char* triAreaIDs, int numTris,
                           rcHeightfield& heightfield, int flagMergeThreshold = 1);
 
