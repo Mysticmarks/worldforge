@@ -11,6 +11,7 @@ if (TARGET cppunit::cppunit)
             ModelMountTestCase.cpp
             NestedEntityTestCase.cpp
             AvatarMovementTestCase.cpp
+            InstancingRenderTestCase.cpp
             $<TARGET_OBJECTS:ember-ogre>
             $<TARGET_OBJECTS:ember-caelum>
             $<TARGET_OBJECTS:ember-meshtree>
