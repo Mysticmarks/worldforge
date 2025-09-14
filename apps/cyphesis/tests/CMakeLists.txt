@@ -500,6 +500,7 @@ wf_add_test(server/LobbyTest.cpp ../src/server/Lobby.cpp)
 
 wf_add_test(server/ServerRoutingTest.cpp ../src/server/ServerRouting.cpp)
 wf_add_test(server/StorageManagerTest.cpp ../src/server/StorageManager.cpp)
+wf_add_test(server/StorageManagerUnsetPropertyTest.cpp ../src/server/StorageManager.cpp)
 wf_add_test(server/DatabaseFallbackTest.cpp)
 wf_add_test(server/HttpHandlingTest.cpp ../src/common/net/HttpHandling.cpp)
 

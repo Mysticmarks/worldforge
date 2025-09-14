@@ -41,6 +41,7 @@
 
 #include <unordered_set>
 #include "Remotery.h"
+#include <fmt/format.h>
 
 using Atlas::Message::MapType;
 using Atlas::Message::Element;
@@ -308,17 +309,27 @@ void StorageManager::updateEntity(LocatedEntity& ent) {
 		if (prop->hasFlags(prop_flag_persistence_mask)) {
 			continue;
 		}
-		if (property.second.modifiers.empty()) {
-			//TODO: Add code for deleting a database row when the value is none.
-			std::string value;
-			encodeProperty(*prop, value);
-			tuples.emplace_back(property.first, value);
-		} else {
-			//TODO: Add code for deleting a database row when the value is none.
-			std::string value;
-			encodeElement(property.second.baseValue, value);
-			tuples.emplace_back(property.first, value);
-		}
+                if (property.second.modifiers.empty()) {
+                        Element val;
+                        prop->get(val);
+                        if (val.isNone()) {
+                                m_db.scheduleCommand(fmt::format("DELETE FROM properties WHERE id = '{}' AND name = '{}'",
+                                                                 ent.getIdAsString(), property.first));
+                        } else {
+                                std::string value;
+                                encodeProperty(*prop, value);
+                                tuples.emplace_back(property.first, value);
+                        }
+                } else {
+                        if (property.second.baseValue.isNone()) {
+                                m_db.scheduleCommand(fmt::format("DELETE FROM properties WHERE id = '{}' AND name = '{}'",
+                                                                 ent.getIdAsString(), property.first));
+                        } else {
+                                std::string value;
+                                encodeElement(property.second.baseValue, value);
+                                tuples.emplace_back(property.first, value);
+                        }
+                }
 
 		// FIXME check if this is new or just modded.
 		if (prop->hasFlags(prop_flag_persistence_seen)) {
