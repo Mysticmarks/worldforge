@@ -28,10 +28,7 @@
 //#define DT_POLYREF64 1
 
 #ifdef DT_POLYREF64
-// TODO: figure out a multiplatform version of uint64_t
-// - maybe: https://code.google.com/p/msinttypes/
-// - or: http://www.azillionmonkeys.com/qed/pstdint.h
-#include <stdint.h>
+#include <cstdint> // Provides uint64_t across supported platforms
 #endif
 
 // Note: If you want to use 64-bit refs, change the types of both dtPolyRef & dtTileRef.
