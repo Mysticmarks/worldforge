@@ -161,9 +161,8 @@ void ServerRouting::addToMessage(MapType& omap) const {
 	}
 	omap["entities"] = (Atlas::Message::IntType) m_world.getEntities().size();
 
-	//TODO: Use std::ranges::to when we upgrade to C++23
-	auto assets_view = m_assets | std::views::transform([](auto entry) { return Atlas::Message::Element(entry); });
-	omap["assets"] = std::vector<Atlas::Message::Element>(assets_view.begin(), assets_view.end());
+        auto assets_view = m_assets | std::views::transform([](auto entry) { return Atlas::Message::Element(entry); });
+        omap["assets"] = assets_view | std::ranges::to<std::vector>();
 
 	// We could add all sorts of stats here, but I don't know exactly what yet.
 }
@@ -184,9 +183,8 @@ void ServerRouting::addToEntity(const RootEntity& ent) const {
 	}
 	ent->setAttr("entities", (Atlas::Message::IntType) m_world.getEntities().size());
 
-	//TODO: Use std::ranges::to when we upgrade to C++23
-	auto assets_view = m_assets | std::views::transform([](auto entry) { return Atlas::Message::Element(entry); });
-	ent->setAttr("assets", std::vector<Atlas::Message::Element>(assets_view.begin(), assets_view.end()));
+        auto assets_view = m_assets | std::views::transform([](auto entry) { return Atlas::Message::Element(entry); });
+        ent->setAttr("assets", assets_view | std::ranges::to<std::vector>());
 
 	// We could add all sorts of stats here, but I don't know exactly what yet.
 }
