@@ -237,36 +237,41 @@ bool dtClosestHeightPointTriangle(const float* p, const float* a, const float* b
 /// All points are projected onto the xz-plane, so the y-values are ignored.
 bool dtPointInPolygon(const float* pt, const float* verts, const int nverts)
 {
-	// TODO: Replace pnpoly with triArea2D tests?
-	int i, j;
-	bool c = false;
-	for (i = 0, j = nverts-1; i < nverts; j = i++)
-	{
-		const float* vi = &verts[i*3];
-		const float* vj = &verts[j*3];
-		if (((vi[2] > pt[2]) != (vj[2] > pt[2])) &&
-			(pt[0] < (vj[0]-vi[0]) * (pt[2]-vi[2]) / (vj[2]-vi[2]) + vi[0]) )
-			c = !c;
-	}
-	return c;
+        float prev = 0.0f;
+        for (int i = 0, j = nverts-1; i < nverts; j = i++)
+        {
+                const float* vi = &verts[i*3];
+                const float* vj = &verts[j*3];
+                const float area = dtTriArea2D(vj, vi, pt);
+                if (area != 0.0f)
+                {
+                        if (prev != 0.0f && area*prev < 0.0f)
+                                return false;
+                        prev = area;
+                }
+        }
+        return true;
 }
 
 bool dtDistancePtPolyEdgesSqr(const float* pt, const float* verts, const int nverts,
-							  float* ed, float* et)
+                                                          float* ed, float* et)
 {
-	// TODO: Replace pnpoly with triArea2D tests?
-	int i, j;
-	bool c = false;
-	for (i = 0, j = nverts-1; i < nverts; j = i++)
-	{
-		const float* vi = &verts[i*3];
-		const float* vj = &verts[j*3];
-		if (((vi[2] > pt[2]) != (vj[2] > pt[2])) &&
-			(pt[0] < (vj[0]-vi[0]) * (pt[2]-vi[2]) / (vj[2]-vi[2]) + vi[0]) )
-			c = !c;
-		ed[j] = dtDistancePtSegSqr2D(pt, vj, vi, et[j]);
-	}
-	return c;
+        float prev = 0.0f;
+        bool inside = true;
+        for (int i = 0, j = nverts-1; i < nverts; j = i++)
+        {
+                const float* vi = &verts[i*3];
+                const float* vj = &verts[j*3];
+                ed[j] = dtDistancePtSegSqr2D(pt, vj, vi, et[j]);
+                const float area = dtTriArea2D(vj, vi, pt);
+                if (area != 0.0f)
+                {
+                        if (prev != 0.0f && area*prev < 0.0f)
+                                inside = false;
+                        prev = area;
+                }
+        }
+        return inside;
 }
 
 static void projectPoly(const float* axis, const float* poly, const int npoly,
