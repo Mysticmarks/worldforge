@@ -20,6 +20,7 @@
 #define RECASTALLOC_H
 
 #include "RecastAssert.h"
+#include "Recast.h"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -260,18 +261,9 @@ void rcVectorBase<T, H>::resize_impl(rcSizeType size, const T* value) {
 }
 template <typename T, rcAllocHint H>
 void rcVectorBase<T, H>::swap(rcVectorBase<T, H>& other) {
-	// TODO: Reorganize headers so we can use rcSwap here.
-	rcSizeType tmp_cap = other.m_cap;
-	rcSizeType tmp_size = other.m_size;
-	T* tmp_data = other.m_data;
-
-	other.m_cap = m_cap;
-	other.m_size = m_size;
-	other.m_data = m_data;
-
-	m_cap = tmp_cap;
-	m_size = tmp_size;
-	m_data = tmp_data;
+        rcSwap(m_cap, other.m_cap);
+        rcSwap(m_size, other.m_size);
+        rcSwap(m_data, other.m_data);
 }
 // static
 template <typename T, rcAllocHint H>
