@@ -51,6 +51,8 @@ class Steering;
 }
 namespace OgreView {
 
+Ogre::Vector3 projectPointOntoTerrain(IHeightProvider& heightProvider, const Ogre::Vector3& point);
+
 namespace Authoring {
 class AwarenessVisualizer;
 }
@@ -179,10 +181,15 @@ public:
 
 protected:
 
-	/**
-	 * @brief The main camera.
-	 */
-	Camera::MainCamera& mCamera;
+        /**
+         * @brief Provides terrain height information for placement helpers.
+         */
+        IHeightProvider& mHeightProvider;
+
+        /**
+         * @brief The main camera.
+         */
+        Camera::MainCamera& mCamera;
 
 	InputCommandMapper mMovementCommandMapper;
 

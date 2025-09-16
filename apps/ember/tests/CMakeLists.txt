@@ -12,6 +12,7 @@ if (TARGET cppunit::cppunit)
             NestedEntityTestCase.cpp
             AvatarMovementTestCase.cpp
             InstancingRenderTestCase.cpp
+            MovementControllerTestCase.cpp
             $<TARGET_OBJECTS:ember-ogre>
             $<TARGET_OBJECTS:ember-caelum>
             $<TARGET_OBJECTS:ember-meshtree>
