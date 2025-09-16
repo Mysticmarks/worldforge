@@ -23,6 +23,8 @@
 #include "EntityMappingCreator.h"
 
 #include <memory>
+#include <functional>
+#include <unordered_map>
 #include "EntityMapping.h"
 #include "EntityMappingManager.h"
 
@@ -46,6 +48,7 @@
 #include "Matches/SingleAttributeMatch.h"
 
 #include "IActionCreator.h"
+#include "framework/Log.h"
 
 #include <Eris/TypeService.h>
 
@@ -53,12 +56,12 @@ namespace {
 
 const Ember::EntityMapping::Definitions::CaseDefinition::ParameterEntry*
 findCaseParameter(const std::vector<Ember::EntityMapping::Definitions::CaseDefinition::ParameterEntry>& parameters, const std::string& type) {
-	for (auto& entry: parameters) {
-		if (entry.first == type) {
-			return &(entry);
-		}
-	}
-	return nullptr;
+        for (auto& entry: parameters) {
+                if (entry.first == type) {
+                        return &(entry);
+                }
+        }
+        return nullptr;
 }
 
 }
@@ -144,10 +147,10 @@ void EntityMappingCreator::addEntityRefCases(EntityRefMatch* match, MatchDefinit
 
 
 std::unique_ptr<AttributeComparers::AttributeComparerWrapper> EntityMappingCreator::getAttributeCaseComparer(AttributeMatch* match, MatchDefinition& matchDefinition, CaseDefinition& caseDefinition) {
-	const std::string& matchType = matchDefinition.Properties["type"];
+        const std::string& matchType = matchDefinition.Properties["type"];
 
-	if ((matchType.empty()) || (matchType == "string")) {
-		//default is string comparison
+        if ((matchType.empty()) || (matchType == "string")) {
+                //default is string comparison
 		if (auto param = findCaseParameter(caseDefinition.Parameters, "equals")) {
 			return std::make_unique<AttributeComparers::StringComparerWrapper>(std::make_unique<AttributeComparers::StringValueComparer>(param->second));
 		} else if (findCaseParameter(caseDefinition.Parameters, "notempty")) {
@@ -155,22 +158,42 @@ std::unique_ptr<AttributeComparers::AttributeComparerWrapper> EntityMappingCreat
 		} else {
 			return std::make_unique<AttributeComparers::StringComparerWrapper>(std::make_unique<AttributeComparers::StringValueComparer>(""));
 		}
-	} else if (matchType == "numeric") {
-		return std::make_unique<AttributeComparers::NumericComparerWrapper>(createNumericComparer(caseDefinition));
-	} else if (matchType == "function") {
-		if (match->getAttributeName() == "height") {
-			return std::make_unique<AttributeComparers::HeightComparerWrapper>(createNumericComparer(caseDefinition), mEntity);
-		}
-	}
-	return nullptr;
+        } else if (matchType == "numeric") {
+                return std::make_unique<AttributeComparers::NumericComparerWrapper>(createNumericComparer(caseDefinition));
+        } else if (matchType == "function") {
+                using FunctionComparerCreator = std::unique_ptr<AttributeComparers::AttributeComparerWrapper>(EntityMappingCreator::*)(CaseDefinition&);
+                static const std::unordered_map<std::string, FunctionComparerCreator> functionComparers{
+                        {"height", &EntityMappingCreator::createHeightFunctionComparer},
+                        {"verticalextent", &EntityMappingCreator::createHeightFunctionComparer}
+                };
+
+                const auto& attributeName = match->getAttributeName();
+                if (const auto comparerIt = functionComparers.find(attributeName); comparerIt != functionComparers.end()) {
+                        auto comparer = std::invoke(comparerIt->second, this, caseDefinition);
+                        if (!comparer) {
+                                logger->warn("Failed to create comparer for function attribute '{}'.", attributeName);
+                        }
+                        return comparer;
+                }
+                logger->warn("Unsupported function attribute '{}' in function match.", attributeName);
+        }
+        return nullptr;
 
 }
 
-std::unique_ptr<AttributeComparers::NumericComparer> EntityMappingCreator::createNumericComparer(CaseDefinition& caseDefinition) {
-	const CaseDefinition::ParameterEntry* param;
+std::unique_ptr<AttributeComparers::AttributeComparerWrapper> EntityMappingCreator::createHeightFunctionComparer(CaseDefinition& caseDefinition) {
+        auto numericComparer = createNumericComparer(caseDefinition);
+        if (!numericComparer) {
+                return nullptr;
+        }
+        return std::make_unique<AttributeComparers::HeightComparerWrapper>(std::move(numericComparer), mEntity);
+}
 
-	if ((param = findCaseParameter(caseDefinition.Parameters, "equals"))) {
-		return std::make_unique<AttributeComparers::NumericEqualsComparer>(std::stof(param->second));
+std::unique_ptr<AttributeComparers::NumericComparer> EntityMappingCreator::createNumericComparer(CaseDefinition& caseDefinition) {
+        const CaseDefinition::ParameterEntry* param;
+
+        if ((param = findCaseParameter(caseDefinition.Parameters, "equals"))) {
+                return std::make_unique<AttributeComparers::NumericEqualsComparer>(std::stof(param->second));
 	}
 
 	//If both a min and max value is set, it's a range comparer
@@ -233,24 +256,35 @@ void EntityMappingCreator::addMatch(CaseBase& aCase, MatchDefinition& matchDefin
 void EntityMappingCreator::addAttributeMatch(CaseBase& aCase, MatchDefinition& matchDefinition) {
 	const std::string& attributeName = matchDefinition.Properties["attribute"];
 
-	std::unique_ptr<AttributeMatch> match;
-	std::string internalAttributeName;
-	const std::string& matchType = matchDefinition.Properties["type"];
-	//TODO: make this check better
-	if (matchType == "function") {
-		if (attributeName == "height") {
+        std::unique_ptr<AttributeMatch> match;
+        const std::string& matchType = matchDefinition.Properties["type"];
+        if (matchType == "function") {
+                const auto createHeightMatch = [](const std::string& attribute) -> std::unique_ptr<AttributeMatch> {
+                        auto virtualMatch = std::make_unique<VirtualAttributeMatch>(attribute, std::initializer_list<std::string>{"bbox", "scale"});
+                        virtualMatch->addMatchAttributeObserver(std::make_unique<MatchAttributeObserver>(*virtualMatch, "bbox"));
+                        virtualMatch->addMatchAttributeObserver(std::make_unique<MatchAttributeObserver>(*virtualMatch, "scale"));
+                        return virtualMatch;
+                };
 
-			auto virtualMatch = std::make_unique<VirtualAttributeMatch>(attributeName, std::initializer_list<std::string>{"bbox", "scale"});
-			virtualMatch->addMatchAttributeObserver(std::make_unique<MatchAttributeObserver>(*virtualMatch, "bbox"));
-			virtualMatch->addMatchAttributeObserver(std::make_unique<MatchAttributeObserver>(*virtualMatch, "scale"));
-			match = std::move(virtualMatch);
-		}
-	} else {
-		auto singleMatch = std::make_unique<SingleAttributeMatch>(attributeName);
-		singleMatch->setMatchAttributeObserver(std::make_unique<MatchAttributeObserver>(*singleMatch, attributeName));
-		match = std::move(singleMatch);
-	}
-	if (match) {
+                static const std::unordered_map<std::string, std::function<std::unique_ptr<AttributeMatch>(const std::string&)>> functionMatches{
+                        {"height", createHeightMatch},
+                        {"verticalextent", createHeightMatch}
+                };
+
+                if (const auto matchIt = functionMatches.find(attributeName); matchIt != functionMatches.end()) {
+                        match = matchIt->second(attributeName);
+                        if (!match) {
+                                logger->warn("Failed to create function attribute match for '{}'.", attributeName);
+                        }
+                } else {
+                        logger->warn("Unsupported function attribute '{}' in function match.", attributeName);
+                }
+        } else {
+                auto singleMatch = std::make_unique<SingleAttributeMatch>(attributeName);
+                singleMatch->setMatchAttributeObserver(std::make_unique<MatchAttributeObserver>(*singleMatch, attributeName));
+                match = std::move(singleMatch);
+        }
+        if (match) {
 		addAttributeCases(match.get(), matchDefinition);
 		aCase.addMatch(std::move(match));
 
