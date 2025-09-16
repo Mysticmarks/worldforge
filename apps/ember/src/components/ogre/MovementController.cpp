@@ -22,6 +22,7 @@
 #include "MovementController.h"
 
 #include "domain/EmberEntity.h"
+#include "domain/IHeightProvider.h"
 #include "components/ogre/GUIManager.h"
 #include "components/ogre/Avatar.h"
 #include "components/ogre/OgreInfo.h"
@@ -53,6 +54,14 @@ using namespace Ogre;
 using namespace Ember;
 
 namespace Ember::OgreView {
+
+Ogre::Vector3 projectPointOntoTerrain(IHeightProvider& heightProvider, const Ogre::Vector3& point) {
+        float height = 0.f;
+        if (heightProvider.getHeight(Convert::toWF<WFMath::Point<2>>(point), height)) {
+                return {point.x, height, point.z};
+        }
+        return point;
+}
 
 MovementControllerInputListener::MovementControllerInputListener(MovementController& controller) :
 		mController(controller) {
@@ -96,12 +105,13 @@ MovementController::MovementController(Avatar& avatar, Camera::MainCamera& camer
 		MovementMoveUpwards("+movement_move_upwards", this, "Move upwards."),
 		MovementStrafeLeft("+movement_strafe_left", this, "Strafe left."),
 		MovementStrafeRight("+movement_strafe_right", this, "Strafe right."),
-		CameraOnAvatar("camera_on_avatar", this, "Positions the free flying camera on the avatar.")
-		/*, MovementRotateLeft("+Movement_rotate_left", this, "Rotate left.")
-		 , MovementRotateRight("+Movement_rotate_right", this, "Rotate right.")*/
-		//, MoveCameraTo("movecamerato", this, "Moves the camera to a point.")
-		, mCamera(camera),
-		mMovementCommandMapper("movement", "key_bindings_movement"),
+                CameraOnAvatar("camera_on_avatar", this, "Positions the free flying camera on the avatar.")
+                /*, MovementRotateLeft("+Movement_rotate_left", this, "Rotate left.")
+                 , MovementRotateRight("+Movement_rotate_right", this, "Rotate right.")*/
+                //, MoveCameraTo("movecamerato", this, "Moves the camera to a point.")
+                , mHeightProvider(heightProvider)
+                , mCamera(camera),
+                mMovementCommandMapper("movement", "key_bindings_movement"),
 		mIsRunning(true),
 		mMovementDirection(WFMath::Vector<3>::ZERO()),
 		mDecalObject(nullptr),
@@ -118,11 +128,11 @@ MovementController::MovementController(Avatar& avatar, Camera::MainCamera& camer
                 mWalkableClimb(100),
                 mWalkableSlopeAngle(70) {
 
-	auto evaluateLocationFn = [this, &heightProvider, &camera](EmberEntity& location) {
-		if (location.hasBBox()) {
-			try {
-                                mAwareness = std::make_unique<Navigation::Awareness>(mAvatar.getEmberEntity(), heightProvider, 64, mWalkableClimb, mWalkableSlopeAngle);
-				mAwarenessVisualizer = std::make_unique<Authoring::AwarenessVisualizer>(*mAwareness, *camera.getCamera().getSceneManager());
+        auto evaluateLocationFn = [this](EmberEntity& location) {
+                if (location.hasBBox()) {
+                        try {
+                                mAwareness = std::make_unique<Navigation::Awareness>(mAvatar.getEmberEntity(), mHeightProvider, 64, mWalkableClimb, mWalkableSlopeAngle);
+                                mAwarenessVisualizer = std::make_unique<Authoring::AwarenessVisualizer>(*mAwareness, *mCamera.getCamera().getSceneManager());
 				mSteering = std::make_unique<Navigation::Steering>(*mAwareness, mAvatar.getErisAvatar());
 				mSteering->EventPathUpdated.connect(sigc::mem_fun(*this, &MovementController::Steering_PathUpdated));
 
@@ -360,14 +370,11 @@ void MovementController::moveToPoint(const Ogre::Vector3& point) {
 		createDecal(point);
 	}
 
-	//TODO: reapply the terrain lookup without using the terrain manager directly
-	//	if (mDecalNode) {
-	//		//make sure it's at the correct height, since the visibility of it is determined by the bounding box
-	//		Ogre::Real height = EmberOgre::getSingleton().getTerrainManager()->getAdapter()->getHeightAt(point.x, point.z);
-	//		mDecalNode->setPosition(Ogre::Vector3(point.x, height, point.z));
-	//		mDecalNode->setVisible(true);
-	//	}
-//
+	if (mDecalNode) {
+		mDecalNode->setPosition(projectPointOntoTerrain(mHeightProvider, point));
+		mDecalNode->setVisible(true);
+	}
+
 	if (mSteering) {
 		WFMath::Point<3> atlasPos = Convert::toWF<WFMath::Point<3>>(point);
 		mSteering->setDestination(atlasPos);
