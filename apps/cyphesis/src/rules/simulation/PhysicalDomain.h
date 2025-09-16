@@ -33,6 +33,7 @@
 #include <array>
 #include <set>
 #include <chrono>
+#include <optional>
 
 namespace Mercator {
 class Segment;
@@ -76,7 +77,7 @@ class PhysicalDomain : public Domain {
 public:
 	static long s_processTimeUs;
 
-	explicit PhysicalDomain(LocatedEntity& entity);
+        explicit PhysicalDomain(LocatedEntity& entity, std::optional<unsigned int> visibilityBroadphaseMaxHandles = std::nullopt);
 
 	~PhysicalDomain() override;
 
@@ -370,10 +371,11 @@ protected:
 	std::unique_ptr<btBroadphaseInterface> m_broadphase;
 	std::unique_ptr<PhysicalWorld> m_dynamicsWorld;
 
-	std::unique_ptr<btOverlappingPairCallback> m_visibilityPairCallback;
-	std::unique_ptr<btCollisionDispatcher> m_visibilityDispatcher;
-	std::unique_ptr<btAxisSweep3> m_visibilityBroadphase;
-	std::unique_ptr<btCollisionWorld> m_visibilityWorld;
+        std::unique_ptr<btOverlappingPairCallback> m_visibilityPairCallback;
+        std::unique_ptr<btCollisionDispatcher> m_visibilityDispatcher;
+        unsigned int m_visibilityBroadphaseMaxHandles;
+        std::unique_ptr<btAxisSweep3> m_visibilityBroadphase;
+        std::unique_ptr<btCollisionWorld> m_visibilityWorld;
 
 	sigc::connection m_propertyAppliedConnection;
 

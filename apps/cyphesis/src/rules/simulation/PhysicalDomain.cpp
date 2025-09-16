@@ -29,6 +29,7 @@
 #include "physics/Convert.h"
 
 #include "common/debug.h"
+#include "common/globals.h"
 #include "common/operations/Tick.h"
 #include "rules/simulation/BaseWorld.h"
 #include "PerceptionSightProperty.h"
@@ -48,6 +49,7 @@
 
 
 #include <btBulletDynamicsCommon.h>
+#include <BulletCollision/BroadphaseCollision/btAxisSweep3.h>
 #include <BulletCollision/CollisionShapes/btHeightfieldTerrainShape.h>
 
 #include <algorithm>
@@ -58,6 +60,12 @@
 #include "AreaProperty.h"
 
 static constexpr auto debug_flag = false;
+
+INT_OPTION(visibility_broadphase_max_handles,
+        65536,
+        CYPHESIS,
+        "visibility_broadphase_max_handles",
+        "Maximum number of handles for the PhysicalDomain visibility broadphase.");
 
 using Atlas::Message::Element;
 using Atlas::Message::MapType;
@@ -74,18 +82,32 @@ using Atlas::Objects::smart_dynamic_cast;
 
 namespace {
 
-float to_seconds(std::chrono::milliseconds duration) {
-	return std::chrono::duration_cast<std::chrono::duration<float>>(duration).count();
+constexpr unsigned int MIN_VISIBILITY_BROADPHASE_HANDLES = 16384;
+constexpr unsigned int DEFAULT_VISIBILITY_BROADPHASE_MAX_HANDLES = 65536;
+
+unsigned int resolveVisibilityBroadphaseHandles(std::optional<unsigned int> overrideValue) {
+        if (overrideValue.has_value()) {
+                return std::max(overrideValue.value(), MIN_VISIBILITY_BROADPHASE_HANDLES);
+        }
+        if (visibility_broadphase_max_handles > 0) {
+                return std::max(static_cast<unsigned int>(visibility_broadphase_max_handles), MIN_VISIBILITY_BROADPHASE_HANDLES);
+        }
+        return DEFAULT_VISIBILITY_BROADPHASE_MAX_HANDLES;
 }
 
-std::unique_ptr<btAxisSweep3> createVisibilityBroadphase(const LocatedEntity& entity, float scalingFactor) {
-	auto bbox = ScaleProperty<LocatedEntity>::scaledBbox(entity);
-	if (!bbox.isValid()) {
-		return std::make_unique<btAxisSweep3>(btVector3{0, 0, 0}, btVector3{0, 0, 0});
-	} else {
-		return std::make_unique<btAxisSweep3>(Convert::toBullet(bbox.lowCorner()) * scalingFactor,
-			Convert::toBullet(bbox.highCorner()) * scalingFactor);
-	}
+float to_seconds(std::chrono::milliseconds duration) {
+        return std::chrono::duration_cast<std::chrono::duration<float>>(duration).count();
+}
+
+std::unique_ptr<btAxisSweep3> createVisibilityBroadphase(const LocatedEntity& entity, float scalingFactor, unsigned int maxHandles) {
+        const unsigned int handles = std::max(maxHandles, 1u);
+        auto bbox = ScaleProperty<LocatedEntity>::scaledBbox(entity);
+        if (!bbox.isValid()) {
+                return std::make_unique<bt32BitAxisSweep3>(btVector3{0, 0, 0}, btVector3{0, 0, 0}, handles);
+        }
+        const auto lowCorner = Convert::toBullet(bbox.lowCorner()) * scalingFactor;
+        const auto highCorner = Convert::toBullet(bbox.highCorner()) * scalingFactor;
+        return std::make_unique<bt32BitAxisSweep3>(lowCorner, highCorner, handles);
 }
 
 bool fuzzyEquals(WFMath::CoordType a, WFMath::CoordType b, WFMath::CoordType epsilon) {
@@ -456,23 +478,23 @@ struct PhysicalDomain::VisibilityPairCallback : public btOverlappingPairCallback
 
 std::chrono::steady_clock::duration postDuration;
 
-PhysicalDomain::PhysicalDomain(LocatedEntity& entity) :
-	Domain(entity),
-	mWorldInfo{.propellingEntries = &m_propellingEntries, .steppingEntries = &m_steppingEntries},
-	//default config for now
-	m_collisionConfiguration(new btDefaultCollisionConfiguration()),
-	m_dispatcher(new btCollisionDispatcher(m_collisionConfiguration.get())),
+PhysicalDomain::PhysicalDomain(LocatedEntity& entity, std::optional<unsigned int> visibilityBroadphaseMaxHandles) :
+        Domain(entity),
+        mWorldInfo{.propellingEntries = &m_propellingEntries, .steppingEntries = &m_steppingEntries},
+        //default config for now
+        m_collisionConfiguration(new btDefaultCollisionConfiguration()),
+        m_dispatcher(new btCollisionDispatcher(m_collisionConfiguration.get())),
 	m_constraintSolver(new btSequentialImpulseConstraintSolver()),
 	//We'll use a dynamic broadphase for the main world. It's not as fast as SAP variants, but it's faster when dynamic objects are at rest.
 	m_broadphase(new btDbvtBroadphase()),
 	// m_broadphase(new btAxisSweep3(Convert::toBullet(entity.m_location.bBox().lowCorner()),
 	//                                              Convert::toBullet(entity.m_location.bBox().highCorner()))),
-	m_dynamicsWorld(new PhysicalWorld(m_dispatcher.get(), m_broadphase.get(), m_constraintSolver.get(), m_collisionConfiguration.get())),
-	m_visibilityPairCallback(new VisibilityPairCallback()),
-	m_visibilityDispatcher(new btCollisionDispatcher(m_collisionConfiguration.get())),
-	//We'll use a SAP broadphase for the visibility. This is more efficient than a dynamic one.
-	//TODO: how to handle the limit for 16384 entries? Perhaps use the bt32BitAxisSweep3 with a custom max entries setting (to avoid it eating all memory).
-	m_visibilityBroadphase(createVisibilityBroadphase(entity, VISIBILITY_SCALING_FACTOR)),
+        m_dynamicsWorld(new PhysicalWorld(m_dispatcher.get(), m_broadphase.get(), m_constraintSolver.get(), m_collisionConfiguration.get())),
+        m_visibilityPairCallback(new VisibilityPairCallback()),
+        m_visibilityDispatcher(new btCollisionDispatcher(m_collisionConfiguration.get())),
+        m_visibilityBroadphaseMaxHandles(resolveVisibilityBroadphaseHandles(visibilityBroadphaseMaxHandles)),
+        //We'll use a 32-bit SAP broadphase for the visibility to support large scenes efficiently.
+        m_visibilityBroadphase(createVisibilityBroadphase(entity, VISIBILITY_SCALING_FACTOR, m_visibilityBroadphaseMaxHandles)),
 	m_visibilityWorld(new btCollisionWorld(m_visibilityDispatcher.get(),
 		m_visibilityBroadphase.get(),
 		m_collisionConfiguration.get())),

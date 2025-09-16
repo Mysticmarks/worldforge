@@ -25,6 +25,17 @@ configuration option in the `[cyphesis]` section of `cyphesis.vconf`. This
 controls the maximum slope angle in degrees that entities are allowed to
 traverse (default `70`).
 
+### Physics settings
+
+The visibility subsystem uses a sweep-and-prune broadphase that maintains a pool
+of collision handles. The size of this pool can be adjusted through the
+`visibility_broadphase_max_handles` option in the `[cyphesis]` section of
+`cyphesis.vconf`. The default is `65536`, which comfortably exceeds the legacy
+limit of 16,384 entities. Increase this value if your worlds regularly exceed
+that number or reduce it when memory usage is a concern. The same limit can be
+overridden programmatically by passing a custom value to the `PhysicalDomain`
+constructor.
+
 ### Documentation
 
 Documentation describing how the system works can be found [here](docs/dox/index.md).
