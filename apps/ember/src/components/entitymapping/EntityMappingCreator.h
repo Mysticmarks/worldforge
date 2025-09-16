@@ -167,9 +167,11 @@ protected:
 	*/
 	std::unique_ptr<Cases::AttributeComparers::AttributeComparerWrapper> getAttributeCaseComparer(Matches::AttributeMatch* match,
 																								  Definitions::MatchDefinition& matchDefinition,
-																								  Definitions::CaseDefinition& caseDefinition);
+ Definitions::CaseDefinition& caseDefinition);
 
-	IActionCreator& mActionCreator;
+        std::unique_ptr<Cases::AttributeComparers::AttributeComparerWrapper> createHeightFunctionComparer(Definitions::CaseDefinition& caseDefinition);
+
+        IActionCreator& mActionCreator;
 	Eris::Entity& mEntity;
 	std::unique_ptr<EntityMapping> mEntityMapping;
 	Definitions::EntityMappingDefinition& mDefinition;
