@@ -51,6 +51,7 @@
 #include <rules/simulation/EntityProperty.h>
 #include <rules/simulation/ModeDataProperty.h>
 #include <rules/simulation/VisibilityDistanceProperty.h>
+#include <optional>
 
 using namespace std::chrono_literals;
 using Atlas::Message::Element;
@@ -103,23 +104,39 @@ int AssertBase::assertFuzzyEqual(const char* l, const WFMath::Point<3>& lval,
 
 class TestPhysicalDomain : public PhysicalDomain {
 public:
-	explicit TestPhysicalDomain(LocatedEntity& entity) :
-			PhysicalDomain(entity) {
+        explicit TestPhysicalDomain(LocatedEntity& entity, std::optional<unsigned int> visibilityBroadphaseMaxHandles = std::nullopt) :
+                PhysicalDomain(entity, visibilityBroadphaseMaxHandles) {
 
-	}
+        }
 
-	PhysicalWorld* test_getPhysicalWorld() const {
-		return m_dynamicsWorld.get();
-	}
+        PhysicalWorld* test_getPhysicalWorld() const {
+                return m_dynamicsWorld.get();
+        }
 
 
-	btRigidBody* test_getRigidBody(long id) {
-		return btRigidBody::upcast(m_entries.find(id)->second->collisionObject.get());
-	}
+        btRigidBody* test_getRigidBody(long id) {
+                return btRigidBody::upcast(m_entries.find(id)->second->collisionObject.get());
+        }
 
-	void test_childEntityPropertyApplied(const std::string& name, PropertyBase& prop, long id) {
-		childEntityPropertyApplied(name, prop, *m_entries.find(id)->second);
-	}
+        PhysicalDomain::BulletEntry* test_getEntry(long id) {
+                auto entry = m_entries.find(id);
+                if (entry == m_entries.end()) {
+                        return nullptr;
+                }
+                return entry->second.get();
+        }
+
+        btCollisionWorld* test_getVisibilityWorld() const {
+                return m_visibilityWorld.get();
+        }
+
+        unsigned int test_getVisibilityBroadphaseMaxHandles() const {
+                return m_visibilityBroadphaseMaxHandles;
+        }
+
+        void test_childEntityPropertyApplied(const std::string& name, PropertyBase& prop, long id) {
+                childEntityPropertyApplied(name, prop, *m_entries.find(id)->second);
+        }
 };
 
 double epsilon = 0.0001;
@@ -151,12 +168,13 @@ struct Tested : public Cyphesis::TestBaseWithContext<TestContext> {
 		ADD_TEST(Tested::test_fallToTerrain);
 		ADD_TEST(Tested::test_collision);
 		ADD_TEST(Tested::test_mode);
-		ADD_TEST(Tested::test_determinism);
-		ADD_TEST(Tested::test_zoffset);
-		ADD_TEST(Tested::test_zscaledoffset);
-		ADD_TEST(Tested::test_visibility);
-		ADD_TEST(Tested::test_stairs);
-	}
+                ADD_TEST(Tested::test_determinism);
+                ADD_TEST(Tested::test_zoffset);
+                ADD_TEST(Tested::test_zscaledoffset);
+                ADD_TEST(Tested::test_visibility);
+                ADD_TEST(Tested::test_visibilityBroadphaseCapacity);
+                ADD_TEST(Tested::test_stairs);
+        }
 
 
 	void test_scaleBbox(TestContext& context) {
@@ -1704,7 +1722,50 @@ struct Tested : public Cyphesis::TestBaseWithContext<TestContext> {
 	}
 
 
-	void test_visibility(TestContext& context) {
+        void test_visibilityBroadphaseCapacity(TestContext& context) {
+                constexpr unsigned int entityCount = 17000;
+                constexpr unsigned int overrideHandles = entityCount + 512;
+
+                LocatedEntity rootEntity(context.newId());
+                rootEntity.incRef();
+                rootEntity.requirePropertyClassFixed<PositionProperty<LocatedEntity>>().data() = WFMath::Point<3>::ZERO();
+                rootEntity.requirePropertyClassFixed<BBoxProperty<LocatedEntity>>().data() = WFMath::AxisBox<3>(WFMath::Point<3>(-512, -512, -512), WFMath::Point<3>(512, 512, 512));
+
+                TestPhysicalDomain domain{rootEntity, overrideHandles};
+                ASSERT_TRUE(domain.test_getVisibilityBroadphaseMaxHandles() >= entityCount);
+
+                auto* visibilityWorld = domain.test_getVisibilityWorld();
+                ASSERT_TRUE(visibilityWorld);
+                const auto baseCollisionObjects = visibilityWorld->getNumCollisionObjects();
+
+                ModeProperty plantedProperty{};
+                plantedProperty.set("planted");
+
+                TypeNode<LocatedEntity> rockType("rock");
+
+                std::vector<std::unique_ptr<LocatedEntity>> plantedEntities;
+                plantedEntities.reserve(entityCount);
+
+                for (unsigned int i = 0; i < entityCount; ++i) {
+                        auto entity = std::make_unique<LocatedEntity>(context.newId());
+                        entity->setType(&rockType);
+                        entity->setProperty(ModeProperty::property_name, std::unique_ptr<PropertyBase>(plantedProperty.copy()));
+                        entity->requirePropertyClassFixed<PositionProperty<LocatedEntity>>().data() = WFMath::Point<3>(static_cast<float>(i % 128), 0.f, static_cast<float>(i / 128));
+                        entity->requirePropertyClassFixed<BBoxProperty<LocatedEntity>>().data() = WFMath::AxisBox<3>(WFMath::Point<3>(-0.25f, 0.f, -0.25f), WFMath::Point<3>(0.25f, 0.5f, 0.25f));
+
+                        domain.addEntity(*entity);
+                        plantedEntities.emplace_back(std::move(entity));
+                }
+
+                ASSERT_EQUAL(baseCollisionObjects + static_cast<int>(entityCount), visibilityWorld->getNumCollisionObjects());
+
+                auto* entry = domain.test_getEntry(plantedEntities.back()->getIdAsInt());
+                ASSERT_TRUE(entry);
+                ASSERT_TRUE(entry->visibilitySphere);
+                ASSERT_TRUE(entry->visibilitySphere->getBroadphaseHandle());
+        }
+
+        void test_visibility(TestContext& context) {
 		TypeNode<LocatedEntity> rockType("rock");
 		TypeNode<LocatedEntity> humanType("human");
 		ModeProperty modePlantedProperty{};
