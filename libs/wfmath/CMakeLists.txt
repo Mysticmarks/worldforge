@@ -43,7 +43,9 @@ macro(wf_add_test TEST_FILE)
 endmacro()
 
 add_subdirectory(src)
-add_subdirectory(tests)
+if (BUILD_TESTING)
+    add_subdirectory(tests)
+endif ()
 
 
 # Doxygen support, exports a "dox" target.

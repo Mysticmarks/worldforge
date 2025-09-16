@@ -126,3 +126,11 @@ target_include_directories(ServerSettingsTest PRIVATE ../src)
 target_link_libraries(ServerSettingsTest Catch2::Catch2WithMain varconf)
 add_test(NAME ServerSettingsTest COMMAND ServerSettingsTest)
 add_dependencies(check ServerSettingsTest)
+
+add_executable(AutoGraphicsLevelManagerTest
+        AutoGraphicsLevelManagerTest.cpp)
+target_include_directories(AutoGraphicsLevelManagerTest PRIVATE ../src)
+target_link_libraries(AutoGraphicsLevelManagerTest
+        Catch2::Catch2WithMain)
+add_test(NAME AutoGraphicsLevelManagerTest COMMAND AutoGraphicsLevelManagerTest)
+add_dependencies(check AutoGraphicsLevelManagerTest)
