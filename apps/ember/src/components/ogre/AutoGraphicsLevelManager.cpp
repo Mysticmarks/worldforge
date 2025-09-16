@@ -59,10 +59,12 @@ void FrameTimeRecorder::frameCompleted(const TimeFrame& timeFrame, unsigned int 
 }
 
 AutomaticGraphicsLevelManager::AutomaticGraphicsLevelManager(MainLoopController& mainLoopController) :
-		mDefaultFps(60.0f),
-		mEnabled(false),
-		mFrameTimeRecorder(mainLoopController),
-		mConfigListenerContainer(std::make_unique<ConfigListenerContainer>()) {
+                mDefaultFps(60.0f),
+                mEnabled(false),
+                mAtMaximumLevel(false),
+                mAtMinimumLevel(false),
+                mFrameTimeRecorder(mainLoopController),
+                mConfigListenerContainer(std::make_unique<ConfigListenerContainer>()) {
 	mFpsUpdatedConnection = mFrameTimeRecorder.EventAverageTimePerFrameUpdated.connect(sigc::mem_fun(*this, &AutomaticGraphicsLevelManager::averageTimePerFrameUpdated));
 	mConfigListenerContainer->registerConfigListener("general", "desiredfps", sigc::mem_fun(*this, &AutomaticGraphicsLevelManager::Config_DefaultFps));
 	mConfigListenerContainer->registerConfigListenerWithDefaults("graphics", "autoadjust", sigc::mem_fun(*this, &AutomaticGraphicsLevelManager::Config_Enabled), false);
@@ -91,8 +93,29 @@ void AutomaticGraphicsLevelManager::averageTimePerFrameUpdated(std::chrono::nano
 }
 
 void AutomaticGraphicsLevelManager::changeGraphicsLevel(float changeInFpsRequired) {
-	//TODO: Need to implement functionality for if further change is not possible
-	mGraphicalChangeAdapter.fpsChangeRequired(changeInFpsRequired);
+        auto outcome = Detail::processGraphicsLevelChange(
+                changeInFpsRequired,
+                mAtMaximumLevel,
+                mAtMinimumLevel,
+                [this](float change) { return mGraphicalChangeAdapter.fpsChangeRequired(change); });
+
+        switch (outcome) {
+                case Detail::GraphicsLevelChangeResult::NoChange:
+                case Detail::GraphicsLevelChangeResult::Applied:
+                        break;
+                case Detail::GraphicsLevelChangeResult::ReachedMaximum:
+                        logger->warn("Reached maximum graphics level; cannot increase details further.");
+                        break;
+                case Detail::GraphicsLevelChangeResult::ReachedMinimum:
+                        logger->warn("Reached minimum graphics level; cannot decrease details further.");
+                        break;
+                case Detail::GraphicsLevelChangeResult::AlreadyMaximum:
+                        logger->warn("Requested graphics increase but level is already at maximum; skipping adjustment.");
+                        break;
+                case Detail::GraphicsLevelChangeResult::AlreadyMinimum:
+                        logger->warn("Requested graphics decrease but level is already at minimum; skipping adjustment.");
+                        break;
+        }
 }
 
 GraphicalChangeAdapter& AutomaticGraphicsLevelManager::getGraphicalAdapter() {

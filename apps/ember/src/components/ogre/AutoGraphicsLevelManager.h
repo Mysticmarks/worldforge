@@ -27,6 +27,7 @@
 
 #include <string>
 #include <chrono>
+#include <functional>
 
 namespace varconf {
 class Variable;
@@ -89,10 +90,58 @@ protected:
 
 };
 
+namespace Detail {
+
+enum class GraphicsLevelChangeResult {
+        NoChange,
+        Applied,
+        ReachedMaximum,
+        ReachedMinimum,
+        AlreadyMaximum,
+        AlreadyMinimum
+};
+
+inline GraphicsLevelChangeResult processGraphicsLevelChange(float changeInFpsRequired,
+                                                            bool& atMaximumLevel,
+                                                            bool& atMinimumLevel,
+                                                            const std::function<bool(float)>& applyChange) {
+        if (changeInFpsRequired == 0.0f) {
+                return GraphicsLevelChangeResult::NoChange;
+        }
+
+        if (changeInFpsRequired > 0.0f) {
+                if (atMaximumLevel) {
+                        return GraphicsLevelChangeResult::AlreadyMaximum;
+                }
+
+                bool furtherChangePossible = applyChange(changeInFpsRequired);
+                atMinimumLevel = false;
+                atMaximumLevel = !furtherChangePossible;
+                if (atMaximumLevel) {
+                        return GraphicsLevelChangeResult::ReachedMaximum;
+                }
+                return GraphicsLevelChangeResult::Applied;
+        }
+
+        if (atMinimumLevel) {
+                return GraphicsLevelChangeResult::AlreadyMinimum;
+        }
+
+        bool furtherChangePossible = applyChange(changeInFpsRequired);
+        atMaximumLevel = false;
+        atMinimumLevel = !furtherChangePossible;
+        if (atMinimumLevel) {
+                return GraphicsLevelChangeResult::ReachedMinimum;
+        }
+        return GraphicsLevelChangeResult::Applied;
+}
+
+}
+
 /**
  *@brief Central class for automatic adjustment of graphics level
  *
- * This class maintains a current Graphics level. It connects to the fpsUpdated signal and thus 
+ * This class maintains a current Graphics level. It connects to the fpsUpdated signal and thus
  * checks the fps for a significant increase or decrease and then asks for a change in the level
  * by using the GraphicalChangeAdapter.
  */
@@ -143,10 +192,20 @@ protected:
 	 */
 	float mDefaultFps;
 
-	/**
-	 * Boolean that holds whether automatic adjustment is enabled.
-	 */
-	bool mEnabled;
+        /**
+         * Boolean that holds whether automatic adjustment is enabled.
+         */
+        bool mEnabled;
+
+        /**
+         * Tracks whether the current graphics level is at the maximum allowed level.
+         */
+        bool mAtMaximumLevel;
+
+        /**
+         * Tracks whether the current graphics level is at the minimum allowed level.
+         */
+        bool mAtMinimumLevel;
 
 	/**
 	 * Instance of FpsUpdater class owned by this class to get updates on when the fps is updated.
@@ -166,7 +225,7 @@ protected:
 	/**
 	 * @brief The connection through which the automatic graphics manager listens for fps updates.
 	 */
-	sigc::connection mFpsUpdatedConnection;
+        sigc::connection mFpsUpdatedConnection;
 
 	/**
 	 * @brief This function is used to check if the fps is optimum, higher or lower as compared to mDefaultFps.
