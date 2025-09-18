@@ -24,6 +24,7 @@
 #include "common/debug.h"
 #include "common/system.h"
 #include "common/log.h"
+#include "common/random.h"
 
 #include <Atlas/Objects/Anonymous.h>
 #include <common/operations/Possess.h>
@@ -64,7 +65,7 @@ void BaseClientLegacy::send(const Operation& op) {
 Root BaseClientLegacy::createSystemAccount() {
 	Atlas::Objects::Entity::SystemAccount player_ent;
 	player_ent->setAttr("username", create_session_username());
-	player_ent->setAttr("password", fmt::format("{}{}", ::rand(), ::rand()));
+        player_ent->setAttr("password", generate_secure_password());
 
 	Create createAccountOp;
 	createAccountOp->setArgs1(player_ent);

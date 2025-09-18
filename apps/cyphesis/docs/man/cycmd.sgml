@@ -19,10 +19,14 @@
  </refsynopsisdiv>
 
  <refsect1><title>Description</title>
-  <para>
+ <para>
 The <command>cycmd</command> program provides a commandline interface to a
 cyphesis server.
-  </para>
+ </para>
+ <para>
+When no credentials are supplied, <command>cycmd</command> will provision a temporary system account using a cryptographically
+secure random password with at least 128 bits of entropy to reduce the risk of collisions.
+ </para>
  </refsect1>
 
  <refsect1><title>Options</title>

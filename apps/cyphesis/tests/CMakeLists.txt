@@ -591,6 +591,7 @@ wf_add_test(tools/OperationMonitorTest.cpp ../src/tools/OperationMonitor.cpp
         ../src/common/ClientTask.cpp)
 wf_add_test(tools/EntityExporterTest.cpp ../src/tools/EntityExporterBase.cpp)
 wf_add_test(tools/CydbTest.cpp)
+wf_add_test(tools/SecurePasswordTest.cpp)
 wf_add_test(tools/InteractiveCommandTest.cpp ../src/tools/Interactive.cpp ../src/tools/Flusher.cpp ../src/tools/OperationMonitor.cpp ../src/tools/EntityExporterBase.cpp ../src/tools/EntityExporter.cpp ../src/tools/EntityImporterBase.cpp ../src/tools/EntityImporter.cpp ../src/tools/AdminClient.cpp ../src/tools/IdContext.cpp ../src/tools/AccountContext.cpp ../src/tools/AvatarContext.cpp ../src/tools/ConnectionContext.cpp ../src/tools/JunctureContext.cpp)
 
 

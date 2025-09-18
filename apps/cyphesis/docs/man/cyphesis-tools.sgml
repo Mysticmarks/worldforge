@@ -75,6 +75,9 @@ previously exported through the <command>cyexport</command> tool, into a
 running server.
   </para>
   <para>
+Both tools create temporary system accounts secured with cryptographically strong random passwords that provide at least 128 bits of entropy when establishing local connections automatically.
+  </para>
+  <para>
 The <command>cypython</command> tool allows you to execute Python code in a 
 running server. This command must be run on the same machine as the server 
 (it uses domain sockets for communication with the server). When run the user
