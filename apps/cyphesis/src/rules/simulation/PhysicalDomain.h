@@ -76,11 +76,29 @@ class PhysicalDomain : public Domain {
 public:
 	static long s_processTimeUs;
 
-	explicit PhysicalDomain(LocatedEntity& entity);
+        explicit PhysicalDomain(LocatedEntity& entity);
 
-	~PhysicalDomain() override;
+        ~PhysicalDomain() override;
 
-	bool isEntityVisibleFor(const LocatedEntity& observingEntity, const LocatedEntity& observedEntity) const override;
+        enum class MovementEnvironment {
+                Ground,
+                Water,
+                Air
+        };
+
+        struct EnvironmentSpeedModifiers {
+                double ground{1.0};
+                double water{1.0};
+                double air{1.0};
+        };
+
+        void setEnvironmentSpeedModifiers(const EnvironmentSpeedModifiers& modifiers);
+
+        [[nodiscard]] const EnvironmentSpeedModifiers& getEnvironmentSpeedModifiers() const;
+
+        [[nodiscard]] double getEnvironmentSpeedModifier(MovementEnvironment environment) const;
+
+        bool isEntityVisibleFor(const LocatedEntity& observingEntity, const LocatedEntity& observedEntity) const override;
 
 	void getVisibleEntitiesFor(const LocatedEntity& observingEntity, std::list<LocatedEntity*>& entityList) const override;
 
@@ -357,10 +375,11 @@ protected:
 	/**
 	 * Struct used to pass information on to the tick callbacks.
 	 */
-	struct WorldInfo {
-		std::map<long, PropelEntry>* propellingEntries{};
-		std::set<BulletEntry*>* steppingEntries{};
-	};
+        struct WorldInfo {
+                std::map<long, PropelEntry>* propellingEntries{};
+                std::set<BulletEntry*>* steppingEntries{};
+                PhysicalDomain* domain{};
+        };
 
 	WorldInfo mWorldInfo;
 
@@ -384,12 +403,14 @@ protected:
 		VelocityProperty<LocatedEntity> velocityProperty{};
 		AngularVelocityProperty<LocatedEntity> angularVelocityProperty{};
 		OrientationProperty<LocatedEntity> orientationProperty{};
-	} mFakeProperties;
+        } mFakeProperties;
 
 
-	BulletEntry mContainingEntityEntry;
+        BulletEntry mContainingEntityEntry;
 
-	Mercator::Terrain* m_terrain;
+        EnvironmentSpeedModifiers m_environmentSpeedModifiers{};
+
+        Mercator::Terrain* m_terrain;
 
 	/**
 	 * Looks for broadphase collisions with water entities. These are candidates for later checking

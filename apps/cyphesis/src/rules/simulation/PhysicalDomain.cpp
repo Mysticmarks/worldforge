@@ -98,7 +98,7 @@ bool fuzzyEquals(WFMath::CoordType a, WFMath::CoordType b, WFMath::CoordType eps
 //    }
 
 bool fuzzyEquals(const WFMath::Vector<3>& a, const WFMath::Vector<3>& b, WFMath::CoordType epsilon) {
-	return fuzzyEquals(a.x(), b.x(), epsilon) && fuzzyEquals(a.y(), b.y(), epsilon) && fuzzyEquals(a.z(), b.z(), epsilon);
+        return fuzzyEquals(a.x(), b.x(), epsilon) && fuzzyEquals(a.y(), b.y(), epsilon) && fuzzyEquals(a.z(), b.z(), epsilon);
 }
 
 /**
@@ -251,10 +251,56 @@ constexpr auto CCD_SPHERE_FACTOR = 0.2f;
  */
 constexpr auto USER_INDEX_WATER_BODY = 1;
 
+struct GroundDetectionCallback : public btCollisionWorld::ContactResultCallback {
+        const btCollisionObject& body;
+        bool grounded = false;
+
+        explicit GroundDetectionCallback(const btCollisionObject& body) : body(body) {
+                if (auto* broadphaseHandle = body.getBroadphaseHandle()) {
+                        m_collisionFilterGroup = broadphaseHandle->m_collisionFilterGroup;
+                        m_collisionFilterMask = broadphaseHandle->m_collisionFilterMask;
+                }
+        }
+
+        bool needsCollision(btBroadphaseProxy* proxy0) const override {
+                bool collides = (proxy0->m_collisionFilterGroup & m_collisionFilterMask) != 0;
+                collides = collides && (m_collisionFilterGroup & proxy0->m_collisionFilterMask);
+                return collides && ((btCollisionObject*)proxy0->m_clientObject)->getUserIndex() != USER_INDEX_WATER_BODY;
+        }
+
+        btScalar addSingleResult(btManifoldPoint& cp,
+                const btCollisionObjectWrapper* colObj0,
+                int partId0,
+                int index0,
+                const btCollisionObjectWrapper* colObj1,
+                int partId1,
+                int index1) override {
+                btVector3 point;
+                if (colObj0->m_collisionObject == &body) {
+                        point = cp.m_localPointA;
+                } else {
+                        point = cp.m_localPointB;
+                }
+                if (point.y() <= 0) {
+                        grounded = true;
+                }
+                return 0;
+        }
+};
+
+bool isBodyGrounded(btDynamicsWorld& world, const btCollisionObject& body) {
+        if (!body.getBroadphaseHandle()) {
+                return false;
+        }
+        GroundDetectionCallback callback(body);
+        world.contactTest(const_cast<btCollisionObject*>(&body), callback);
+        return callback.grounded;
+}
+
 struct PhysicalDomain::PhysicalMotionState : public btMotionState {
-	BulletEntry& m_bulletEntry;
-	btRigidBody& m_rigidBody;
-	PhysicalDomain& m_domain;
+        BulletEntry& m_bulletEntry;
+        btRigidBody& m_rigidBody;
+        PhysicalDomain& m_domain;
 	btTransform m_worldTrans;
 	btTransform m_centerOfMassOffset;
 
@@ -458,7 +504,7 @@ std::chrono::steady_clock::duration postDuration;
 
 PhysicalDomain::PhysicalDomain(LocatedEntity& entity) :
 	Domain(entity),
-	mWorldInfo{.propellingEntries = &m_propellingEntries, .steppingEntries = &m_steppingEntries},
+        mWorldInfo{.propellingEntries = &m_propellingEntries, .steppingEntries = &m_steppingEntries, .domain = this},
 	//default config for now
 	m_collisionConfiguration(new btDefaultCollisionConfiguration()),
 	m_dispatcher(new btCollisionDispatcher(m_collisionConfiguration.get())),
@@ -507,33 +553,53 @@ PhysicalDomain::PhysicalDomain(LocatedEntity& entity) :
 	createDomainBorders();
 
 	//Update the linear velocity of all self propelling entities each tick.
-	auto preTickCallback = [](btDynamicsWorld* world, btScalar timeStep) {
-		rmt_ScopedCPUSample(PhysicalDomain_preTickCallback, 0)
-		auto worldInfo = static_cast<WorldInfo*>(world->getWorldUserInfo());
-		auto propellingEntries = worldInfo->propellingEntries;
-		for (auto& entry: *propellingEntries) {
-			float verticalVelocity = entry.second.rigidBody->getLinearVelocity().y();
+        auto preTickCallback = [](btDynamicsWorld* world, btScalar timeStep) {
+                rmt_ScopedCPUSample(PhysicalDomain_preTickCallback, 0)
+                auto worldInfo = static_cast<WorldInfo*>(world->getWorldUserInfo());
+                auto propellingEntries = worldInfo->propellingEntries;
+                auto domain = worldInfo->domain;
+                for (auto& entry: *propellingEntries) {
+                        if (!domain) {
+                                continue;
+                        }
+                        auto* rigidBody = entry.second.rigidBody;
+                        if (!rigidBody) {
+                                continue;
+                        }
+                        auto* bulletEntry = entry.second.bulletEntry;
+                        float verticalVelocity = rigidBody->getLinearVelocity().y();
 
-			//TODO: check if we're on the ground, in the water or flying and apply different speed modifiers
-			double speed;
-			if (entry.second.bulletEntry->mode == ModeProperty::Mode::Submerged) {
-				speed = entry.second.bulletEntry->speedWater;
-			} else {
-				speed = entry.second.bulletEntry->speedGround;
-			}
-			btVector3 finalSpeed = entry.second.velocity * (btScalar)speed;
+                        PhysicalDomain::MovementEnvironment environment;
+                        double baseSpeed = 0;
+                        if (bulletEntry->mode == ModeProperty::Mode::Submerged) {
+                                environment = PhysicalDomain::MovementEnvironment::Water;
+                                baseSpeed = bulletEntry->speedWater;
+                        } else {
+                                bool grounded = isBodyGrounded(*world, *rigidBody);
+                                if (grounded) {
+                                        environment = PhysicalDomain::MovementEnvironment::Ground;
+                                        baseSpeed = bulletEntry->speedGround;
+                                } else {
+                                        environment = PhysicalDomain::MovementEnvironment::Air;
+                                        baseSpeed = bulletEntry->speedFlight > 0 ? bulletEntry->speedFlight : bulletEntry->speedGround;
+                                }
+                        }
 
-			//Apply gravity
-			if (!WFMath::Equal(verticalVelocity, 0, WFMath::numeric_constants<float>::epsilon())) {
-				verticalVelocity += entry.second.rigidBody->getGravity().y() * timeStep;
-				entry.second.rigidBody->setLinearVelocity(finalSpeed + btVector3(0, verticalVelocity, 0));
-			} else {
-				entry.second.rigidBody->setLinearVelocity(finalSpeed);
-			}
+                        double modifier = domain->getEnvironmentSpeedModifier(environment);
+                        double speed = baseSpeed * modifier;
+                        btVector3 finalSpeed = entry.second.velocity * static_cast<btScalar>(speed);
 
-			//When entities are being propelled they will have low friction. When propelling stops the friction will be returned in setVelocity.
-			entry.second.bulletEntry->collisionObject->setFriction(0.5);
-			entry.second.bulletEntry->collisionObject->activate();
+                        //Apply gravity
+                        if (!WFMath::Equal(verticalVelocity, 0, WFMath::numeric_constants<float>::epsilon())) {
+                                verticalVelocity += rigidBody->getGravity().y() * timeStep;
+                                rigidBody->setLinearVelocity(finalSpeed + btVector3(0, verticalVelocity, 0));
+                        } else {
+                                rigidBody->setLinearVelocity(finalSpeed);
+                        }
+
+                        //When entities are being propelled they will have low friction. When propelling stops the friction will be returned in setVelocity.
+                        entry.second.bulletEntry->collisionObject->setFriction(0.5);
+                        entry.second.bulletEntry->collisionObject->activate();
 		}
 	};
 
@@ -620,9 +686,29 @@ PhysicalDomain::PhysicalDomain(LocatedEntity& entity) :
 
 	m_entries.emplace(entity.getIdAsInt(), std::unique_ptr<BulletEntry>(&mContainingEntityEntry));
 
-	buildTerrainPages();
+        buildTerrainPages();
 
-	m_entity.propertyApplied.connect(sigc::mem_fun(*this, &PhysicalDomain::entityPropertyApplied));
+        m_entity.propertyApplied.connect(sigc::mem_fun(*this, &PhysicalDomain::entityPropertyApplied));
+}
+
+void PhysicalDomain::setEnvironmentSpeedModifiers(const EnvironmentSpeedModifiers& modifiers) {
+        m_environmentSpeedModifiers = modifiers;
+}
+
+const PhysicalDomain::EnvironmentSpeedModifiers& PhysicalDomain::getEnvironmentSpeedModifiers() const {
+        return m_environmentSpeedModifiers;
+}
+
+double PhysicalDomain::getEnvironmentSpeedModifier(MovementEnvironment environment) const {
+        switch (environment) {
+                case MovementEnvironment::Ground:
+                        return m_environmentSpeedModifiers.ground;
+                case MovementEnvironment::Water:
+                        return m_environmentSpeedModifiers.water;
+                case MovementEnvironment::Air:
+                        return m_environmentSpeedModifiers.air;
+        }
+        return m_environmentSpeedModifiers.ground;
 }
 
 PhysicalDomain::~PhysicalDomain() {
@@ -2290,53 +2376,9 @@ void PhysicalDomain::applyDestination(std::chrono::milliseconds tickSize,
 }
 
 void PhysicalDomain::applyPropel(BulletEntry& entry, btVector3 propel) {
-	/**
-	 * A callback which checks if the instance is "grounded", i.e. that there's a contact point which is below its center.
-	 */
-	struct IsGroundedCallback : public btCollisionWorld::ContactResultCallback {
-		const btCollisionObject& m_body;
-		bool& m_isGrounded;
-
-		IsGroundedCallback(const btCollisionObject& body, bool& isGrounded)
-			: btCollisionWorld::ContactResultCallback(), m_body(body), m_isGrounded(isGrounded) {
-			m_collisionFilterGroup = body.getBroadphaseHandle()->m_collisionFilterGroup;
-			m_collisionFilterMask = body.getBroadphaseHandle()->m_collisionFilterMask;
-		}
-
-		bool needsCollision(btBroadphaseProxy* proxy0) const override {
-			bool collides = (proxy0->m_collisionFilterGroup & m_collisionFilterMask) != 0;
-			collides = collides && (m_collisionFilterGroup & proxy0->m_collisionFilterMask);
-			//Discount water bodies.
-			return collides && ((btCollisionObject*)proxy0->m_clientObject)->getUserIndex() != USER_INDEX_WATER_BODY;
-		}
-
-		btScalar addSingleResult(btManifoldPoint& cp,
-								 const btCollisionObjectWrapper* colObj0,
-								 int partId0,
-								 int index0,
-								 const btCollisionObjectWrapper* colObj1,
-								 int partId1,
-								 int index1) override {
-			//Local collision point, in the body's space
-			btVector3 point;
-			if (colObj0->m_collisionObject == &m_body) {
-				point = cp.m_localPointA;
-			} else {
-				point = cp.m_localPointB;
-			}
-
-			if (point.y() <= 0) {
-				m_isGrounded = true;
-			}
-
-			//Returned result is ignored.
-			return 0;
-		}
-	};
-
-	if (entry.collisionObject) {
-		if (auto rigidBody = btRigidBody::upcast(entry.collisionObject.get())) {
-			LocatedEntity& entity = entry.entity;
+        if (entry.collisionObject) {
+                if (auto rigidBody = btRigidBody::upcast(entry.collisionObject.get())) {
+                        LocatedEntity& entity = entry.entity;
 
 
 			//TODO: add support for flying and swimming
@@ -2344,17 +2386,14 @@ void PhysicalDomain::applyPropel(BulletEntry& entry, btVector3 propel) {
 				cy_debug_print("PhysicalDomain::applyPropel " << entity.describeEntity() << " " << propel << " " << propel.length())
 
 				//Check if we're trying to jump
-				if (propel.m_floats[1] > 0) {
-					auto jumpSpeedProp = entity.getPropertyType<double>("speed_jump");
-					if (jumpSpeedProp && jumpSpeedProp->data() > 0) {
+                                if (propel.m_floats[1] > 0) {
+                                        auto jumpSpeedProp = entity.getPropertyType<double>("speed_jump");
+                                        if (jumpSpeedProp && jumpSpeedProp->data() > 0) {
 
-						bool isGrounded = false;
-						IsGroundedCallback groundedCallback(*rigidBody, isGrounded);
-						m_dynamicsWorld->contactTest(rigidBody, groundedCallback);
-						if (isGrounded) {
-							//If the entity is grounded, allow it to jump by setting the vertical velocity.
-							btVector3 newVelocity = rigidBody->getLinearVelocity();
-							newVelocity.m_floats[1] = static_cast<btScalar>(propel.m_floats[1] * jumpSpeedProp->data());
+                                                if (m_dynamicsWorld && isBodyGrounded(*m_dynamicsWorld, *rigidBody)) {
+                                                        //If the entity is grounded, allow it to jump by setting the vertical velocity.
+                                                        btVector3 newVelocity = rigidBody->getLinearVelocity();
+                                                        newVelocity.m_floats[1] = static_cast<btScalar>(propel.m_floats[1] * jumpSpeedProp->data());
 							rigidBody->setLinearVelocity(newVelocity);
 							//We'll mark the entity as actively jumping here, and rely on the post-tick callback to reset it when it's not jumping anymore.
 							entry.isJumping = true;

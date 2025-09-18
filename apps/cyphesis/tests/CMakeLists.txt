@@ -394,6 +394,8 @@ wf_add_benchmark(server/PhysicalDomainBenchmark.cpp ../src/rules/simulation/Phys
 
 wf_add_test(server/PhysicalDomainIntegrationTest.cpp ../src/rules/simulation/PhysicalDomain.cpp)
 
+wf_add_test(server/PhysicalDomainSpeedTest.cpp ../src/rules/simulation/PhysicalDomain.cpp)
+
 wf_add_test(rules/PropertyEntityIntegration.cpp
         ../src/rules/simulation/LocatedEntity.cpp
         ../src/common/PropertyUtil.cpp
