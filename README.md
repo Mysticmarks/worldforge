@@ -288,6 +288,8 @@ will be automatically installed and used. However, if you're setting up your own
 Worlds repository and use that instead. You can either configure Cyphesis to load from a different location by setting
 WORLDFORGE_WORLDS_PATH at CMake time, or by altering the content of "cyphesis.vconf.in" ("autoimport" setting).
 
+> **Security note:** `autoimport` is only honoured when the configured world file resolves inside the configured `share_directory` or `var_directory` tree and the path does not contain control characters. Paths outside those directories are rejected during startup.
+
 ## Media
 
 When building and running Cyphesis you need access to the media, which is stored in Subversion. The Subversion server is
