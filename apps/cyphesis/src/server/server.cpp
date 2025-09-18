@@ -67,6 +67,7 @@
 #include "common/net/SquallHandler.h"
 #include "SquallAssetsGenerator.h"
 #include "AssetsHandler.h"
+#include "AutoImport.h"
 
 
 #include <common/FileSystemObserver.h>
@@ -631,23 +632,25 @@ int run() {
 					//Populate the server through separate process (mainly because it's easier as we've
 					//already written the importer tool; we might also do it in-process, but that would
 					//require some rewriting of code).
-					spdlog::info("Trying to import world from {}.", importPath);
-					std::stringstream ss;
-					ss << bin_directory << "/cyimport";
-					ss << " --cyphesis:confdir=\"" << etc_directory << "\"";
-					ss << " --cyphesis:vardir=\"" << var_directory << "\"";
-					ss << " --cyphesis:directory=\"" << share_directory << "\"";
-					ss << " --resume \"" << importPath + "\"";
-					std::string command = ss.str();
-					std::thread importer([=]() {
-						int result = std::system(command.c_str());
-						if (result == 0) {
-							spdlog::info("Imported world into empty server.");
-						} else {
-							spdlog::info("No world imported.");
-						}
-					});
-					importer.detach();
+                                        AutoImportSettings settings{bin_directory, etc_directory, var_directory, share_directory, {}};
+                                        std::string autoImportError;
+                                        auto invocation = prepareCyimportInvocation(settings, importPath, autoImportError);
+                                        if (!invocation) {
+                                                spdlog::warn("Not importing \"{}\": {}", importPath, autoImportError);
+                                        } else {
+                                                spdlog::info("Trying to import world from {}.", invocation->sanitizedImportPath.string());
+                                                auto launcher = cyimportLauncher();
+                                                auto arguments = invocation->arguments;
+                                                std::thread importer([launcher = std::move(launcher), arguments = std::move(arguments)]() mutable {
+                                                        int result = launcher(arguments);
+                                                        if (result == 0) {
+                                                                spdlog::info("Imported world into empty server.");
+                                                        } else {
+                                                                spdlog::info("No world imported.");
+                                                        }
+                                                });
+                                                importer.detach();
+                                        }
 				}
 			} else {
 				spdlog::warn("Not importing as \"{}\" could not be found.", importPath);

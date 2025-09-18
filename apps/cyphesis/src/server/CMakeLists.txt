@@ -56,6 +56,7 @@ set(server_files
         AccountProperty.cpp
         SquallAssetsGenerator.cpp
         AssetsHandler.cpp
+        AutoImport.cpp
         ${CMAKE_CURRENT_BINARY_DIR}/buildid.cpp
 )
 
