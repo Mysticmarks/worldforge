@@ -23,24 +23,47 @@ from pathlib import Path
 def _find_build_dir(preset: str) -> Path | None:
     """Return the CMake build directory for the given preset.
 
-    The CI pipeline generates a CMakeUserPresets.json which is inspected
-    here to locate the build tree.
+    The CI pipeline generates preset files which are inspected here to locate
+    the build tree.  Invalid JSON or missing entries are ignored so that we can
+    fall back to other candidates.
     """
-    preset_files = ["CMakeUserPresets.json", "CMakePresets.json"]
+
+    preset_files = ("CMakeUserPresets.json", "CMakePresets.json")
     for filename in preset_files:
         path = Path(filename)
-        if path.exists():
+        if not path.exists():
+            continue
+        try:
             with path.open("r", encoding="utf-8") as fh:
                 data = json.load(fh)
-            for entry in data.get("buildPresets", []):
-                if entry.get("name") == preset:
-                    return Path(entry["binaryDir"])
+        except json.JSONDecodeError as exc:
+            print(f"Failed to parse {path}: {exc}")
+            continue
+        for entry in data.get("buildPresets", []):
+            if entry.get("name") != preset:
+                continue
+            binary_dir = entry.get("binaryDir")
+            if isinstance(binary_dir, str) and binary_dir:
+                return Path(binary_dir)
     return None
+
+
+def _resolve_build_dir(preset: str) -> Path | None:
+    """Locate the build directory honouring manual overrides."""
+
+    override = os.environ.get("WF_E2E_BINARY_DIR")
+    if override:
+        candidate = Path(override).expanduser()
+        if candidate.exists():
+            return candidate
+        print(f"Override path {candidate} does not exist; falling back to presets")
+        return None
+    return _find_build_dir(preset)
 
 
 def main() -> int:
     preset = os.environ.get("PROFILE_CONAN", "conan-debug")
-    build_dir = _find_build_dir(preset)
+    build_dir = _resolve_build_dir(preset)
     if build_dir is None:
         print("Build preset not found; skipping e2e test")
         return 0
