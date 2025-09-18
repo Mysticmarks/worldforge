@@ -29,6 +29,7 @@
 
 #include <Atlas/Objects/RootOperation.h>
 
+#include <cctype>
 #include <cassert>
 #include "common/Property_impl.h"
 
@@ -39,9 +40,13 @@ Atlas::Objects::Factories factories;
 
 class TestBaseClient : public BaseClientLegacy {
 public:
-	explicit TestBaseClient(boost::asio::io_context& io_context, TypeStore<MemEntity>& typeStore) : BaseClientLegacy(io_context, factories, typeStore) {}
+        explicit TestBaseClient(boost::asio::io_context& io_context, TypeStore<MemEntity>& typeStore) : BaseClientLegacy(io_context, factories, typeStore) {}
 
-	void idle() override {}
+        void idle() override {}
+
+        std::string lastGeneratedPassword() const {
+                return m_password;
+        }
 };
 
 int main() {
@@ -62,13 +67,26 @@ int main() {
 		delete bc;
 	}
 
-	{
-		auto bc = new TestBaseClient{io_context, typeStore};
+        {
+                auto bc = new TestBaseClient{io_context, typeStore};
 
-		bc->createSystemAccount();
+                bc->createSystemAccount("_one");
+                auto first_password = bc->lastGeneratedPassword();
+                bc->createSystemAccount("_two");
+                auto second_password = bc->lastGeneratedPassword();
 
-		delete bc;
-	}
+                assert(first_password.size() >= 32);
+                assert(second_password.size() >= 32);
+                for (auto ch : first_password) {
+                        assert(std::isxdigit(static_cast<unsigned char>(ch)) != 0);
+                }
+                for (auto ch : second_password) {
+                        assert(std::isxdigit(static_cast<unsigned char>(ch)) != 0);
+                }
+                assert(first_password != second_password);
+
+                delete bc;
+        }
 
 	{
 		auto bc = new TestBaseClient{io_context, typeStore};

@@ -21,6 +21,7 @@
 #include "../common/log.h"
 #include "../common/debug.h"
 #include "../common/system.h"
+#include "../common/random.h"
 #include "../common/CommSocket.h"
 #include "../common/ClientTask.h"
 
@@ -101,7 +102,7 @@ void BaseClient::createSystemAccount(const std::string& usernameSuffix) {
 	Atlas::Objects::Entity::SystemAccount player_ent;
 	m_username = create_session_username() + usernameSuffix;
 	player_ent->setAttr("username", m_username);
-	m_password = fmt::format("{}{}", ::rand(), ::rand());
+        m_password = generate_secure_password();
 	player_ent->setAttr("password", m_password);
 
 	Create createAccountOp;

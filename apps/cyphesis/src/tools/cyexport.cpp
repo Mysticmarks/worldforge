@@ -20,6 +20,7 @@
 #include "common/globals.h"
 #include "common/sockets.h"
 #include "common/system.h"
+#include "common/random.h"
 #include "common/AtlasStreamClient.h"
 
 #include "EntityExporter.h"
@@ -79,8 +80,8 @@ int main(int argc, char** argv) {
 	}
 
 	std::cout << "Attempting local connection" << std::endl;
-	if (bridge.connectLocal(localSocket) == 0) {
-		if (bridge.create("system_account", create_session_username(), fmt::format("{}{}", ::rand(), ::rand())) != 0) {
+        if (bridge.connectLocal(localSocket) == 0) {
+                if (bridge.create("system_account", create_session_username(), generate_secure_password()) != 0) {
 			std::cerr << "Could not create sys account." << std::endl;
 			return -1;
 		}

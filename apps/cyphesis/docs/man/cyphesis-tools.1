@@ -41,11 +41,14 @@ the various options that the server takes, please see
 The \fBcypasswd\fR tool is used to administrate the accounts table
 in the server database.
 .PP
-The \fBcyexport\fR tool exports entities (and optionally rules) from 
+The \fBcyexport\fR tool exports entities (and optionally rules) from
 a running server into a file. The file generated can be imported into a server
 through the tool \fBcyimport\fR\&.
 .PP
-The \fBcyimport\fR tool imports entities and rules from a file, 
+When establishing local connections automatically, these tools create temporary system accounts protected with cryptographically
+secure random passwords that offer at least 128 bits of entropy.
+.PP
+The \fBcyimport\fR tool imports entities and rules from a file,
 previously exported through the \fBcyexport\fR tool, into a
 running server.
 .PP

@@ -15,6 +15,9 @@ cycmd \- cycmd game server process
 .PP
 The \fBcycmd\fR program provides a commandline interface to a
 cyphesis server.
+.PP
+When no credentials are supplied, \fBcycmd\fR provisions a temporary system account using a cryptographically secure random
+password with at least 128 bits of entropy to minimise the risk of collisions.
 .SH "OPTIONS"
 .PP
 Configuration options are divided up into named sections, which need to
