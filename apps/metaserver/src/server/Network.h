@@ -23,6 +23,9 @@
 
 #include <string>
 #include <array>
+#include <optional>
+#include <string_view>
+#include <cctype>
 
 inline std::string
 IpNetToAscii(uint32_t address) {
@@ -41,22 +44,44 @@ IpNetToAscii(uint32_t address) {
    Binary	00000001 . 00000010 . 00000000 . 01111111
    Integer	16908415
  */
-inline uint32_t
-IpAsciiToNet(const char* buffer) {
+inline std::optional<uint32_t>
+IpAsciiToNet(std::string_view input) {
 
-	uint32_t ret = 0;
-	int shift = 0;  //  fill out the MSB first
-	bool startQuad = true;
-	while ((shift <= 24) && (*buffer)) {
-		if (startQuad) {
-			auto quad = (unsigned char) atoi(buffer);
-			ret |= (((uint32_t) quad) << shift);
-			shift += 8;
-		}
-		startQuad = (*buffer == '.');
-		++buffer;
-	}
-	return ret;
+        uint32_t ret = 0;
+        std::size_t pos = 0;
+        for (int octet = 0; octet < 4; ++octet) {
+                if (pos >= input.size()) {
+                        return std::nullopt;
+                }
+
+                uint32_t value = 0;
+                std::size_t digitCount = 0;
+                while (pos < input.size() && std::isdigit(static_cast<unsigned char>(input[pos]))) {
+                        value = value * 10 + static_cast<uint32_t>(input[pos] - '0');
+                        if (value > 255) {
+                                return std::nullopt;
+                        }
+                        ++pos;
+                        ++digitCount;
+                }
+
+                if (digitCount == 0) {
+                        return std::nullopt;
+                }
+
+                ret |= (value << (octet * 8));
+
+                if (octet < 3) {
+                        if (pos >= input.size() || input[pos] != '.') {
+                                return std::nullopt;
+                        }
+                        ++pos;
+                } else if (pos != input.size()) {
+                        return std::nullopt;
+                }
+        }
+
+        return ret;
 }
 
 

@@ -261,10 +261,14 @@ public:
 		 */
 		in.setPacketType(NMT_ADMINREQ);
 		in.addPacketData(NMT_ADMINREQ_ADDSERVER);
-		in.addPacketData(IpAsciiToNet("127.0.2.1"));
+                auto packedServer = IpAsciiToNet("127.0.2.1");
+                CPPUNIT_ASSERT(packedServer);
+                in.addPacketData(*packedServer);
 		in.addPacketData(12345);
 
-		in.setAddress("123.123.123.123", IpAsciiToNet("123.123.123.123"));
+                auto packedOrigin = IpAsciiToNet("123.123.123.123");
+                CPPUNIT_ASSERT(packedOrigin);
+                in.setAddress("123.123.123.123", *packedOrigin);
 		in.setPort(11111);
 
 		MetaServer* ms = new MetaServer();
