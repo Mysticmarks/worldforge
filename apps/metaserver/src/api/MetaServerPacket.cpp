@@ -23,6 +23,7 @@
 #include "MetaServerPacket.hpp"
 #include <netinet/in.h> // htonl
 #include <cstring>      // memcpy
+#include <stdexcept>
 
 MetaServerPacket::MetaServerPacket() :
 		m_packetType(NMT_NULL),
@@ -41,18 +42,22 @@ MetaServerPacket::MetaServerPacket() :
 }
 
 MetaServerPacket::MetaServerPacket(const std::array<char, MAX_PACKET_BYTES>& pl, std::size_t bytes)
-		: m_packetType(NMT_NULL),
-		  m_AddressInt(0),
-		  m_Port(0),
-		  m_Bytes(bytes),
-		  m_packetPayload(pl),
-		  m_needFree(false),
-		  m_outBound(false),
-		  m_Sequence(0),
-		  m_TimeOffset(0) {
-	m_readPtr = m_packetPayload.data();
-	m_headPtr = m_packetPayload.data();
-	m_writePtr = m_packetPayload.data();
+                : m_packetType(NMT_NULL),
+                  m_AddressInt(0),
+                  m_Port(0),
+                  m_Bytes(bytes),
+                  m_packetPayload(pl),
+                  m_needFree(false),
+                  m_outBound(false),
+                  m_Sequence(0),
+                  m_TimeOffset(0) {
+        if (bytes > MAX_PACKET_BYTES) {
+                throw std::length_error("MetaServerPacket payload exceeds maximum size");
+        }
+
+        m_readPtr = m_packetPayload.data();
+        m_headPtr = m_packetPayload.data();
+        m_writePtr = m_packetPayload.data();
 
 	if (bytes > 0) {
 		// if we have data ... parse out type
@@ -102,16 +107,16 @@ MetaServerPacket::setAddress(const std::string& address, uint32_t addressInt) {
 
 unsigned int
 MetaServerPacket::addPacketData(uint32_t i) {
-	unsigned int ret_off = m_writePtr - m_headPtr;
-	m_writePtr = pack_uint32(i, m_writePtr);
-	return ret_off;
+        char* const current = m_writePtr;
+        m_writePtr = pack_uint32(i, m_writePtr);
+        return static_cast<unsigned int>(current - m_headPtr);
 }
 
 unsigned int
 MetaServerPacket::addPacketData(const std::string& s) {
-	unsigned int ret_off = m_writePtr - m_headPtr;
-	m_writePtr = pack_string(s, m_writePtr);
-	return ret_off;
+        char* const current = m_writePtr;
+        m_writePtr = pack_string(s, m_writePtr);
+        return static_cast<unsigned int>(current - m_headPtr);
 }
 
 std::string
@@ -179,12 +184,17 @@ MetaServerPacket::parsePacketType() {
  */
 char*
 MetaServerPacket::pack_uint32(uint32_t data, char* buffer) {
-	uint32_t netorder;
+        uint32_t netorder;
+        const std::size_t max_bytes = MAX_PACKET_BYTES;
 
-	netorder = htonl(data);
+        if (m_Bytes > max_bytes || max_bytes - m_Bytes < sizeof(uint32_t)) {
+                throw std::length_error("MetaServerPacket::pack_uint32 overflow");
+        }
 
-	memcpy(buffer, &netorder, sizeof(uint32_t));
-	m_Bytes += sizeof(uint32_t);
+        netorder = htonl(data);
+
+        memcpy(buffer, &netorder, sizeof(uint32_t));
+        m_Bytes += sizeof(uint32_t);
 
 	return buffer + sizeof(uint32_t);
 
@@ -203,10 +213,16 @@ MetaServerPacket::unpack_uint32(uint32_t* dest, char* buffer) const {
 
 char*
 MetaServerPacket::pack_string(std::string str, char* buffer) {
-	unsigned int ss = str.size();
-	memcpy(buffer, str.data(), ss);
-	m_Bytes += ss;
-	return buffer + ss;
+        const std::size_t ss = str.size();
+        const std::size_t max_bytes = MAX_PACKET_BYTES;
+
+        if (m_Bytes > max_bytes || max_bytes - m_Bytes < ss) {
+                throw std::length_error("MetaServerPacket::pack_string overflow");
+        }
+
+        memcpy(buffer, str.data(), ss);
+        m_Bytes += ss;
+        return buffer + ss;
 }
 
 char*

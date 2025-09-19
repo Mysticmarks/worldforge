@@ -33,6 +33,7 @@
 #include <cppunit/extensions/TestFactoryRegistry.h>
 
 #include <cassert>
+#include <stdexcept>
 
 static const int TEST_MAX_BYTES = 1024;
 
@@ -55,8 +56,11 @@ CPPUNIT_TEST_SUITE(MetaServerPacket_unittest);
 		CPPUNIT_TEST(test_setAddress_getAddress);
 		CPPUNIT_TEST(test_getAddressStr_return);
 		CPPUNIT_TEST(test_getAddressInt_return);
-		CPPUNIT_TEST(test_addPacketData);
-		CPPUNIT_TEST(test_getPacketMessage);
+                CPPUNIT_TEST(test_addPacketData);
+                CPPUNIT_TEST(test_addPacketData_overflow_uint32);
+                CPPUNIT_TEST(test_addPacketData_overflow_string);
+                CPPUNIT_TEST(test_addPacketData_valid_payload);
+                CPPUNIT_TEST(test_getPacketMessage);
 		CPPUNIT_TEST(test_setPort_getPort);
 		CPPUNIT_TEST(test_getSize);
 		CPPUNIT_TEST(test_setSequence_getSequence);
@@ -111,18 +115,24 @@ public:
 	/*
 	 * Negative packet size test
 	 */
-	void testConstructor_negativeSize() {
-		std::array<char, TEST_MAX_BYTES> test_buffer;
+        void testConstructor_negativeSize() {
+                std::array<char, TEST_MAX_BYTES> test_buffer;
 
-		test_buffer[0] = 0;
-		test_buffer[1] = 1;
-		test_buffer[2] = 2;
+                test_buffer[0] = 0;
+                test_buffer[1] = 1;
+                test_buffer[2] = 2;
 
-		MetaServerPacket* msp = new MetaServerPacket(test_buffer, 3);
-		unsigned int s = msp->getSize();
-		CPPUNIT_ASSERT_ASSERTION_FAIL(CPPUNIT_ASSERT(s == 1));
-		delete msp;
-	}
+                MetaServerPacket* msp = new MetaServerPacket(test_buffer, 3);
+                unsigned int s = msp->getSize();
+                CPPUNIT_ASSERT_ASSERTION_FAIL(CPPUNIT_ASSERT(s == 1));
+                delete msp;
+        }
+
+        void testConstructor_exceedsMaxSize() {
+                std::array<char, TEST_MAX_BYTES> test_buffer{};
+
+                CPPUNIT_ASSERT_THROW(MetaServerPacket(test_buffer, MAX_PACKET_BYTES + 1), std::length_error);
+        }
 
 	/*
 	 * Data Integrity Test
@@ -327,21 +337,51 @@ public:
 	/*
 	 * Make sure packet data that is added comes back
 	 */
-	void test_addPacketData() {
+        void test_addPacketData() {
 
-		MetaServerPacket* msp = new MetaServerPacket();
+                MetaServerPacket* msp = new MetaServerPacket();
 
-		/*
-		 * New packet is offset 0
-		 */
-		msp->addPacketData(123456);
-		boost::uint32_t ret = msp->getIntData(0);
+                /*
+                 * New packet is offset 0
+                 */
+                msp->addPacketData(123456);
+                boost::uint32_t ret = msp->getIntData(0);
 
-		delete msp;
+                delete msp;
 
-		CPPUNIT_ASSERT(ret == 123456);
+                CPPUNIT_ASSERT(ret == 123456);
 
-	}
+        }
+
+        void test_addPacketData_overflow_uint32() {
+                MetaServerPacket msp;
+
+                for (std::size_t i = 0; i < (MAX_PACKET_BYTES / sizeof(uint32_t)); ++i) {
+                        msp.addPacketData(static_cast<uint32_t>(i));
+                }
+
+                CPPUNIT_ASSERT_THROW(msp.addPacketData(0U), std::length_error);
+        }
+
+        void test_addPacketData_overflow_string() {
+                MetaServerPacket msp;
+                std::string big(MAX_PACKET_BYTES + 1, 'a');
+
+                CPPUNIT_ASSERT_THROW(msp.addPacketData(big), std::length_error);
+        }
+
+        void test_addPacketData_valid_payload() {
+                MetaServerPacket msp;
+
+                msp.setPacketType(NMT_HANDSHAKE);
+                msp.addPacketData(static_cast<uint32_t>(123456));
+                msp.addPacketData(std::string("foo"));
+
+                CPPUNIT_ASSERT_EQUAL(static_cast<std::size_t>(11), msp.getSize());
+                CPPUNIT_ASSERT_EQUAL(NMT_HANDSHAKE, msp.getPacketType());
+                CPPUNIT_ASSERT_EQUAL(static_cast<uint32_t>(123456), msp.getIntData(4));
+                CPPUNIT_ASSERT_EQUAL(std::string("foo"), msp.getPacketMessage(8));
+        }
 
 	/*
 	 *  Deliberately adding a non-NMT ( uint32_t ) to first byte and
