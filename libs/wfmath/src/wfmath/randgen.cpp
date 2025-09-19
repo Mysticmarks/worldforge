@@ -58,11 +58,13 @@
 // Created: 2002-5-23
 
 #include "randgen.h"
-#include <ctime>
+#include <algorithm>
+#include <array>
+#include <climits>
 #include <cstdio>
+#include <ctime>
 #include <istream>
 #include <ostream>
-#include <climits>
 
 namespace WFMath {
 
@@ -203,10 +205,23 @@ std::ostream& MTRand::save(std::ostream& ostr) const {
 
 
 std::istream& MTRand::load(std::istream& istr) {
-	for (auto& i: state)
-		istr >> i;
-	istr >> index;
-	return istr;
+        std::array<uint32, state_size> new_state{};
+        for (auto& value : new_state) {
+                if (!(istr >> value)) {
+                        istr.setstate(std::ios::failbit);
+                        return istr;
+                }
+        }
+
+        uint32 new_index = 0;
+        if (!(istr >> new_index) || new_index >= state_size) {
+                istr.setstate(std::ios::failbit);
+                return istr;
+        }
+
+        std::copy(new_state.begin(), new_state.end(), state);
+        index = new_index;
+        return istr;
 }
 
 }
