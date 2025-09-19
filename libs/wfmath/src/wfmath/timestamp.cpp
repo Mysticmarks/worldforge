@@ -40,12 +40,25 @@
 #include <winsock2.h>
 #endif
 
-static void regularize(std::int64_t& sec, std::int64_t& usec) {
-using namespace std::chrono;
-auto total = seconds(sec) + microseconds(usec);
-sec = duration_cast<seconds>(total).count();
-usec = duration_cast<microseconds>(total - seconds(sec)).count();
+namespace {
+
+template <typename Duration>
+void split_duration(const Duration& total,
+                    std::int64_t& sec,
+                    std::int64_t& usec) {
+    const auto sec_duration = std::chrono::floor<std::chrono::seconds>(total);
+    const auto usec_duration = std::chrono::duration_cast<std::chrono::microseconds>(total - sec_duration);
+    sec = sec_duration.count();
+    usec = usec_duration.count();
 }
+
+void regularize(std::int64_t& sec, std::int64_t& usec) {
+    using namespace std::chrono;
+    auto total = seconds(sec) + microseconds(usec);
+    split_duration(total, sec, usec);
+}
+
+} // namespace
 
 namespace WFMath {
 
@@ -58,9 +71,8 @@ TimeDiff::TimeDiff(std::int64_t sec, std::int64_t usec, bool is_valid)
 TimeDiff::TimeDiff(std::int64_t msec)
     : m_isvalid(true) {
     using namespace std::chrono;
-    auto dur = std::chrono::milliseconds(msec);
-    m_sec = duration_cast<seconds>(dur).count();
-    m_usec = duration_cast<microseconds>(dur - seconds(m_sec)).count();
+    const auto total = duration_cast<microseconds>(std::chrono::milliseconds(msec));
+    split_duration(total, m_sec, m_usec);
 }
 
 std::int64_t TimeDiff::milliseconds() const {
@@ -72,8 +84,7 @@ TimeDiff& operator+=(TimeDiff& val, const TimeDiff& d) {
     using namespace std::chrono;
     auto total = seconds(val.m_sec) + microseconds(val.m_usec)
                + seconds(d.m_sec) + microseconds(d.m_usec);
-    val.m_sec = duration_cast<seconds>(total).count();
-    val.m_usec = duration_cast<microseconds>(total - seconds(val.m_sec)).count();
+    split_duration(total, val.m_sec, val.m_usec);
     val.m_isvalid = val.m_isvalid && d.m_isvalid;
     return val;
 }
@@ -82,8 +93,7 @@ TimeDiff& operator-=(TimeDiff& val, const TimeDiff& d) {
     using namespace std::chrono;
     auto total = seconds(val.m_sec) + microseconds(val.m_usec)
                - (seconds(d.m_sec) + microseconds(d.m_usec));
-    val.m_sec = duration_cast<seconds>(total).count();
-    val.m_usec = duration_cast<microseconds>(total - seconds(val.m_sec)).count();
+    split_duration(total, val.m_sec, val.m_usec);
     val.m_isvalid = val.m_isvalid && d.m_isvalid;
     return val;
 }
@@ -92,8 +102,9 @@ TimeDiff operator+(const TimeDiff& a, const TimeDiff& b) {
     using namespace std::chrono;
     auto total = seconds(a.m_sec) + microseconds(a.m_usec)
                + seconds(b.m_sec) + microseconds(b.m_usec);
-    auto sec = duration_cast<seconds>(total).count();
-    auto usec = duration_cast<microseconds>(total - seconds(sec)).count();
+    std::int64_t sec = 0;
+    std::int64_t usec = 0;
+    split_duration(total, sec, usec);
     return TimeDiff(sec, usec, a.m_isvalid && b.m_isvalid);
 }
 
@@ -101,8 +112,9 @@ TimeDiff operator-(const TimeDiff& a, const TimeDiff& b) {
     using namespace std::chrono;
     auto total = seconds(a.m_sec) + microseconds(a.m_usec)
                - (seconds(b.m_sec) + microseconds(b.m_usec));
-    auto sec = duration_cast<seconds>(total).count();
-    auto usec = duration_cast<microseconds>(total - seconds(sec)).count();
+    std::int64_t sec = 0;
+    std::int64_t usec = 0;
+    split_duration(total, sec, usec);
     return TimeDiff(sec, usec, a.m_isvalid && b.m_isvalid);
 }
 
@@ -169,8 +181,7 @@ TimeStamp& operator+=(TimeStamp& a, const TimeDiff& d) {
     using namespace std::chrono;
     auto total = seconds(a._val.tv_sec) + microseconds(a._val.tv_usec)
                + seconds(d.m_sec) + microseconds(d.m_usec);
-    a._val.tv_sec = duration_cast<seconds>(total).count();
-    a._val.tv_usec = duration_cast<microseconds>(total - seconds(a._val.tv_sec)).count();
+    split_duration(total, a._val.tv_sec, a._val.tv_usec);
     a._isvalid = a._isvalid && d.m_isvalid;
     return a;
 }
@@ -179,8 +190,7 @@ TimeStamp& operator-=(TimeStamp& a, const TimeDiff& d) {
     using namespace std::chrono;
     auto total = seconds(a._val.tv_sec) + microseconds(a._val.tv_usec)
                - (seconds(d.m_sec) + microseconds(d.m_usec));
-    a._val.tv_sec = duration_cast<seconds>(total).count();
-    a._val.tv_usec = duration_cast<microseconds>(total - seconds(a._val.tv_sec)).count();
+    split_duration(total, a._val.tv_sec, a._val.tv_usec);
     a._isvalid = a._isvalid && d.m_isvalid;
     return a;
 }
@@ -189,8 +199,9 @@ TimeStamp operator+(const TimeStamp& a, const TimeDiff& d) {
     using namespace std::chrono;
     auto total = seconds(a._val.tv_sec) + microseconds(a._val.tv_usec)
                + seconds(d.m_sec) + microseconds(d.m_usec);
-    auto sec = duration_cast<seconds>(total).count();
-    auto usec = duration_cast<microseconds>(total - seconds(sec)).count();
+    std::int64_t sec = 0;
+    std::int64_t usec = 0;
+    split_duration(total, sec, usec);
     return TimeStamp(sec, usec, a._isvalid && d.m_isvalid);
 }
 
@@ -198,8 +209,9 @@ TimeStamp operator-(const TimeStamp& a, const TimeDiff& d) {
     using namespace std::chrono;
     auto total = seconds(a._val.tv_sec) + microseconds(a._val.tv_usec)
                - (seconds(d.m_sec) + microseconds(d.m_usec));
-    auto sec = duration_cast<seconds>(total).count();
-    auto usec = duration_cast<microseconds>(total - seconds(sec)).count();
+    std::int64_t sec = 0;
+    std::int64_t usec = 0;
+    split_duration(total, sec, usec);
     return TimeStamp(sec, usec, a._isvalid && d.m_isvalid);
 }
 
@@ -207,8 +219,9 @@ TimeDiff operator-(const TimeStamp& a, const TimeStamp& b) {
     using namespace std::chrono;
     auto total = seconds(a._val.tv_sec) + microseconds(a._val.tv_usec)
                - (seconds(b._val.tv_sec) + microseconds(b._val.tv_usec));
-    auto sec = duration_cast<seconds>(total).count();
-    auto usec = duration_cast<microseconds>(total - seconds(sec)).count();
+    std::int64_t sec = 0;
+    std::int64_t usec = 0;
+    split_duration(total, sec, usec);
     return TimeDiff(sec, usec, a._isvalid && b._isvalid);
 }
 
