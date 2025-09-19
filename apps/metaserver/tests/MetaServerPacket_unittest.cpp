@@ -43,11 +43,15 @@ CPPUNIT_TEST_SUITE(MetaServerPacket_unittest);
 		CPPUNIT_TEST(testConstructor_nonzeroSize);
 		CPPUNIT_TEST(testConstructor_negativeSize);
 		CPPUNIT_TEST(test_setPacketType_returnmatch);
-		CPPUNIT_TEST(test_getPacketType_constructor);
-		CPPUNIT_TEST(test_getPacketType_setPacketType);
-		CPPUNIT_TEST(test_getIntData_constructor);
-		CPPUNIT_TEST(test_IpAsciiToNet_returnmatch);
-		CPPUNIT_TEST(test_IpNetToAscii);
+                CPPUNIT_TEST(test_getPacketType_constructor);
+                CPPUNIT_TEST(test_getPacketType_setPacketType);
+                CPPUNIT_TEST(test_getIntData_constructor);
+                CPPUNIT_TEST(test_IpAsciiToNet_returnmatch);
+                CPPUNIT_TEST(test_IpAsciiToNet_outOfRange);
+                CPPUNIT_TEST(test_IpAsciiToNet_tooFewComponents);
+                CPPUNIT_TEST(test_IpAsciiToNet_tooManyComponents);
+                CPPUNIT_TEST(test_IpAsciiToNet_rejectWhitespace);
+                CPPUNIT_TEST(test_IpNetToAscii);
 		CPPUNIT_TEST(test_setAddress_getAddress);
 		CPPUNIT_TEST(test_getAddressStr_return);
 		CPPUNIT_TEST(test_getAddressInt_return);
@@ -232,14 +236,32 @@ public:
 	 * Binary	00000001 . 00000010 . 00000000 . 01111111
 		* Integer	16908415
 	 */
-	void test_IpAsciiToNet_returnmatch() {
-		uint32_t r;
+        void test_IpAsciiToNet_returnmatch() {
+                auto r = IpAsciiToNet("127.0.2.1");
 
-		r = IpAsciiToNet("127.0.2.1");
+                CPPUNIT_ASSERT(r);
+                CPPUNIT_ASSERT(*r == 16908415);
 
-		CPPUNIT_ASSERT(r == 16908415);
+        }
 
-	}
+        void test_IpAsciiToNet_outOfRange() {
+                CPPUNIT_ASSERT(!IpAsciiToNet("256.0.0.1"));
+                CPPUNIT_ASSERT(!IpAsciiToNet("127.0.0.999"));
+        }
+
+        void test_IpAsciiToNet_tooFewComponents() {
+                CPPUNIT_ASSERT(!IpAsciiToNet("127.0.2"));
+        }
+
+        void test_IpAsciiToNet_tooManyComponents() {
+                CPPUNIT_ASSERT(!IpAsciiToNet("1.2.3.4.5"));
+        }
+
+        void test_IpAsciiToNet_rejectWhitespace() {
+                CPPUNIT_ASSERT(!IpAsciiToNet(" 127.0.0.1"));
+                CPPUNIT_ASSERT(!IpAsciiToNet("127.0.0.1 "));
+                CPPUNIT_ASSERT(!IpAsciiToNet("127. 0.0.1"));
+        }
 
 	/*
 	 * The reverse of test_IpAsciiToNet_returnmatch
@@ -260,7 +282,9 @@ public:
 
 		MetaServerPacket* msp = new MetaServerPacket();
 
-		msp->setAddress(a, IpAsciiToNet(a.c_str()));
+                auto parsed = IpAsciiToNet(a);
+                CPPUNIT_ASSERT(parsed);
+                msp->setAddress(a, *parsed);
 
 		CPPUNIT_ASSERT(a == msp->getAddress());
 
@@ -275,7 +299,9 @@ public:
 
 		MetaServerPacket* msp = new MetaServerPacket();
 
-		msp->setAddress("127.0.2.1", IpAsciiToNet("127.0.2.1"));
+                auto parsed = IpAsciiToNet("127.0.2.1");
+                CPPUNIT_ASSERT(parsed);
+                msp->setAddress("127.0.2.1", *parsed);
 
 		CPPUNIT_ASSERT(msp->getAddressStr() == "127.0.2.1");
 
@@ -289,7 +315,9 @@ public:
 	void test_getAddressInt_return() {
 		MetaServerPacket* msp = new MetaServerPacket();
 
-		msp->setAddress("127.0.2.1", IpAsciiToNet("127.0.2.1"));
+                auto parsed = IpAsciiToNet("127.0.2.1");
+                CPPUNIT_ASSERT(parsed);
+                msp->setAddress("127.0.2.1", *parsed);
 
 		CPPUNIT_ASSERT(msp->getAddressInt() == 16908415);
 
@@ -393,14 +421,16 @@ public:
 		/*
 		 * 127.0.2.1 == 16908415
 		 */
-		uint32_t ip_n = 0;
-		std::string ip_s = "";
+                uint32_t ip_n = 0;
+                std::string ip_s = "";
 
-		ip_n = IpAsciiToNet("127.0.2.1");
-		ip_s = IpNetToAscii(16908415);
+                auto parsed = IpAsciiToNet("127.0.2.1");
+                CPPUNIT_ASSERT(parsed);
+                ip_n = *parsed;
+                ip_s = IpNetToAscii(16908415);
 
-		CPPUNIT_ASSERT(ip_s == "127.0.2.1");
-		CPPUNIT_ASSERT(ip_n == 16908415);
+                CPPUNIT_ASSERT(ip_s == "127.0.2.1");
+                CPPUNIT_ASSERT(ip_n == 16908415);
 
 	}
 

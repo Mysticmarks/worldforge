@@ -22,6 +22,7 @@
 #include "MetaServer.hpp"
 #include "Network.h"
 #include <boost/asio/ip/udp.hpp>
+#include <iostream>
 
 typedef std::vector <std::string> attribute_list;
 
@@ -136,16 +137,22 @@ int main(int argc, char** argv)
 			MetaServerPacket servershake;
 			servershake.setPacketType(NMT_SERVERSHAKE);
 			servershake.addPacketData(shake_key);
-			if ( vm.count("pserver") )
-			{
-				std::string pserver = vm["pserver"].as<std::string>();
-				servershake.addPacketData( IpAsciiToNet(pserver.c_str()) );
+                        if ( vm.count("pserver") )
+                        {
+                                std::string pserver = vm["pserver"].as<std::string>();
+                                auto packedAddress = IpAsciiToNet(pserver);
+                                if (!packedAddress)
+                                {
+                                        std::cerr << "Invalid packed server address: " << pserver << std::endl;
+                                        return 1;
+                                }
+                                servershake.addPacketData(*packedAddress);
 
-				if ( vm.count("pport") )
-				{
-					servershake.addPacketData(vm["pport"].as<int>());
-				}
-			}
+                                if ( vm.count("pport") )
+                                {
+                                        servershake.addPacketData(vm["pport"].as<int>());
+                                }
+                        }
 			servershake.setAddress( shake.getAddress(), shake.getAddressInt() );
 			socket.send_to(boost::asio::buffer(servershake.getBuffer(), servershake.getSize()), resolved );
 
@@ -220,11 +227,17 @@ int main(int argc, char** argv)
 			 * that is NOT the IP that we are), we need to pack the address
 			 * so that the MS can terminate the right session otherwise it will be left to timeout
 			 */
-			if ( vm.count("pserver") )
-			{
-				std::string pserver = vm["pserver"].as<std::string>();
-				term.addPacketData( IpAsciiToNet(pserver.c_str()) );
-			}
+                        if ( vm.count("pserver") )
+                        {
+                                std::string pserver = vm["pserver"].as<std::string>();
+                                auto packedAddress = IpAsciiToNet(pserver);
+                                if (!packedAddress)
+                                {
+                                        std::cerr << "Invalid packed server address: " << pserver << std::endl;
+                                        return 1;
+                                }
+                                term.addPacketData(*packedAddress);
+                        }
 
 			socket.send_to(boost::asio::buffer(term.getBuffer(), term.getSize()), resolved );
 
