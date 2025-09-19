@@ -27,6 +27,8 @@
 #include "wfmath/randgen.h"
 #include <cstdio>
 #include <iostream>
+#include <sstream>
+#include <string>
 
 using WFMath::MTRand;
 
@@ -75,4 +77,47 @@ TEST_CASE("randgen_test")
 {
     test_known_sequence();
     test_generator_instances();
+}
+
+TEST_CASE("randgen serialization roundtrip preserves state")
+{
+    MTRand rng(42);
+    (void)rng.randInt();
+
+    std::ostringstream out;
+    rng.save(out);
+
+    MTRand restored(static_cast<MTRand::uint32>(0));
+    std::istringstream in(out.str());
+    restored.load(in);
+    REQUIRE_FALSE(in.fail());
+
+    MTRand reference = rng;
+    for (int i = 0; i < 5; ++i) {
+        REQUIRE(restored.randInt() == reference.randInt());
+    }
+}
+
+TEST_CASE("randgen load rejects invalid index")
+{
+    MTRand rng(99);
+    std::ostringstream out;
+    rng.save(out);
+
+    const std::string serialized = out.str();
+    const auto last_tab = serialized.find_last_of('\t');
+    REQUIRE(last_tab != std::string::npos);
+    std::string invalid_serialized = serialized.substr(0, last_tab + 1);
+    invalid_serialized += std::to_string(MTRand::state_size);
+
+    std::istringstream in(invalid_serialized);
+    MTRand target(static_cast<MTRand::uint32>(1234));
+    MTRand reference = target;
+
+    target.load(in);
+    REQUIRE(in.fail());
+
+    for (int i = 0; i < 5; ++i) {
+        REQUIRE(target.randInt() == reference.randInt());
+    }
 }
