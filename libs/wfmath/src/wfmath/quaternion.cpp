@@ -43,17 +43,50 @@ static_assert(std::is_trivially_copyable<Quaternion>::value, "Quaternion should 
 
 
 Quaternion::Quaternion(CoordType w_in,
-					   CoordType x_in,
-					   CoordType y_in,
-					   CoordType z_in)
-		: m_w(0), m_vec(), m_valid(true), m_age(1) {
-	CoordType norm = std::sqrt(w_in * w_in + x_in * x_in + y_in * y_in + z_in * z_in);
+                                           CoordType x_in,
+                                           CoordType y_in,
+                                           CoordType z_in)
+                : m_w(0), m_vec(), m_valid(false), m_age(0) {
+        const auto invalidate = [this]() {
+                m_vec.zero();
+                m_vec.setValid(false);
+                m_w = 0;
+                m_valid = false;
+                m_age = 0;
+        };
 
-	m_w = w_in / norm;
-	m_vec[0] = x_in / norm;
-	m_vec[1] = y_in / norm;
-	m_vec[2] = z_in / norm;
-	m_vec.setValid();
+        if (!std::isfinite(w_in) || !std::isfinite(x_in) || !std::isfinite(y_in) || !std::isfinite(z_in)) {
+                invalidate();
+                return;
+        }
+
+        const CoordType norm_sq = w_in * w_in + x_in * x_in + y_in * y_in + z_in * z_in;
+
+        if (!std::isfinite(norm_sq) || norm_sq <= numeric_constants<CoordType>::epsilon()) {
+                invalidate();
+                return;
+        }
+
+        const CoordType norm = std::sqrt(norm_sq);
+
+        if (!std::isfinite(norm) || norm <= numeric_constants<CoordType>::epsilon()) {
+                invalidate();
+                return;
+        }
+
+        m_w = w_in / norm;
+        m_vec[0] = x_in / norm;
+        m_vec[1] = y_in / norm;
+        m_vec[2] = z_in / norm;
+
+        if (!std::isfinite(m_w) || !std::isfinite(m_vec[0]) || !std::isfinite(m_vec[1]) || !std::isfinite(m_vec[2])) {
+                invalidate();
+                return;
+        }
+
+        m_vec.setValid();
+        m_valid = true;
+        m_age = 1;
 }
 
 const Quaternion& Quaternion::IDENTITY() {

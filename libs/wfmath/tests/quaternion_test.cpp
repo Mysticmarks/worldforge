@@ -35,6 +35,7 @@
 #include "wfmath/rotmatrix_funcs.h"
 #include "wfmath/quaternion.h"
 #include "wfmath/stream.h"
+#include <limits>
 #include <vector>
 
 #include "general_test.h"
@@ -151,12 +152,33 @@ void test_quaternion(const Quaternion& q)
 
 TEST_CASE("quaternion_test")
 {
-  Quaternion q(Vector<3>(1, 3, -std::sqrt(0.7f)), .3f);
+  SECTION("general quaternion invariants hold")
+  {
+    Quaternion q(Vector<3>(1, 3, -std::sqrt(0.7f)), .3f);
 
-  test_quaternion(q);
-
-  // Edge case: rotation of 180 degrees around the x-axis
-  Quaternion q180(Vector<3>(1, 0, 0), numeric_constants<CoordType>::pi());
-  test_quaternion(q180);
-
+    test_quaternion(q);
   }
+
+  SECTION("180 degree rotation around the x-axis remains stable")
+  {
+    Quaternion q180(Vector<3>(1, 0, 0), numeric_constants<CoordType>::pi());
+    test_quaternion(q180);
+  }
+
+  SECTION("degenerate inputs yield invalid quaternions")
+  {
+    Quaternion zeroQuat(0, 0, 0, 0);
+    REQUIRE_FALSE(zeroQuat.isValid());
+    REQUIRE_FALSE(zeroQuat.vector().isValid());
+    REQUIRE(zeroQuat.scalar() == 0);
+    for (int i = 0; i < 3; ++i) {
+      REQUIRE(zeroQuat.vector()[i] == 0);
+    }
+
+    Quaternion infQuat(std::numeric_limits<CoordType>::infinity(), 0, 0, 0);
+    REQUIRE_FALSE(infQuat.isValid());
+
+    Quaternion nanQuat(std::numeric_limits<CoordType>::quiet_NaN(), 0, 0, 0);
+    REQUIRE_FALSE(nanQuat.isValid());
+  }
+}
