@@ -145,7 +145,6 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     args = parse_args(argv)
     try:
-        ensure_conan_available(args.conan)
         lockfile, conanfile = resolve_artifact_paths(
             make_absolute(args.lockfile), make_absolute(args.conanfile)
         )
@@ -161,6 +160,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             for cmd in commands:
                 print("+", " ".join(cmd))
             return 0
+        ensure_conan_available(args.conan)
         run_commands(commands)
     except FileNotFoundError as error:
         print(error, file=sys.stderr)
