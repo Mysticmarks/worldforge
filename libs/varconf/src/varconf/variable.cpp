@@ -29,6 +29,7 @@
 #include <string>
 #include <cstdlib>
 #include <utility>
+#include <cctype>
 
 namespace varconf {
 
@@ -220,11 +221,24 @@ bool VarBase::is_bool() {
 }
 
 bool VarBase::is_int() {
-	if (!is_string()) return false;
-	for (char i: m_val)
-		if (!isdigit(i))
-			return false;
-	return true;
+        if (!is_string()) return false;
+        if (m_val.empty()) return false;
+
+        std::size_t start = 0;
+        if (m_val[0] == '+' || m_val[0] == '-') {
+                if (m_val.size() == 1) {
+                        return false;
+                }
+                start = 1;
+        }
+
+        for (std::size_t idx = start; idx < m_val.size(); ++idx) {
+                if (!std::isdigit(static_cast<unsigned char>(m_val[idx]))) {
+                        return false;
+                }
+        }
+
+        return true;
 }
 
 bool VarBase::is_double() {
