@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from tools import check_dependencies
 
@@ -129,6 +135,77 @@ class MainFlowTests(unittest.TestCase):
         run_mock.assert_called_once_with(
             [["conan", "lock", "update", str(self.lockfile), str(self.recipe)]]
         )
+
+    def test_require_clean_lock_detects_modification(self) -> None:
+        with mock.patch.object(check_dependencies, "ensure_conan_available") as ensure_mock, \
+            mock.patch.object(check_dependencies, "run_commands") as run_mock:
+            ensure_mock.return_value = None
+
+            def mutate_lockfile(commands: list[list[str]]) -> None:
+                _ = commands  # suppress linter complaints
+                self.lockfile.write_text("mutated")
+
+            run_mock.side_effect = mutate_lockfile
+            exit_code = check_dependencies.main(
+                [
+                    "--conan",
+                    "conan",
+                    "--lockfile",
+                    str(self.lockfile),
+                    "--conanfile",
+                    str(self.recipe),
+                    "--skip-install",
+                    "--require-clean-lock",
+                ]
+            )
+        self.assertEqual(1, exit_code)
+        self.assertEqual("lock", self.lockfile.read_text())
+
+    def test_require_clean_lock_restores_after_failure(self) -> None:
+        with mock.patch.object(check_dependencies, "ensure_conan_available") as ensure_mock, \
+            mock.patch.object(check_dependencies, "run_commands") as run_mock:
+            ensure_mock.return_value = None
+
+            def mutate_then_fail(commands: list[list[str]]) -> None:
+                _ = commands
+                self.lockfile.write_text("mutated")
+                raise subprocess.CalledProcessError(returncode=3, cmd=["conan"])
+
+            run_mock.side_effect = mutate_then_fail
+            exit_code = check_dependencies.main(
+                [
+                    "--conan",
+                    "conan",
+                    "--lockfile",
+                    str(self.lockfile),
+                    "--conanfile",
+                    str(self.recipe),
+                    "--skip-install",
+                    "--require-clean-lock",
+                ]
+            )
+        self.assertEqual(3, exit_code)
+        self.assertEqual("lock", self.lockfile.read_text())
+
+    def test_require_clean_lock_allows_clean_execution(self) -> None:
+        with mock.patch.object(check_dependencies, "ensure_conan_available") as ensure_mock, \
+            mock.patch.object(check_dependencies, "run_commands") as run_mock:
+            ensure_mock.return_value = None
+            run_mock.return_value = None
+            exit_code = check_dependencies.main(
+                [
+                    "--conan",
+                    "conan",
+                    "--lockfile",
+                    str(self.lockfile),
+                    "--conanfile",
+                    str(self.recipe),
+                    "--skip-install",
+                    "--require-clean-lock",
+                ]
+            )
+        self.assertEqual(0, exit_code)
+        self.assertEqual("lock", self.lockfile.read_text())
 
 
 if __name__ == "__main__":
