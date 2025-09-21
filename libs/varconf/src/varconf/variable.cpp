@@ -27,9 +27,60 @@
 #include "variable.h"
 
 #include <string>
+#include <string_view>
 #include <cstdlib>
 #include <utility>
 #include <cctype>
+
+namespace {
+
+std::string_view trim_ascii_whitespace(std::string_view value) {
+        constexpr std::string_view whitespace = " \t\n\r\f\v";
+
+        const auto first = value.find_first_not_of(whitespace);
+        if (first == std::string_view::npos) {
+                return {};
+        }
+
+        const auto last = value.find_last_not_of(whitespace);
+        return value.substr(first, last - first + 1);
+}
+
+std::string ascii_lower_copy(std::string_view value) {
+        std::string result;
+        result.reserve(value.size());
+
+        for (unsigned char ch: value) {
+                result.push_back(static_cast<char>(std::tolower(ch)));
+        }
+
+        return result;
+}
+
+bool try_parse_bool(std::string_view value, bool& result) {
+        const std::string_view trimmed = trim_ascii_whitespace(value);
+        if (trimmed.empty()) {
+                return false;
+        }
+
+        const std::string normalized = ascii_lower_copy(trimmed);
+
+        if (normalized == "on" || normalized == "1" || normalized == "true"
+            || normalized == "yes" || normalized == "y") {
+                result = true;
+                return true;
+        }
+
+        if (normalized == "off" || normalized == "0" || normalized == "false"
+            || normalized == "no" || normalized == "n") {
+                result = false;
+                return true;
+        }
+
+        return false;
+}
+
+} // namespace
 
 namespace varconf {
 
@@ -167,28 +218,29 @@ VarBase& VarBase::operator=(const std::string& s) {
 }
 
 VarBase& VarBase::operator=(const char* s) {
-	m_have_bool = false;
-	m_have_int = false;
-	m_have_double = false;
-	m_have_string = true;
-	m_val_bool = false;
-	m_val_int = 0;
-	m_val_double = 0.0;
-	m_val = s;
-	m_scope = INSTANCE;
-	return (*this);
+        m_have_bool = false;
+        m_have_int = false;
+        m_have_double = false;
+        m_have_string = true;
+        m_val_bool = false;
+        m_val_int = 0;
+        m_val_double = 0.0;
+        m_val = s;
+        m_scope = INSTANCE;
+        return (*this);
 }
 
 VarBase::operator bool() const {
-	if (!m_have_bool) {
-		m_val_bool = (m_val == "on") ||
-					 (m_val == "1") ||
-					 (m_val == "true") ||
-					 (m_val == "yes") ||
-					 (m_val == "y");
-		m_have_bool = true;
-	}
-	return m_val_bool;
+        if (!m_have_bool) {
+                bool parsed_value = false;
+                if (try_parse_bool(m_val, parsed_value)) {
+                        m_val_bool = parsed_value;
+                } else {
+                        m_val_bool = false;
+                }
+                m_have_bool = true;
+        }
+        return m_val_bool;
 }
 
 VarBase::operator int() const {
@@ -212,12 +264,9 @@ VarBase::operator std::string() const {
 }
 
 bool VarBase::is_bool() {
-	if (!is_string()) return false;
-	return (m_val == "on") || (m_val == "off")
-		   || (m_val == "1") || (m_val == "0")
-		   || (m_val == "true") || (m_val == "false")
-		   || (m_val == "yes") || (m_val == "no")
-		   || (m_val == "y") || (m_val == "n");
+        if (!is_string()) return false;
+        bool parsed_value = false;
+        return try_parse_bool(m_val, parsed_value);
 }
 
 bool VarBase::is_int() {
