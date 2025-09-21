@@ -5,6 +5,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from tools import check_dependencies
 
@@ -75,6 +76,59 @@ class PathValidationTests(unittest.TestCase):
     def test_missing_conan_cli_produces_clear_error(self) -> None:
         with self.assertRaises(FileNotFoundError):
             check_dependencies.ensure_conan_available("__definitely_missing_executable__")
+
+
+class MainFlowTests(unittest.TestCase):
+    """Integration-style coverage for the ``main`` entry point."""
+
+    def setUp(self) -> None:
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmpdir.cleanup)
+        self.tmp_path = Path(self.tmpdir.name)
+        self.lockfile = self.tmp_path / "conan.lock"
+        self.recipe = self.tmp_path / "conanfile.py"
+        self.lockfile.write_text("lock")
+        self.recipe.write_text("from conan import ConanFile")
+
+    def test_dry_run_skips_environment_validation(self) -> None:
+        with mock.patch.object(check_dependencies, "ensure_conan_available") as ensure_mock, \
+            mock.patch.object(check_dependencies, "run_commands") as run_mock:
+            exit_code = check_dependencies.main(
+                [
+                    "--dry-run",
+                    "--conan",
+                    "__definitely_missing_executable__",
+                    "--lockfile",
+                    str(self.lockfile),
+                    "--conanfile",
+                    str(self.recipe),
+                ]
+            )
+        self.assertEqual(0, exit_code)
+        ensure_mock.assert_not_called()
+        run_mock.assert_not_called()
+
+    def test_executes_commands_when_not_dry_run(self) -> None:
+        with mock.patch.object(check_dependencies, "ensure_conan_available") as ensure_mock, \
+            mock.patch.object(check_dependencies, "run_commands") as run_mock:
+            ensure_mock.return_value = None
+            run_mock.return_value = None
+            exit_code = check_dependencies.main(
+                [
+                    "--conan",
+                    "conan",
+                    "--lockfile",
+                    str(self.lockfile),
+                    "--conanfile",
+                    str(self.recipe),
+                    "--skip-install",
+                ]
+            )
+        self.assertEqual(0, exit_code)
+        ensure_mock.assert_called_once_with("conan")
+        run_mock.assert_called_once_with(
+            [["conan", "lock", "update", str(self.lockfile), str(self.recipe)]]
+        )
 
 
 if __name__ == "__main__":
