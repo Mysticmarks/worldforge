@@ -108,6 +108,7 @@ def test_load_database_drivers_discovers_available_modules(monkeypatch):
         connect=lambda dsn, connect_timeout: _DummyConnection(count=1),
     )
     monkeypatch.setitem(sys.modules, "psycopg", fake_module)
+    monkeypatch.delenv("WF_E2E_PG_DSN", raising=False)
 
     drivers = minimal_session._load_database_drivers()
     assert [driver.name for driver in drivers] == ["psycopg"]
@@ -115,6 +116,29 @@ def test_load_database_drivers_discovers_available_modules(monkeypatch):
     # The connector should return a usable connection without raising.
     connection = drivers[0].connect()
     assert isinstance(connection, _DummyConnection)
+
+
+def test_load_database_drivers_respects_custom_dsn(monkeypatch):
+    """The DSN override should be forwarded to discovered drivers."""
+
+    calls: list[tuple[tuple[object, ...], dict[str, object]]] = []
+
+    def _connect(*args, **kwargs):
+        calls.append((args, kwargs))
+        return _DummyConnection(count=1)
+
+    fake_module = types.SimpleNamespace(
+        OperationalError=RuntimeError,
+        connect=_connect,
+    )
+    monkeypatch.setitem(sys.modules, "psycopg", fake_module)
+    monkeypatch.setenv("WF_E2E_PG_DSN", "postgresql:///wfforge")
+
+    drivers = minimal_session._load_database_drivers()
+    assert len(drivers) == 1
+    drivers[0].connect()
+
+    assert calls == [(("postgresql:///wfforge",), {"connect_timeout": 5})]
 
 
 def test_ensure_database_clean_handles_operational_errors(capsys):
@@ -156,3 +180,20 @@ def test_ensure_database_clean_succeeds_for_clean_database():
     )
 
     minimal_session._ensure_database_clean([driver])
+
+
+def test_database_dsn_defaults(monkeypatch):
+    """Missing or blank overrides should fall back to the default DSN."""
+
+    monkeypatch.delenv("WF_E2E_PG_DSN", raising=False)
+    assert minimal_session._database_dsn() == "dbname=cyphesis"
+
+    monkeypatch.setenv("WF_E2E_PG_DSN", "   ")
+    assert minimal_session._database_dsn() == "dbname=cyphesis"
+
+
+def test_database_dsn_respects_override(monkeypatch):
+    """Operators can configure the DSN used for connectivity checks."""
+
+    monkeypatch.setenv("WF_E2E_PG_DSN", "postgresql://user:pass@host/db")
+    assert minimal_session._database_dsn() == "postgresql://user:pass@host/db"
