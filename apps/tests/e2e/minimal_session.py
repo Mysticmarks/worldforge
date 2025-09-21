@@ -9,7 +9,6 @@ it safe to run in environments where the project has not been built.
 """
 from __future__ import annotations
 
-import atexit
 import json
 import os
 import shutil
@@ -17,7 +16,9 @@ import socket
 import subprocess
 import tempfile
 import time
+from contextlib import ExitStack, closing, contextmanager
 from pathlib import Path
+from typing import Callable, Iterable, Sequence
 
 
 def _find_build_dir(preset: str) -> Path | None:
@@ -61,6 +62,149 @@ def _resolve_build_dir(preset: str) -> Path | None:
     return _find_build_dir(preset)
 
 
+class DatabaseDriver:
+    """Definition of a database connector and its error semantics."""
+
+    __slots__ = ("name", "connect", "operational_errors")
+
+    def __init__(
+        self,
+        name: str,
+        connect: Callable[[], object],
+        operational_errors: tuple[type[BaseException], ...],
+    ) -> None:
+        self.name = name
+        self.connect = connect
+        self.operational_errors = operational_errors
+
+
+def _managed_connection(conn: object):
+    """Yield a context manager for ``conn`` closing it on exit if needed."""
+
+    if hasattr(conn, "__enter__") and hasattr(conn, "__exit__"):
+        return conn  # type: ignore[return-value]
+    return closing(conn)  # type: ignore[arg-type]
+
+
+@contextmanager
+def _managed_cursor(conn: object):
+    """Provide a context-managed cursor for any DB-API connection."""
+
+    cursor = conn.cursor()
+    if hasattr(cursor, "__enter__") and hasattr(cursor, "__exit__"):
+        with cursor:
+            yield cursor
+    else:
+        with closing(cursor):
+            yield cursor
+
+
+def _load_database_drivers() -> list[DatabaseDriver]:
+    """Discover optional PostgreSQL client libraries available locally."""
+
+    drivers: list[DatabaseDriver] = []
+    for module_name in ("psycopg", "psycopg2"):
+        try:
+            module = __import__(module_name)
+        except Exception:
+            continue
+        connect = getattr(module, "connect", None)
+        if connect is None:
+            continue
+        operational_error = getattr(module, "OperationalError", Exception)
+
+        def _connector(connect=connect):
+            return connect("dbname=cyphesis", connect_timeout=5)
+
+        drivers.append(
+            DatabaseDriver(
+                name=module_name,
+                connect=_connector,
+                operational_errors=(operational_error,),
+            )
+        )
+    return drivers
+
+
+def _ensure_database_clean(drivers: Iterable[DatabaseDriver]) -> None:
+    """Verify that the Cyphesis database is in a pristine state."""
+
+    for driver in drivers:
+        try:
+            conn = driver.connect()
+        except driver.operational_errors as exc:  # type: ignore[misc]
+            print(f"Database unavailable via {driver.name}: {exc}")
+            continue
+        except Exception:
+            continue
+
+        try:
+            with _managed_connection(conn) as connection:
+                with _managed_cursor(connection) as cursor:
+                    cursor.execute("SELECT COUNT(*) FROM entities")
+                    count = cursor.fetchone()[0]
+                    if count != 1:
+                        raise RuntimeError("database not clean")
+            return
+        finally:
+            close = getattr(conn, "close", None)
+            if callable(close):
+                close()
+
+    print("Database check skipped")
+
+
+def _spawn_process(args: Sequence[object], stack: ExitStack) -> subprocess.Popen[str]:
+    """Launch ``args`` as a child process and register cleanup handlers."""
+
+    proc = subprocess.Popen(
+        [str(part) for part in args],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+
+    def _terminate(process: subprocess.Popen[str]) -> None:
+        if process.poll() is None:
+            try:
+                process.terminate()
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+        if process.stdout:
+            process.stdout.close()
+
+    stack.callback(_terminate, proc)
+    return proc
+
+
+def _wait_for_port(host: str, port: int, timeout: float) -> bool:
+    """Return ``True`` if ``host:port`` becomes reachable within ``timeout``."""
+
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            with socket.create_connection((host, port), timeout=1) as sock:
+                sock.settimeout(1)
+                try:
+                    sock.recv(1024)
+                except socket.timeout:
+                    pass
+                return True
+        except OSError:
+            time.sleep(0.5)
+    return False
+
+
+def _select_free_port() -> int:
+    """Reserve an available TCP port on the loopback interface."""
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return sock.getsockname()[1]
+
+
 def main() -> int:
     preset = os.environ.get("PROFILE_CONAN", "conan-debug")
     build_dir = _resolve_build_dir(preset)
@@ -74,103 +218,39 @@ def main() -> int:
         print("Required executables missing; skipping e2e test")
         return 0
 
-    # Bind to port 0 to let the OS select a free port for the server
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.bind(("127.0.0.1", 0))
-        port = sock.getsockname()[1]
+    port = _select_free_port()
     print(f"Using TCP port {port}")
-    tmpdir = Path(tempfile.mkdtemp(prefix="wf-e2e-"))
-    processes: list[subprocess.Popen] = []
 
-    def _cleanup() -> None:
-        for proc in processes:
-            try:
-                proc.terminate()
-                proc.wait(timeout=5)
-            except Exception:
-                proc.kill()
-        shutil.rmtree(tmpdir, ignore_errors=True)
+    with ExitStack() as stack:
+        tmpdir = Path(stack.enter_context(tempfile.TemporaryDirectory(prefix="wf-e2e-")))
+        stack.callback(shutil.rmtree, tmpdir, True)
 
-    atexit.register(_cleanup)
+        server = _spawn_process(
+            [
+                cyphesis,
+                f"--cyphesis:tcpport={port}",
+                f"--cyphesis:vardir={tmpdir}",
+                "--cyphesis:dbcleanup=true",
+            ],
+            stack,
+        )
 
-    # Start cyphesis server
-    server = subprocess.Popen(
-        [
-            str(cyphesis),
-            f"--cyphesis:tcpport={port}",
-            f"--cyphesis:vardir={tmpdir}",
-            "--cyphesis:dbcleanup=true",
-        ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    )
-    processes.append(server)
+        if not _wait_for_port("127.0.0.1", port, timeout=30):
+            raise RuntimeError(f"cyphesis did not start in time on port {port}")
 
-    # Wait for the server to start listening
-    deadline = time.time() + 30
-    started = False
-    while time.time() < deadline:
+        _ensure_database_clean(_load_database_drivers())
+
+        client = _spawn_process([
+            ember,
+            f"--connect=localhost:{port}",
+            "--quit",
+        ], stack)
         try:
-            with socket.create_connection(("127.0.0.1", port), timeout=1) as sock:
-                # Reading banner or any data verifies that the server responded.
-                sock.settimeout(1)
-                try:
-                    sock.recv(1024)
-                except socket.timeout:
-                    pass
-                started = True
-                break
-        except OSError:
-            time.sleep(0.5)
-    if not started:
-        raise RuntimeError(f"cyphesis did not start in time on port {port}")
-
-    # Ensure the database has been cleaned before running tests.
-    # Use a short connection timeout to fail fast when the database is unreachable.
-    conn = None
-    try:
-        import psycopg
-        try:
-            conn = psycopg.connect("dbname=cyphesis", connect_timeout=5)
-        except psycopg.OperationalError as exc:
-            print(f"Database unavailable: {exc}")
-    except Exception:
-        try:
-            import psycopg2 as psycopg
-            try:
-                conn = psycopg.connect(dbname="cyphesis", connect_timeout=5)
-            except psycopg.OperationalError as exc:
-                print(f"Database unavailable: {exc}")
-        except Exception:
-            conn = None
-    if conn is not None:
-        try:
-            with conn:
-                with conn.cursor() as cur:
-                    cur.execute("SELECT COUNT(*) FROM entities")
-                    count = cur.fetchone()[0]
-                    if count != 1:
-                        raise RuntimeError("database not clean")
-        finally:
-            conn.close()
-    else:
-        print("Database check skipped")
-
-    # Launch ember client and attempt connection
-    client = subprocess.Popen(
-        [str(ember), f"--connect=localhost:{port}", "--quit"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    )
-    processes.append(client)
-    try:
-        stdout, _ = client.communicate(timeout=60)
-    except subprocess.TimeoutExpired:
-        client.kill()
-        stdout, _ = client.communicate()
-        raise
+            stdout, _ = client.communicate(timeout=60)
+        except subprocess.TimeoutExpired:
+            client.kill()
+            stdout, _ = client.communicate()
+            raise
 
     if "Connected" not in stdout or client.returncode != 0:
         print(f"ember failed to connect to cyphesis on port {port}")
