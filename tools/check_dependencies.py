@@ -6,7 +6,10 @@ that ``conan.lock`` remains in sync with ``conanfile.py``.  Historically the
 implementation provided minimal validation which made troubleshooting
 failures harder for developers running the helper locally.  The refactored
 variant adds lightweight argument parsing, path validation and a check for
-the Conan executable so that feedback is immediate and actionable.
+the Conan executable so that feedback is immediate and actionable.  A
+``--require-clean-lock`` guard further assists CI by restoring the original
+lockfile contents and failing fast if an update would be required, keeping
+verification runs side-effect free.
 """
 
 from __future__ import annotations
@@ -137,6 +140,14 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Print the commands without executing them",
     )
+    parser.add_argument(
+        "--require-clean-lock",
+        action="store_true",
+        help=(
+            "Fail if the Conan lockfile changes during execution. Useful for CI "
+            "jobs that only verify metadata without updating it."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -144,10 +155,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Program entry point."""
 
     args = parse_args(argv)
+    original_lock_bytes: bytes | None = None
     try:
         lockfile, conanfile = resolve_artifact_paths(
             make_absolute(args.lockfile), make_absolute(args.conanfile)
         )
+        if args.require_clean_lock:
+            try:
+                original_lock_bytes = lockfile.read_bytes()
+            except OSError as error:
+                print(
+                    f"Unable to read Conan lockfile '{lockfile}': {error}",
+                    file=sys.stderr,
+                )
+                return 1
         commands = build_command_sequence(
             args.conan,
             lockfile,
@@ -162,10 +183,40 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
         ensure_conan_available(args.conan)
         run_commands(commands)
+        if args.require_clean_lock and original_lock_bytes is not None:
+            try:
+                current_bytes = lockfile.read_bytes()
+            except OSError as error:
+                print(
+                    "Conan lockfile verification failed: "
+                    f"unable to read '{lockfile}': {error}",
+                    file=sys.stderr,
+                )
+                try:
+                    lockfile.write_bytes(original_lock_bytes)
+                except OSError:
+                    pass
+                return 1
+            if current_bytes != original_lock_bytes:
+                try:
+                    lockfile.write_bytes(original_lock_bytes)
+                except OSError:
+                    pass
+                print(
+                    "Conan lockfile would change. Run without "
+                    "'--require-clean-lock' to update the metadata.",
+                    file=sys.stderr,
+                )
+                return 1
     except FileNotFoundError as error:
         print(error, file=sys.stderr)
         return 1
     except subprocess.CalledProcessError as error:
+        if args.require_clean_lock and original_lock_bytes is not None:
+            try:
+                lockfile.write_bytes(original_lock_bytes)
+            except OSError:
+                pass
         return error.returncode
     return 0
 
