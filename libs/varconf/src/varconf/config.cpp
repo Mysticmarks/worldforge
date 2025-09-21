@@ -205,12 +205,15 @@ int Config::getCmdline(int argc, char** argv, Scope scope) {
 			// long argument
 			arg = argv[i];
 
-			for (size_t j = 2; j < arg.size(); j++) {
-				if (arg[j] == ':' && arg[j + 1] != '\0' && !fnd_sec && !fnd_nam) {
-					section = arg.substr(mark, (j - mark));
-					fnd_sec = true;
-					mark = j + 1;
-				} else if (arg[j] == '=' && (j - mark) > 1) {
+                        for (size_t j = 2; j < arg.size(); j++) {
+                                if (arg[j] == ':' && !fnd_sec && !fnd_nam) {
+                                        if (j + 1 < arg.size()) {
+                                                section = arg.substr(mark, (j - mark));
+                                                fnd_sec = true;
+                                                mark = j + 1;
+                                        }
+                                        continue;
+                                } else if (arg[j] == '=' && (j - mark) > 1) {
 					name = arg.substr(mark, (j - mark));
 					fnd_nam = true;
 					value = arg.substr((j + 1), (arg.size() - (j + 1)));

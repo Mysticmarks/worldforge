@@ -81,6 +81,44 @@ TEST_CASE("Configuration file operations", "[varconf]") {
                 REQUIRE(config.find("general", "emptyrightbeforeeof"));
         }
 
+        SECTION("Command line parsing handles scoped long options") {
+                varconf::Config cli;
+
+                char arg0[] = "conftest";
+                char arg1[] = "--network:port=7777";
+                char arg2[] = "--graphics:quality=high";
+                char arg3[] = "--console:logging";
+                char* argvScoped[] = {arg0, arg1, arg2, arg3};
+                const int argcScoped = sizeof(argvScoped) / sizeof(argvScoped[0]);
+
+                REQUIRE(cli.getCmdline(argcScoped, argvScoped, varconf::GLOBAL) == argcScoped);
+
+                REQUIRE(cli.find("network", "port"));
+                auto port = cli.getItem("network", "port");
+                REQUIRE(port->scope() == varconf::GLOBAL);
+                REQUIRE(static_cast<std::string>(port.elem()) == "7777");
+
+                REQUIRE(cli.find("graphics", "quality"));
+                auto quality = cli.getItem("graphics", "quality");
+                REQUIRE(static_cast<std::string>(quality.elem()) == "high");
+
+                REQUIRE(cli.find("console", "logging"));
+                auto logging = cli.getItem("console", "logging");
+                REQUIRE(static_cast<std::string>(logging.elem()).empty());
+        }
+
+        SECTION("Command line parsing ignores dangling section delimiters") {
+                varconf::Config cli;
+
+                char arg0[] = "conftest";
+                char arg1[] = "--orphan:";
+                char* argvDangling[] = {arg0, arg1};
+                const int argcDangling = sizeof(argvDangling) / sizeof(argvDangling[0]);
+
+                REQUIRE(cli.getCmdline(argcDangling, argvDangling) == 1);
+                REQUIRE_FALSE(cli.find("orphan"));
+        }
+
         SECTION("Write configuration to file and read back") {
                 std::filesystem::path conf_file;
                 {
