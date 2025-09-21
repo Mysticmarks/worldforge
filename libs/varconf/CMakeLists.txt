@@ -39,6 +39,11 @@ macro(wf_add_test TEST_FILE)
     add_dependencies(check ${TEST_NAME})
 endmacro()
 
+# Provide a fallback "check" target when the library is configured standalone.
+if (NOT TARGET check)
+    add_custom_target(check)
+endif ()
+
 # Check for deps
 
 find_package(sigc++-3 3.0 REQUIRED)
