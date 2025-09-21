@@ -38,6 +38,7 @@
 
 #ifdef _WIN32
 #include <winsock2.h>
+#include <windows.h>
 #endif
 
 namespace {
@@ -133,21 +134,30 @@ TimeStamp TimeStamp::now() {
     gettimeofday(&tv, nullptr);
     ret._val.tv_sec = static_cast<std::int64_t>(tv.tv_sec);
     ret._val.tv_usec = static_cast<std::int64_t>(tv.tv_usec);
-#else
-    SYSTEMTIME sysTime;
-    FILETIME fileTime = {0};  /* 100ns == 1 */
-    LARGE_INTEGER i;
-
-    GetSystemTime(&sysTime);
-    SystemTimeToFileTime(&sysTime, &fileTime);
-    /* Documented as the way to get a 64 bit from a
-     * FILETIME. */
-    memcpy(&i, &fileTime, sizeof(LARGE_INTEGER));
-
-    ret._val.tv_sec = i.QuadPart / 10000000; /*10e7*/
-    ret._val.tv_usec = (i.QuadPart / 10) % 1000000;  /*10e6*/
-#endif
     ret._isvalid = true;
+#else
+    FILETIME fileTime{};
+    GetSystemTimeAsFileTime(&fileTime);
+
+    ULARGE_INTEGER timestamp{};
+    timestamp.LowPart = fileTime.dwLowDateTime;
+    timestamp.HighPart = fileTime.dwHighDateTime;
+
+    constexpr std::uint64_t WINDOWS_EPOCH_OFFSET_100NS = 116444736000000000ULL;
+    constexpr std::uint64_t HUNDRED_NS_PER_SECOND = 10000000ULL;
+    constexpr std::uint64_t HUNDRED_NS_PER_MICROSECOND = 10ULL;
+
+    if (timestamp.QuadPart >= WINDOWS_EPOCH_OFFSET_100NS) {
+        const auto unix_time_100ns = timestamp.QuadPart - WINDOWS_EPOCH_OFFSET_100NS;
+        ret._val.tv_sec = static_cast<std::int64_t>(unix_time_100ns / HUNDRED_NS_PER_SECOND);
+        ret._val.tv_usec = static_cast<std::int64_t>((unix_time_100ns % HUNDRED_NS_PER_SECOND) / HUNDRED_NS_PER_MICROSECOND);
+        ret._isvalid = true;
+    } else {
+        ret._val.tv_sec = 0;
+        ret._val.tv_usec = 0;
+        ret._isvalid = false;
+    }
+#endif
     return ret;
 }
 
