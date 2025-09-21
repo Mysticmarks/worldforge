@@ -49,6 +49,9 @@ def _find_build_dir(preset: str) -> Path | None:
     return None
 
 
+_PG_DSN_ENV = "WF_E2E_PG_DSN"
+
+
 def _resolve_build_dir(preset: str) -> Path | None:
     """Locate the build directory honouring manual overrides."""
 
@@ -103,6 +106,7 @@ def _load_database_drivers() -> list[DatabaseDriver]:
     """Discover optional PostgreSQL client libraries available locally."""
 
     drivers: list[DatabaseDriver] = []
+    dsn = _database_dsn()
     for module_name in ("psycopg", "psycopg2"):
         try:
             module = __import__(module_name)
@@ -114,7 +118,7 @@ def _load_database_drivers() -> list[DatabaseDriver]:
         operational_error = getattr(module, "OperationalError", Exception)
 
         def _connector(connect=connect):
-            return connect("dbname=cyphesis", connect_timeout=5)
+            return connect(dsn, connect_timeout=5)
 
         drivers.append(
             DatabaseDriver(
@@ -124,6 +128,23 @@ def _load_database_drivers() -> list[DatabaseDriver]:
             )
         )
     return drivers
+
+
+def _database_dsn(default: str = "dbname=cyphesis") -> str:
+    """Return the connection string used for PostgreSQL health checks.
+
+    Operators can override the default DSN through the ``WF_E2E_PG_DSN``
+    environment variable.  Empty strings are ignored so that misconfigured
+    environments still fall back to the safe default which targets the local
+    ``cyphesis`` database created by the build.
+    """
+
+    override = os.environ.get(_PG_DSN_ENV)
+    if override is not None:
+        candidate = override.strip()
+        if candidate:
+            return candidate
+    return default
 
 
 def _ensure_database_clean(drivers: Iterable[DatabaseDriver]) -> None:

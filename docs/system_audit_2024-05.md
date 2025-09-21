@@ -30,3 +30,7 @@
 
 ## 4. Deployment Impact
 - Documentation-only iteration; no binaries or infrastructure were modified. Deployment posture remains unchanged while providing guidance for subsequent automation.
+
+## 5. Iteration 1 → 2 Transformation Summary
+- Hardened the database health-check harness by allowing the DSN to be supplied via the ``WF_E2E_PG_DSN`` environment variable, ensuring operators can validate Cyphesis deployments against managed PostgreSQL instances while retaining safe defaults for local builds.【F:apps/tests/e2e/minimal_session.py†L32-L40】【F:apps/tests/e2e/minimal_session.py†L120-L149】
+- Added regression tests covering the DSN override semantics so CI environments surface misconfigurations immediately.【F:apps/tests/e2e/test_minimal_session_utils.py†L90-L147】
