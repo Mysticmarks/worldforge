@@ -166,7 +166,7 @@ def test_ensure_database_clean_validates_entity_count():
         operational_errors=(RuntimeError,),
     )
 
-    with pytest.raises(RuntimeError, match="database not clean"):
+    with pytest.raises(RuntimeError, match="expected 1 entity, found 2"):
         minimal_session._ensure_database_clean([driver])
 
 
@@ -180,6 +180,39 @@ def test_ensure_database_clean_succeeds_for_clean_database():
     )
 
     minimal_session._ensure_database_clean([driver])
+
+
+def test_fetch_entity_count_requires_row():
+    """The entity count helper should reject cursors without results."""
+
+    class _Cursor:
+        def fetchone(self):
+            return None
+
+    with pytest.raises(RuntimeError, match="returned no rows"):
+        minimal_session._fetch_entity_count(_Cursor())
+
+
+def test_fetch_entity_count_rejects_non_sequences():
+    """Values that are not sequences should be rejected."""
+
+    class _Cursor:
+        def fetchone(self):
+            return object()
+
+    with pytest.raises(RuntimeError, match="unexpected result"):
+        minimal_session._fetch_entity_count(_Cursor())
+
+
+def test_fetch_entity_count_requires_numeric_value():
+    """Non-numeric first columns should trigger a descriptive failure."""
+
+    class _Cursor:
+        def fetchone(self):
+            return ("not-a-number",)
+
+    with pytest.raises(RuntimeError, match="non-numeric"):
+        minimal_session._fetch_entity_count(_Cursor())
 
 
 def test_database_dsn_defaults(monkeypatch):

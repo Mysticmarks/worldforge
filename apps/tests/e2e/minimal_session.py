@@ -16,6 +16,7 @@ import socket
 import subprocess
 import tempfile
 import time
+from collections.abc import Sequence as _SequenceABC
 from contextlib import ExitStack, closing, contextmanager
 from pathlib import Path
 from typing import Callable, Iterable, Sequence
@@ -163,9 +164,11 @@ def _ensure_database_clean(drivers: Iterable[DatabaseDriver]) -> None:
             with _managed_connection(conn) as connection:
                 with _managed_cursor(connection) as cursor:
                     cursor.execute("SELECT COUNT(*) FROM entities")
-                    count = cursor.fetchone()[0]
+                    count = _fetch_entity_count(cursor)
                     if count != 1:
-                        raise RuntimeError("database not clean")
+                        raise RuntimeError(
+                            f"database not clean: expected 1 entity, found {count}"
+                        )
             return
         finally:
             close = getattr(conn, "close", None)
@@ -173,6 +176,24 @@ def _ensure_database_clean(drivers: Iterable[DatabaseDriver]) -> None:
                 close()
 
     print("Database check skipped")
+
+
+def _fetch_entity_count(cursor: object) -> int:
+    """Extract and validate the entity count returned from the database."""
+
+    row = cursor.fetchone()
+    if row is None:
+        raise RuntimeError("entity count query returned no rows")
+    if not isinstance(row, _SequenceABC):
+        raise RuntimeError("entity count query returned an unexpected result")
+    if not row:
+        raise RuntimeError("entity count query returned no columns")
+
+    first = row[0]
+    try:
+        return int(first)
+    except (TypeError, ValueError):
+        raise RuntimeError("entity count query returned a non-numeric value") from None
 
 
 def _spawn_process(args: Sequence[object], stack: ExitStack) -> subprocess.Popen[str]:
